@@ -1,4 +1,4 @@
-# ```stata wxsum ``` : Stata Weather Command
+# ``` wxsum ``` : Stata Weather Command
 
 The following package processes remote sensing rainfall and temperature data and outputs 
 
