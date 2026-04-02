@@ -2,13 +2,12 @@
 * 	weather                                                   			       	 	    *
 *	v 1.0  17may2017	by	Oscar Barriga Cabanillas	- obarriga@ucdavis.edu		    *
 *	v 2.0  16mjul2017	by	Oscar Barriga Cabanillas	- obarriga@ucdavis.edu		    *
-*			New stuff made by Aleksandr Michuda 		- amichuda@ucdavis.edu		    *
+*			New stuff done by Aleksandr Michuda 		- amichuda@ucdavis.edu		    *
 *	v 3.0  2july2019	by  Jeffrey D. Michler			- jdmichler@email.arizona.edu   *
 *   v 3.1  5july2019  	by  Brian McGreal				- bmcgreal@email.arizona.edu    *
 *   v 3.2  8july2019  	by  Anna Josepshon				- aljosephson@arizona.edu 		*
 *	v 3.3  24apr2020	by  Jeffrey D. Michler			- jdmichler@arizona.edu			*
 *	v 3.3  2nov2023		by  Jeffrey D. Michler			- jdmichler@arizona.edu			*
-*	v 4.0  2apr2026		by  Jeffrey D. Michler			- jdmichler@arizona.edu			*
 *********************************************************************************
 
 
@@ -34,7 +33,6 @@ version 15.1
 		bins(real 5)								///
 		temperature_data							///
 		rain_data									///
-		rain_threshold(real 1)						///
 		]											///
 
 
@@ -70,7 +68,8 @@ if "`temperature_data'" == "temperature_data" {
 *1) loading variables to be use in the estimation
 
 
-
+qui: ds , has(varlabel  `anything'*) alpha
+qui: loc objective = r(varlist)
 
 /*
 *2) loading variables to be use in the estimation
@@ -85,83 +84,57 @@ loc days = "01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23
 loc length_anything = length("`anything'")
 loc length_anything = `length_anything ' + 1
 
-* This local will store the variables that go into the matrix
-loc var = ""
-loc safe2 = 1
-
 * Help identify the first year that is used, so I can create a local with that name
 loc count = 0
 forvalues j = 1979(1)2027 {
+    * This local will store the variables that go into the matrix for the current season
+    loc var = ""
+    loc has_vars = 0
 
+    * Define the years for the season depending on if it crosses the new year
+    loc season_start_year = `j'
+    if `ini_month' > `fin_month' {
+        loc season_end_year = `j' + 1
+    }
+    else {
+        loc season_end_year = `j'
+    }
 
-	* Tempname for the matrix
-	*tempname mat_`j'
-	
-	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 continue
+    * Iterate over the two possible years in a season
+    forvalues current_year = `season_start_year'(1)`season_end_year' {
+        foreach month of loc months {
+            foreach day of loc days {
+                loc candidate = "`anything'`current_year'`month'`day'"
+                loc candidate_month = `month'
+                loc candidate_day = `day'
 
-	foreach month of loc months  {
-		foreach day of loc days  {
+                * Determine if the current date is within the season bounds
+                loc in_season = 0
+                if `ini_month' <= `fin_month' {
+                    if (`current_year' == `season_start_year' & ((`candidate_month' == `ini_month' & `candidate_day' >= `day_month') | (`candidate_month' > `ini_month' & `candidate_month' < `fin_month') | (`candidate_month' == `fin_month' & `candidate_day' <= `day_month'))) {
+                        loc in_season = 1
+                    }
+                }
+                else {
+                    if (`current_year' == `season_start_year' & ((`candidate_month' == `ini_month' & `candidate_day' >= `day_month') | (`candidate_month' > `ini_month'))) | (`current_year' == `season_end_year' & ((`candidate_month' < `fin_month') | (`candidate_month' == `fin_month' & `candidate_day' <= `day_month'))) {
+                        loc in_season = 1
+                    }
+                }
 
-			loc candidate = "`anything'`j'`month'`day'"
+                if `in_season' == 1 {
+                    qui: cap confirm numeric variable `candidate'
+                    if _rc == 0 {
+                        if `count' == 0 loc ini_year = "`j'"
+                        loc ++count
+                        loc var = "`var' `candidate'"
+                        loc has_vars = 1
+                    }
+                }
+            }
+        }
+    }
 
-			loc candidate_year = "`j'"
-			loc candidate_month = "`month'"
-			loc candidate_day = "`day'"
-
-
-			* We start selecting the variables that will be  use in the estimation
-			* We run this until we reach  fin_month and  day_month again.
-			* When reached we should stop adding info to the matrix
-
-
-			* WE only start until the variables start existing
-			qui: cap confirm numeric variable `anything'`j'`month'`day'
-
-			* To avoid entering the conditional of line 91 before the loop gets into a valid month thte first time
-			loc safe = 0
-
-			if _rc == 0 {
-				loc go = 0
-
-			if `count' == 0 loc ini_year = "`j'"
-			loc ++count
-
-
-				if (`ini_month' <= `fin_month') {
-					if (`candidate_month' >= `ini_month') & (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
-						if (`candidate_month' > `ini_month' ) &	(`candidate_month' < `fin_month')		loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
-					}
-				}
-				else {
-					if (`candidate_month' >= `ini_month') | (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
-						if (`candidate_month' > `ini_month' ) 											loc go = 1
-						if (`candidate_month' < `fin_month' ) 											loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
-					}
-				}
-
-				if `go' == 1 {
-					loc var = "`var' `anything'`j'`month'`day'"
-					loc safe = 1
-					loc safe2 = 0
-				}
-
-				loc trigger = 0
-				if (`ini_month' <= `fin_month') {
-					if (`candidate_month' >= `fin_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-				}
-				else {
-					if (`candidate_month' >= `fin_month') & (`candidate_month' < `ini_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-					if (`candidate_month' > `fin_month') & (`candidate_month' < `ini_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-				}
-
-				if `trigger' == 1 {
-
-
+    if `has_vars' == 1 {
 					loc final_year = `j'
 
 					* At this point I calculate the statistics I want using vars in loc var
@@ -259,7 +232,7 @@ forvalues j = 1979(1)2027 {
 
 					*days without rain
 					foreach f of local var {
-						qui: gen aux_norain_`f' = `f' < `rain_threshold'
+						qui: gen aux_norain_`f' = `f' < 1
 					}
 
 					*days without rain count
@@ -296,18 +269,9 @@ forvalues j = 1979(1)2027 {
 					qui forval k = 1/`count_days' {
 					replace dry_`j' = `k' if strpos(ssn_`j', substr("`lookfor'", 1, `k'))
 					}
- 				}
-
-					* Cleans the loc var so it can start again from zero and updates the dafe2 local indicatig that a new round of vars is going to be collected
-					loc var = ""
-					loc safe2 = 1
-
+                    drop hist_`j' ssn_`j'
 				}
-
-			}
-
-		}
-	}
+    }
 }
 
 
@@ -443,104 +407,3 @@ end
 // ------------------------------------------------------------------
 
 exit
-And here is the fully completed weather.sthlp script:
-
-{smcl}
-{* *! version 3.3 2nov2023}{...}
-{vieweralsosee "" "--"}{...}
-{viewerjumpto "Syntax" "weather##syntax"}{...}
-{viewerjumpto "Description" "weather##description"}{...}
-{viewerjumpto "Options" "weather##options"}{...}
-{viewerjumpto "Examples" "weather##examples"}{...}
-{title:Title}
-
-{phang}
-{bf:weather} {hline 2} Stata weather command
-
-{marker syntax}{...}
-{title:Syntax}
-
-{p 8 17 2}
-{cmdab:weather}
-{it:prefix}
-{cmd:,}
-{opt ini_month(month)}
-{opt fin_month(month)}
-[{it:options}]
-
-{synoptset 20 tabbed}{...}
-{synopthdr}
-{synoptline}
-{syntab:Main}
-{synopt:{opt ini_month(month)}}Initial month of the season (e.g., 05 for May){p_end}
-{synopt:{opt fin_month(month)}}Final month of the season (e.g., 10 for October){p_end}
-
-{syntab:Options}
-{synopt:{opt day_month(day)}}Start and end day of the season. Default is 01.{p_end}
-{synopt:{opt temperature_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
-{synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temperature_data.{p_end}
-{synopt:{opt growbase_low(#)}}Lower bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt growbase_high(#)}}Upper bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated weather variables.{p_end}
-{synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
-{synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
-{synoptline}
-{p2colreset}{...}
-
-{marker description}{...}
-{title:Description}
-
-{pstd}
-The {cmd:weather} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
-The command can be used with either rainfall or temperature data from any source. 
-
-{pstd}
-The data must be wide, where each location is a row and each column is a daily reading. 
-The variables for each column must contain {it:yyyymmdd}. For example, if the prefix is {it:pic_}, the variable for May 15, 1979 would be {it:pic_19790515}.
-
-{marker options}{...}
-{title:Options}
-
-{phang}
-{opt ini_month(month)} specifies the starting month of the season. 
-
-{phang}
-{opt fin_month(month)} specifies the ending month of the season. Seasons can span across calendar years (e.g., November to February).
-
-{phang}
-{opt day_month(day)} specifies the day the season begins and ends. If not specified, it defaults to 01.
-
-{phang}
-{opt temperature_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD) and percentile bins (20th, 40th, 60th, 80th, 100th).
-
-{phang}
-{opt rain_data} processes rainfall variables to generate mean, median, sd, skew, and total statistics, as well as number of rainy days, number of days without rain, percentage of rainy days, and the longest intra-season dry spell.
-
-{phang}
-{opt growbase_low(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
-
-{phang}
-{opt growbase_high(#)} specifies the upper temperature threshold for calculating Growing Degree Days.
-
-{phang}
-{opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
-
-{phang}
-{opt save(filename)} saves the output dataset.
-
-{phang}
-{opt rain_threshold(#)} allows the user to define what counts as a rainy day. Default is > 1.
-
-{marker examples}{...}
-{title:Examples}
-
-{phang}{cmd:. weather pic_, ini_month(05) fin_month(10) day_month(15) rain_data save(rainfall_stats.dta)}{p_end}
-{phang}{cmd:. weather t_, ini_month(11) fin_month(02) temperature_data growbase_low(8) growbase_high(32) keep(id region)}{p_end}
-
-{title:Authors}
-
-{pstd}Oscar Barriga Cabanillas{p_end}
-{pstd}Aleksandr Michuda{p_end}
-{pstd}Jeffrey D. Michler{p_end}
-{pstd}Brian McGreal{p_end}
-{pstd}Anna Josepshon{p_end}
