@@ -31,10 +31,12 @@
 {syntab:Options}
 {synopt:{opt ini_day(day)}}Start day of the season. Default is 01.{p_end}
 {synopt:{opt fin_day(day)}}End day of the season. Default is 01.{p_end}
-{synopt:{opt temperature_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
-{synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temperature_data.{p_end}
-{synopt:{opt growbase_low(#)}}Lower bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt growbase_high(#)}}Upper bound for growing degree days calculation (required if temperature_data is used).{p_end}
+{synopt:{opt temp_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
+{synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temp_data.{p_end}
+{synopt:{opt gdd_lo(#)}}Lower bound for growing degree days calculation (required if temp_data is used).{p_end}
+{synopt:{opt gdd_hi(#)}}Upper bound for growing degree days calculation (required if temp_data is used).{p_end}
+{synopt:{opt kdd_base(#)}}Temperature threshold for calculating Killing Degree Days (KDD).{p_end}
+{synopt:{opt bins(#)}}Number of temperature percentile bins. Minimum 4, Maximum 10. Default is 4.{p_end}
 {synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
 {synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
@@ -68,16 +70,22 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {opt fin_day(day)} specifies the day the season ends. If not specified, it defaults to 01.
 
 {phang}
-{opt temperature_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD) and percentile bins (20th, 40th, 60th, 80th, 100th).
+{opt temp_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD), Killing Degree Days (KDD), and percentile bins.
 
 {phang}
 {opt rain_data} processes rainfall variables to generate mean, median, sd, skew, and total statistics, as well as number of rainy days, number of days without rain, percentage of rainy days, and the longest intra-season dry spell.
 
 {phang}
-{opt growbase_low(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
+{opt gdd_lo(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
 
 {phang}
-{opt growbase_high(#)} specifies the upper temperature threshold for calculating Growing Degree Days.
+{opt gdd_hi(#)} specifies the upper temperature threshold for calculating Growing Degree Days.
+
+{phang}
+{opt kdd_base(#)} specifies the threshold temperature above which to calculate Killing Degree Days.
+
+{phang}
+{opt bins(#)} sets the number of equal-sized percentile bins for the temperature distribution. Allowed values: 4 to 10. Default is 4.
 
 {phang}
 {opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
@@ -95,7 +103,7 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {phang}{cmd:. wxsum pic_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
 
 {phang}{cmd:. use temp.dta, clear}{p_end}
-{phang}{cmd:. wxsum t_, ini_month(11) fin_month(02) temperature_data growbase_low(8) growbase_high(32) keep(id region)}{p_end}
+{phang}{cmd:. wxsum t_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(id region)}{p_end}
 
 {title:Authors}
 
