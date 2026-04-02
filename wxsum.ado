@@ -33,10 +33,11 @@ version 15.1
 		fin_day(string)								///
 		keep(string)								///
 		save(string)								///
-		growbase_low(real 0)						///
-		growbase_high(real 0)						///
-		bins(real 5)								///
-		temperature_data							///
+		gdd_lo(real 0)								///
+		gdd_hi(real 0)								///
+		kdd_base(real 0)							///
+		bins(real 4)								///
+		temp_data									///
 		rain_data									///
 		rain_threshold(real 1)						///
 		]											///
@@ -57,17 +58,21 @@ if "'`fin_day'" == "" {
 *0.3) Check options
 
 
-if "`temperature_data'" == "temperature_data" {
-	if `growbase_low' == 0 {
+if "`temp_data'" == "temp_data" {
+	if `gdd_lo' == 0 {
 		di in red "Please define the temperature range to evaluate"
 		error
 	}
-	if `growbase_high' == 0 {
+	if `gdd_hi' == 0 {
 		di in red "Please define the temperature range to evaluate"
+		error
+	}
+	if `bins' < 4 | `bins' > 10 {
+		di in red "Bins must be between 4 and 10"
 		error
 	}
 	if "`rain_data'" == "rain_data" {
-		di in red "rain and temperature options cannot be used simultaneously"
+		di in red "rain and temp_data options cannot be used simultaneously"
 		error
 	}
 
@@ -204,61 +209,63 @@ forvalues j = 1979(1)2027 {
 
 					* Some sats are only calculated for temperature data, but nor for rain
 
-					if "`temperature_data'" == "temperature_data" {
+					if "`temp_data'" == "temp_data" {
 
 						*growing degree days
 						foreach f of local var {
-							qui: gen aux_gd_`f' = inrange(`f' , `growbase_low' , `growbase_high')
+							qui: gen aux_gd_`f' = inrange(`f' , `gdd_lo' , `gdd_hi')
 						}
 
-
 						qui: egen gdd_`j' = rowtotal(aux_gd_*)
-						label var gdd_`j' "Number of growing degree days in `j' between `growbase_low' `growbase_high'"
+						label var gdd_`j' "Number of growing degree days in `j' between `gdd_lo' `gdd_hi'"
 
 						drop aux_gd_*
 
-
-						* Schlenker/Roberts temperature bins
-						forval i= 20(20)80 {
-							qui: egen percentile`i'`j' = rowpctile(`var'), p(`i')
-
+						*killing degree days
+						if `kdd_base' > 0 {
+							foreach f of local var {
+								qui: gen aux_kd_`f' = max(`f' - `kdd_base', 0)
+							}
+							qui: egen kdd_`j' = rowtotal(aux_kd_*)
+							label var kdd_`j' "Number of killing degree days in `j' base `kdd_base'"
+							drop aux_kd_*
 						}
 
+						* Dynamic Temperature Bins
+						loc step = 100 / `bins'
+						loc max_bound = `bins' - 1
+						
+						* Calculate percentiles
+						forval b=1/`max_bound' {
+							loc p_val = round(`b' * `step')
+							qui: egen percentile`b'`j' = rowpctile(`var'), p(`p_val')
+						}
 
 						foreach f of local var {
-
-							qui: gen aux20`f' = `f' < percentile20`j'
-							qui: gen aux40`f' = inrange(`f' , percentile20`j' , percentile40`j' - 0.00001)
-							qui: gen aux60`f' = inrange(`f' , percentile40`j' , percentile60`j' - 0.00001)
-							qui: gen aux80`f' = inrange(`f' , percentile60`j' , percentile80`j' - 0.00001)
-							qui: gen aux100`f' = `f' >= percentile80`j'
-
+							* First bin
+							qui: gen aux1`f' = `f' < percentile1`j'
+							
+							* Middle bins
+							forval b=2/`max_bound' {
+								loc prev = `b' - 1
+								qui: gen aux`b'`f' = inrange(`f' , percentile`prev'`j' , percentile`b'`j' - 0.00001)
+							}
+							
+							* Last bin
+							qui: gen aux`bins'`f' = `f' >= percentile`max_bound'`j'
 						}
 
-						* percentage of days in each bin
-						qui: egen tempbin20`j'  = rowtotal(aux20*)
-						qui: replace   tempbin20`j' =   tempbin20`j'/`count_days'
+						forval b=1/`bins' {
+							qui: egen tempbin`b'`j'  = rowtotal(aux`b'*)
+							qui: replace tempbin`b'`j' = tempbin`b'`j'/`count_days'
+							loc p_val_end = round(`b' * `step')
+							label var tempbin`b'`j' "The percentage of days in the `p_val_end'th percentile of temperature in year `j'"
+						}
 
-						qui: egen tempbin40`j'  = rowtotal(aux40*)
-						qui: replace   tempbin40`j' =   tempbin40`j'/`count_days'
-
-						qui: egen tempbin60`j'  = rowtotal(aux60*)
-						qui: replace   tempbin60`j' =   tempbin60`j'/`count_days'
-
-						qui: egen tempbin80`j'  = rowtotal(aux80*)
-						qui: replace   tempbin80`j' =   tempbin80`j'/`count_days'
-
-						qui: egen tempbin100`j'  = rowtotal(aux100*)
-						qui: replace   tempbin100`j' =   tempbin100`j'/`count_days'
-
-
-						label var  tempbin20`j'  "The number of days in the  20th percentile of temperature in year `j'"
-						label var  tempbin40`j'  "The number of days in the  40th percentile of temperature in year `j'"
-						label var  tempbin60`j'  "The number of days in the  60th percentile of temperature in year `j'"
-						label var  tempbin80`j'  "The number of days in the  80th percentile of temperature in year `j'"
-						label var  tempbin100`j' "The number of days in the  100th percentile of temperature in year `j'"
-
-						qui: drop aux20* aux40*  aux60* aux80* aux100*
+						qui: drop aux1*
+						forval b=2/`bins' {
+							qui: drop aux`b'*
+						}
 
 					}
 
@@ -360,15 +367,15 @@ foreach var of loc deviation {
 ***********
 * Main Temperature Statistics
 ***********
-if "`temperature_data'" == "temperature_data" {
+if "`temp_data'" == "temp_data" {
 *** GDD deviations from LR mean - keep this
 	* gen average annual number of growing degree days
 	qui: egen mean_gdd = rowmean(gdd_*)
-	label var mean_gdd "Long Term growing degree days between  `growbase_low' `growbase_high' seasons"
+	label var mean_gdd "Long Term growing degree days between  `gdd_lo' `gdd_hi' seasons"
 
 	* gen sd of growing degree days - keep this
 	qui: egen sd_gdd = rowsd(gdd_*)
-	label var sd_gdd "Standard Deviation of growing days between seasons between  `growbase_low' `growbase_high'"
+	label var sd_gdd "Standard Deviation of growing days between seasons between  `gdd_lo' `gdd_hi'"
 
 
 	* Z-scores - keep this
@@ -388,14 +395,36 @@ if "`temperature_data'" == "temperature_data" {
 
 	}
 
-	forval k = 20(20)100 {
+*** KDD deviations from LR mean - keep this
+	if `kdd_base' > 0 {
+		qui: egen mean_kdd = rowmean(kdd_*)
+		label var mean_kdd "Long Term killing degree days base `kdd_base' seasons"
 
-		qui: egen mean_`k' = rowmean(tempbin`k'*)
-		label var mean_`k' "Average percentage number of days in the `k'th percentile between all seasons"
+		qui: egen sd_kdd = rowsd(kdd_*)
+		label var sd_kdd "Standard Deviation of killing days between seasons base `kdd_base'"
 
-		qui: egen sd_`k' = rowsd(tempbin`k'*)
-		label var sd_`k' "SD of the percentage of number of days in the `k'th percentile between all seasons"
+		forvalues j = 1979(1)2027{
+			qui: cap confirm numeric variable kdd_`j'
 
+			if _rc == 0 {
+				qui: gen dev_kdd_`j' = kdd_`j' - mean_kdd
+				label var dev_kdd_`j' "Deviation in KDD from long-run average"
+
+				qui: gen z_kdd_`j'  = (kdd_`j'-mean_kdd)/sd_kdd
+				label var z_kdd_`j' "Z-score of KDD between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
+			}
+		}
+	}
+
+	forval k = 1/10 {
+		qui: cap confirm numeric variable tempbin`k'`ini_year'
+		if _rc == 0 {
+			qui: egen mean_`k' = rowmean(tempbin`k'*)
+			label var mean_`k' "Average percentage number of days in the bin `k' between all seasons"
+
+			qui: egen sd_`k' = rowsd(tempbin`k'*)
+			label var sd_`k' "SD of the percentage of number of days in the bin `k' between all seasons"
+		}
 	}
 }
 
@@ -432,8 +461,8 @@ if "`keep'" != "" {
 
 	}
 
-	if "`temperature_data'" == "temperature_data" {
-		qui: keep `keep' *season* *gdd* tempbin*
+	if "`temp_data'" == "temp_data" {
+		qui: keep `keep' *season* *gdd* *kdd* tempbin*
 		qui: drop total_season_*
 
 	}
