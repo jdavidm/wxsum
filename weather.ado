@@ -33,7 +33,6 @@ version 15.1
 		bins(real 5)								///
 		temperature_data							///
 		rain_data									///
-		rain_threshold(real 1)						///
 		]											///
 
 
@@ -69,7 +68,8 @@ if "`temperature_data'" == "temperature_data" {
 *1) loading variables to be use in the estimation
 
 
-
+qui: ds , has(varlabel  `anything'*) alpha
+qui: loc objective = r(varlist)
 
 /*
 *2) loading variables to be use in the estimation
@@ -84,83 +84,57 @@ loc days = "01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23
 loc length_anything = length("`anything'")
 loc length_anything = `length_anything ' + 1
 
-* This local will store the variables that go into the matrix
-loc var = ""
-loc safe2 = 1
-
 * Help identify the first year that is used, so I can create a local with that name
 loc count = 0
 forvalues j = 1979(1)2027 {
+    * This local will store the variables that go into the matrix for the current season
+    loc var = ""
+    loc has_vars = 0
 
+    * Define the years for the season depending on if it crosses the new year
+    loc season_start_year = `j'
+    if `ini_month' > `fin_month' {
+        loc season_end_year = `j' + 1
+    }
+    else {
+        loc season_end_year = `j'
+    }
 
-	* Tempname for the matrix
-	*tempname mat_`j'
-	
-	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 continue
+    * Iterate over the two possible years in a season
+    forvalues current_year = `season_start_year'(1)`season_end_year' {
+        foreach month of loc months {
+            foreach day of loc days {
+                loc candidate = "`anything'`current_year'`month'`day'"
+                loc candidate_month = `month'
+                loc candidate_day = `day'
 
-	foreach month of loc months  {
-		foreach day of loc days  {
+                * Determine if the current date is within the season bounds
+                loc in_season = 0
+                if `ini_month' <= `fin_month' {
+                    if (`current_year' == `season_start_year' & ((`candidate_month' == `ini_month' & `candidate_day' >= `day_month') | (`candidate_month' > `ini_month' & `candidate_month' < `fin_month') | (`candidate_month' == `fin_month' & `candidate_day' <= `day_month'))) {
+                        loc in_season = 1
+                    }
+                }
+                else {
+                    if (`current_year' == `season_start_year' & ((`candidate_month' == `ini_month' & `candidate_day' >= `day_month') | (`candidate_month' > `ini_month'))) | (`current_year' == `season_end_year' & ((`candidate_month' < `fin_month') | (`candidate_month' == `fin_month' & `candidate_day' <= `day_month'))) {
+                        loc in_season = 1
+                    }
+                }
 
-			loc candidate = "`anything'`j'`month'`day'"
+                if `in_season' == 1 {
+                    qui: cap confirm numeric variable `candidate'
+                    if _rc == 0 {
+                        if `count' == 0 loc ini_year = "`j'"
+                        loc ++count
+                        loc var = "`var' `candidate'"
+                        loc has_vars = 1
+                    }
+                }
+            }
+        }
+    }
 
-			loc candidate_year = "`j'"
-			loc candidate_month = "`month'"
-			loc candidate_day = "`day'"
-
-
-			* We start selecting the variables that will be  use in the estimation
-			* We run this until we reach  fin_month and  day_month again.
-			* When reached we should stop adding info to the matrix
-
-
-			* WE only start until the variables start existing
-			qui: cap confirm numeric variable `anything'`j'`month'`day'
-
-			* To avoid entering the conditional of line 91 before the loop gets into a valid month thte first time
-			loc safe = 0
-
-			if _rc == 0 {
-				loc go = 0
-
-			if `count' == 0 loc ini_year = "`j'"
-			loc ++count
-
-
-				if (`ini_month' <= `fin_month') {
-					if (`candidate_month' >= `ini_month') & (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
-						if (`candidate_month' > `ini_month' ) &	(`candidate_month' < `fin_month')		loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
-					}
-				}
-				else {
-					if (`candidate_month' >= `ini_month') | (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
-						if (`candidate_month' > `ini_month' ) 											loc go = 1
-						if (`candidate_month' < `fin_month' ) 											loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
-					}
-				}
-
-				if `go' == 1 {
-					loc var = "`var' `anything'`j'`month'`day'"
-					loc safe = 1
-					loc safe2 = 0
-				}
-
-				loc trigger = 0
-				if (`ini_month' <= `fin_month') {
-					if (`candidate_month' >= `fin_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-				}
-				else {
-					if (`candidate_month' >= `fin_month') & (`candidate_month' < `ini_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-					if (`candidate_month' > `fin_month') & (`candidate_month' < `ini_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
-				}
-
-				if `trigger' == 1 {
-
-
+    if `has_vars' == 1 {
 					loc final_year = `j'
 
 					* At this point I calculate the statistics I want using vars in loc var
@@ -258,7 +232,7 @@ forvalues j = 1979(1)2027 {
 
 					*days without rain
 					foreach f of local var {
-						qui: gen aux_norain_`f' = `f' < `rain_threshold'
+						qui: gen aux_norain_`f' = `f' < 1
 					}
 
 					*days without rain count
@@ -295,18 +269,9 @@ forvalues j = 1979(1)2027 {
 					qui forval k = 1/`count_days' {
 					replace dry_`j' = `k' if strpos(ssn_`j', substr("`lookfor'", 1, `k'))
 					}
- 				}
-
-					* Cleans the loc var so it can start again from zero and updates the dafe2 local indicatig that a new round of vars is going to be collected
-					loc var = ""
-					loc safe2 = 1
-
+                    drop hist_`j' ssn_`j'
 				}
-
-			}
-
-		}
-	}
+    }
 }
 
 

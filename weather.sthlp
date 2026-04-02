@@ -1,95 +1,126 @@
 {smcl}
-{* *! version 3.3 2nov2023}{...}
-{vieweralsosee "" "--"}{...}
+{* *! version 3.3 02nov2023}{...}
+{vieweralsosee "[D] egen" "help egen"}{...}
 {viewerjumpto "Syntax" "weather##syntax"}{...}
 {viewerjumpto "Description" "weather##description"}{...}
 {viewerjumpto "Options" "weather##options"}{...}
 {viewerjumpto "Examples" "weather##examples"}{...}
+{viewerjumpto "Authors" "weather##authors"}{...}
 {title:Title}
 
 {phang}
-{bf:weather} {hline 2} Stata weather command
+{bf:weather} {hline 2} Process remote sensing rainfall and temperature data
+
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 17 2}
-{cmdab:weather}
-{it:prefix}
-{cmd:,}
-{opt ini_month(month)}
-{opt fin_month(month)}
+{cmd:weather}
+{it:prefix}{cmd:,}
+{opt ini_month(#)}
+{opt fin_month(#)}
 [{it:options}]
 
-{synoptset 20 tabbed}{...}
+{synoptset 24 tabbed}{...}
 {synopthdr}
 {synoptline}
 {syntab:Main}
-{synopt:{opt ini_month(month)}}Initial month of the season (e.g., 05 for May){p_end}
-{synopt:{opt fin_month(month)}}Final month of the season (e.g., 10 for October){p_end}
+{synopt:{opt ini_month(#)}}initial month of the season (1-12){p_end}
+{synopt:{opt fin_month(#)}}final month of the season (1-12){p_end}
 
-{syntab:Options}
-{synopt:{opt day_month(day)}}Start and end day of the season. Default is 01.{p_end}
-{synopt:{opt temperature_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
-{synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temperature_data.{p_end}
-{synopt:{opt growbase_low(#)}}Lower bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt growbase_high(#)}}Upper bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated weather variables.{p_end}
-{synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
-{synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
+{syntab:Optional}
+{synopt:{opt day_month(#)}}starting and ending day of the season month; default is 1{p_end}
+{synopt:{opt temperature_data}}specify that the data is temperature data{p_end}
+{synopt:{opt rain_data}}specify that the data is rainfall data{p_end}
+{synopt:{opt growbase_low(#)}}lower bound for growing degree days calculation{p_end}
+{synopt:{opt growbase_high(#)}}upper bound for growing degree days calculation{p_end}
+{synopt:{opt bins(#)}}number of Schlenker/Roberts temperature bins; default is 5{p_end}
+{synopt:{opt keep(varlist)}}keep created variables and specified existing variables{p_end}
+{synopt:{opt save(filename)}}save dataset as {it:filename}{p_end}
 {synoptline}
 {p2colreset}{...}
+{p 4 6 2}Note: Either {opt temperature_data} or {opt rain_data} must be specified, but they cannot be used simultaneously.{p_end}
+
 
 {marker description}{...}
 {title:Description}
 
 {pstd}
-The {cmd:weather} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
-The command can be used with either rainfall or temperature data from any source. 
+The {cmd:weather} command processes remote sensing rainfall and temperature data, generating useful summary statistics across user-defined seasons. It can be used with data from any source, provided the data conforms to the following structure:
+{break}1. The data is in wide format (each location is a row, each column is a daily reading).
+{break}2. Observations are recorded daily.
+{break}3. Variable names contain the date in {it:yyyymmdd} format, preceded by a uniform {it:prefix} (e.g., {cmd:pic_} or {cmd:y_}).
 
 {pstd}
-The data must be wide, where each location is a row and each column is a daily reading. 
-The variables for each column must contain {it:yyyymmdd}. For example, if the prefix is {it:pic_}, the variable for May 15, 1979 would be {it:pic_19790515}.
+The command seamlessly handles seasons that span across calendar years (e.g., from November to February). In such cases, the data is kept associated with the year in which the season starts.
+
+{pstd}
+{bf:Rainfall Variables}
+{break}When the {opt rain_data} option is specified, the command calculates variables for each season, including:
+{break}{space 4}- Mean, median, standard deviation, skewness, total, and max daily rainfall
+{break}{space 4}- Long-term averages, deviations, and Z-scores of total rainfall
+{break}{space 4}- Number of rainy and no-rain days, and percentage of rainy days
+{break}{space 4}- Longest intra-season dry spell
+
+{pstd}
+{bf:Temperature Variables}
+{break}When the {opt temperature_data} option is specified, the command calculates variables for each season, including:
+{break}{space 4}- Mean, median, standard deviation, skewness, and max daily temperature
+{break}{space 4}- Growing Degree Days (GDD) bounded by {opt growbase_low} and {opt growbase_high}
+{break}{space 4}- Long-term averages, deviations, and Z-scores of GDD
+{break}{space 4}- Temperature bins representing the percentage of days falling into temperature quintiles
+
 
 {marker options}{...}
 {title:Options}
 
-{phang}
-{opt ini_month(month)} specifies the starting month of the season. 
+{dlgtab:Main}
 
 {phang}
-{opt fin_month(month)} specifies the ending month of the season. Seasons can span across calendar years (e.g., November to February).
+{opt ini_month(#)} specifies the numerical month (1 to 12) when the season begins.
 
 {phang}
-{opt day_month(day)} specifies the day the season begins and ends. If not specified, it defaults to 01.
+{opt fin_month(#)} specifies the numerical month (1 to 12) when the season ends. If {opt ini_month} is greater than {opt fin_month}, the command interprets the season as spanning across the new year.
+
+{dlgtab:Optional}
 
 {phang}
-{opt temperature_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD) and percentile bins (20th, 40th, 60th, 80th, 100th).
+{opt day_month(#)} specifies the exact day of the month when the season begins and ends. If not specified, the default is the first day of the month.
 
 {phang}
-{opt rain_data} processes rainfall variables to generate mean, median, sd, skew, and total statistics, as well as number of rainy days, number of days without rain, percentage of rainy days, and the longest intra-season dry spell.
+{opt temperature_data} informs the command that the variables contain temperature readings. Required if processing temperature data.
 
 {phang}
-{opt growbase_low(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
+{opt rain_data} informs the command that the variables contain rainfall readings. Required if processing rainfall data.
 
 {phang}
-{opt growbase_high(#)} specifies the upper temperature threshold for calculating Growing Degree Days.
+{opt growbase_low(#)} specifies the lower temperature bound for calculating Growing Degree Days. Required when using {opt temperature_data}.
 
 {phang}
-{opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
+{opt growbase_high(#)} specifies the upper temperature bound for calculating Growing Degree Days. Required when using {opt temperature_data}.
 
 {phang}
-{opt save(filename)} saves the output dataset.
+{opt bins(#)} determines the number of bins (percentiles) used when generating Schlenker/Roberts temperature distributions. The default is 5 (quintiles).
 
 {phang}
-{opt rain_threshold(#)} allows the user to define what counts as a rainy day. Default is > 1.
+{opt keep(varlist)} instructs the command to keep the variables it creates, plus the specific original variables listed in {it:varlist}, to facilitate merging with other datasets.
+
+{phang}
+{opt save(filename)} saves the resulting dataset to the specified {it:filename}.
+
 
 {marker examples}{...}
 {title:Examples}
 
-{phang}{cmd:. weather pic_, ini_month(05) fin_month(10) day_month(15) rain_data save(rainfall_stats.dta)}{p_end}
-{phang}{cmd:. weather t_, ini_month(11) fin_month(02) temperature_data growbase_low(8) growbase_high(32) keep(id region)}{p_end}
+{pstd}Process rainfall data (using variables starting with `pic_`) for a season running from mid-March to mid-June:{p_end}
+{phang2}{cmd:. weather pic_, ini_month(3) fin_month(6) day_month(15) rain_data keep(id) save("rain_stats.dta")}{p_end}
 
+{pstd}Process temperature data (using variables starting with `t_`) for a cross-year season from November to February:{p_end}
+{phang2}{cmd:. weather t_, ini_month(11) fin_month(2) temperature_data growbase_low(10) growbase_high(30) save("temp_stats.dta")}{p_end}
+
+
+{marker authors}{...}
 {title:Authors}
 
 {pstd}Oscar Barriga Cabanillas{p_end}
@@ -97,3 +128,5 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {pstd}Jeffrey D. Michler{p_end}
 {pstd}Brian McGreal{p_end}
 {pstd}Anna Josepshon{p_end}
+
+{pstd}Contact information or bug reports can be sent to {browse "mailto:jdmichler@arizona.edu":jdmichler@arizona.edu}.{p_end}
