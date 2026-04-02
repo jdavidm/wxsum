@@ -1,20 +1,20 @@
 {smcl}
 {* *! version 3.3 2nov2023}{...}
 {vieweralsosee "" "--"}{...}
-{viewerjumpto "Syntax" "weather##syntax"}{...}
-{viewerjumpto "Description" "weather##description"}{...}
-{viewerjumpto "Options" "weather##options"}{...}
-{viewerjumpto "Examples" "weather##examples"}{...}
+{viewerjumpto "Syntax" "wxsum##syntax"}{...}
+{viewerjumpto "Description" "wxsum##description"}{...}
+{viewerjumpto "Options" "wxsum##options"}{...}
+{viewerjumpto "Examples" "wxsum##examples"}{...}
 {title:Title}
 
 {phang}
-{bf:weather} {hline 2} Stata weather command
+{bf:wxsum} {hline 2} Stata wxsum command
 
 {marker syntax}{...}
 {title:Syntax}
 
 {p 8 17 2}
-{cmdab:weather}
+{cmdab:wxsum}
 {it:prefix}
 {cmd:,}
 {opt ini_month(month)}
@@ -29,12 +29,13 @@
 {synopt:{opt fin_month(month)}}Final month of the season (e.g., 10 for October){p_end}
 
 {syntab:Options}
-{synopt:{opt day_month(day)}}Start and end day of the season. Default is 01.{p_end}
+{synopt:{opt ini_day(day)}}Start day of the season. Default is 01.{p_end}
+{synopt:{opt fin_day(day)}}End day of the season. Default is 01.{p_end}
 {synopt:{opt temperature_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
 {synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temperature_data.{p_end}
 {synopt:{opt growbase_low(#)}}Lower bound for growing degree days calculation (required if temperature_data is used).{p_end}
 {synopt:{opt growbase_high(#)}}Upper bound for growing degree days calculation (required if temperature_data is used).{p_end}
-{synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated weather variables.{p_end}
+{synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
 {synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
 {synoptline}
@@ -44,7 +45,7 @@
 {title:Description}
 
 {pstd}
-The {cmd:weather} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
+The {cmd:wxsum} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
 The command can be used with either rainfall or temperature data from any source. 
 
 {pstd}
@@ -61,7 +62,10 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {opt fin_month(month)} specifies the ending month of the season. Seasons can span across calendar years (e.g., November to February).
 
 {phang}
-{opt day_month(day)} specifies the day the season begins and ends. If not specified, it defaults to 01.
+{opt ini_day(day)} specifies the day the season begins. If not specified, it defaults to 01.
+
+{phang}
+{opt fin_day(day)} specifies the day the season ends. If not specified, it defaults to 01.
 
 {phang}
 {opt temperature_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD) and percentile bins (20th, 40th, 60th, 80th, 100th).
@@ -87,8 +91,8 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {marker examples}{...}
 {title:Examples}
 
-{phang}{cmd:. weather pic_, ini_month(05) fin_month(10) day_month(15) rain_data save(rainfall_stats.dta)}{p_end}
-{phang}{cmd:. weather t_, ini_month(11) fin_month(02) temperature_data growbase_low(8) growbase_high(32) keep(id region)}{p_end}
+{phang}{cmd:. wxsum pic_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
+{phang}{cmd:. wxsum t_, ini_month(11) fin_month(02) temperature_data growbase_low(8) growbase_high(32) keep(id region)}{p_end}
 
 {title:Authors}
 

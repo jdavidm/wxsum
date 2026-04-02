@@ -1,5 +1,5 @@
 *********************************************************************************
-* 	weather                                                   			       	 	    *
+* 	wxsum                                                   			       	 	    *
 *	v 1.0  17may2017	by	Oscar Barriga Cabanillas	- obarriga@ucdavis.edu		    *
 *	v 2.0  16mjul2017	by	Oscar Barriga Cabanillas	- obarriga@ucdavis.edu		    *
 *			New stuff done by Aleksandr Michuda 		- amichuda@ucdavis.edu		    *
@@ -12,8 +12,8 @@
 
 
 pause on
-cap program drop weather
-program define weather  , eclass
+cap program drop wxsum
+program define wxsum  , eclass
 
 
 * Define tempnames
@@ -25,7 +25,8 @@ version 15.1
 		ini_month(string)							///
 		fin_month(string)							///
 		[											///
-		day_month(string)							///
+		ini_day(string)								///
+		fin_day(string)								///
 		keep(string)								///
 		save(string)								///
 		growbase_low(real 0)						///
@@ -41,8 +42,11 @@ version 15.1
 
 *0.0) If day is missing, it is assumed to be 01
 
-if "'`day_month'" == "" {
-	loc day_month = "01"
+if "'`ini_day'" == "" {
+	loc ini_day = "01"
+}
+if "'`fin_day'" == "" {
+	loc fin_day = "01"
 }
 
 
@@ -129,17 +133,17 @@ forvalues j = 1979(1)2027 {
 
 				if (`ini_month' <= `fin_month') {
 					if (`candidate_month' >= `ini_month') & (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
+						if (`candidate_month' == `ini_month' & `candidate_day' >= `ini_day' ) 			loc go = 1
 						if (`candidate_month' > `ini_month' ) &	(`candidate_month' < `fin_month')		loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
+						if (`candidate_month' == `fin_month') & (`candidate_day' <= `fin_day' ) 		loc go = 1
 					}
 				}
 				else {
 					if (`candidate_month' >= `ini_month') | (`candidate_month' <= `fin_month') {
-						if (`candidate_month' == `ini_month' & `candidate_day' >= `day_month' ) 		loc go = 1
+						if (`candidate_month' == `ini_month' & `candidate_day' >= `ini_day' ) 			loc go = 1
 						if (`candidate_month' > `ini_month' ) 											loc go = 1
 						if (`candidate_month' < `fin_month' ) 											loc go = 1
-						if (`candidate_month' == `fin_month') & (`candidate_day' <= `day_month' ) 		loc go = 1
+						if (`candidate_month' == `fin_month') & (`candidate_day' <= `fin_day' ) 		loc go = 1
 					}
 				}
 
@@ -151,10 +155,10 @@ forvalues j = 1979(1)2027 {
 
 				loc trigger = 0
 				if (`ini_month' <= `fin_month') {
-					if (`candidate_month' >= `fin_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
+					if (`candidate_month' >= `fin_month') & (`candidate_day' > `fin_day') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
 				}
 				else {
-					if (`candidate_month' >= `fin_month') & (`candidate_month' < `ini_month') & (`candidate_day' > `day_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
+					if (`candidate_month' >= `fin_month') & (`candidate_month' < `ini_month') & (`candidate_day' > `fin_day') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
 					if (`candidate_month' > `fin_month') & (`candidate_month' < `ini_month') & (`safe' == 0 ) & (`safe2' == 0) loc trigger = 1
 				}
 
