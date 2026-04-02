@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.0 2apr2026}{...}
+{* *! version 3.3 2nov2023}{...}
 {vieweralsosee "" "--"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
