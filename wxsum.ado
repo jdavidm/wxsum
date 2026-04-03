@@ -352,6 +352,51 @@ forvalues j = 1979(1)2040 {
 					}
  				}
 
+					* Calculate Deviations for the current year `j` right here to keep variables together
+					loc deviation = ""
+					if "`rain_data'" == "rain_data" {
+						loc deviation = "total_season raindays norain pct_raindays"
+					}
+					if "`temp_data'" == "temp_data" {
+						loc deviation = "total_season gdd"
+						if `kdd_base' > 0 {
+							loc deviation = "`deviation' kdd"
+						}
+					}
+					
+					if "`deviation'" != "" {
+						foreach v of loc deviation {
+							qui: cap confirm numeric variable `v'_`j'
+							if _rc == 0 {
+								* Build a varlist of previous lr_years
+								loc pvars = ""
+								loc start_year = `j' - `lr_years'
+								loc end_year = `j' - 1
+								forval y = `start_year'(1)`end_year' {
+									qui: cap confirm numeric variable `v'_`y'
+									if _rc == 0 {
+										loc pvars = "`pvars' `v'_`y'"
+									}
+								}
+								
+								* Check if we found exactly lr_years
+								loc wordcount : word count `pvars'
+								if `wordcount' == `lr_years' {
+									qui: egen aux_mean_`v'_`j' = rowmean(`pvars')
+									qui: egen aux_sd_`v'_`j' = rowsd(`pvars')
+									
+									qui: gen dev_`v'_`j' = `v'_`j' - aux_mean_`v'_`j'
+									label var dev_`v'_`j' "Deviation in `v' from `lr_years' yr avg"
+
+									qui: gen z_`v'_`j'  = (`v'_`j'-aux_mean_`v'_`j')/aux_sd_`v'_`j'
+									label var z_`v'_`j' "Z-score of `v' from `lr_years' yr avg"
+									
+									qui: drop aux_mean_`v'_`j' aux_sd_`v'_`j'
+								}
+							}
+						}
+					}
+
 					* Cleans the loc var so it can start again from zero and updates the dafe2 local indicatig that a new round of vars is going to be collected
 					loc var = ""
 					loc safe2 = 1
@@ -364,101 +409,6 @@ forvalues j = 1979(1)2040 {
 	}
 }
 
-
-***********
-* Now we create deviations from the seasons
-***********
-
-if "`rain_data'" == "rain_data" {
-
-loc deviation = "total_season raindays norain pct_raindays"
-
-foreach var of loc deviation {
-
-	forvalues j = 1979(1)2040{
-
-		qui: cap confirm numeric variable `var'_`j'
-
-		if _rc == 0 {
-			* Build a varlist of previous lr_years
-			loc pvars = ""
-			loc start_year = `j' - `lr_years'
-			loc end_year = `j' - 1
-			forval y = `start_year'(1)`end_year' {
-				qui: cap confirm numeric variable `var'_`y'
-				if _rc == 0 {
-					loc pvars = "`pvars' `var'_`y'"
-				}
-			}
-			
-			* Check if we found exactly lr_years
-			loc wordcount : word count `pvars'
-			if `wordcount' == `lr_years' {
-				qui: egen aux_mean_`var'_`j' = rowmean(`pvars')
-				qui: egen aux_sd_`var'_`j' = rowsd(`pvars')
-				
-				qui: gen dev_`var'_`j' = `var'_`j' - aux_mean_`var'_`j'
-				label var dev_`var'_`j' "Deviation in `var' from `lr_years' yr avg"
-
-				qui: gen z_`var'_`j'  = (`var'_`j'-aux_mean_`var'_`j')/aux_sd_`var'_`j'
-				label var z_`var'_`j' "Z-score of `var' from `lr_years' yr avg"
-				
-				qui: drop aux_mean_`var'_`j' aux_sd_`var'_`j'
-			}
-
-		}
-
-	}
-
-}
-
-}
-
-***********
-* Main Temperature Statistics
-***********
-if "`temp_data'" == "temp_data" {
-*** GDD and KDD deviations from LR mean - keep this
-	loc deviation = "total_season gdd"
-	if `kdd_base' > 0 {
-		loc deviation = "`deviation' kdd"
-	}
-	
-	foreach var of loc deviation {
-		forvalues j = 1979(1)2040{
-			qui: cap confirm numeric variable `var'_`j'
-
-			if _rc == 0 {
-				* Build a varlist of previous lr_years
-				loc pvars = ""
-				loc start_year = `j' - `lr_years'
-				loc end_year = `j' - 1
-				forval y = `start_year'(1)`end_year' {
-					qui: cap confirm numeric variable `var'_`y'
-					if _rc == 0 {
-						loc pvars = "`pvars' `var'_`y'"
-					}
-				}
-				
-				* Check if we found exactly lr_years
-				loc wordcount : word count `pvars'
-				if `wordcount' == `lr_years' {
-					qui: egen aux_mean_`var'_`j' = rowmean(`pvars')
-					qui: egen aux_sd_`var'_`j' = rowsd(`pvars')
-					
-					qui: gen dev_`var'_`j' = `var'_`j' - aux_mean_`var'_`j'
-					label var dev_`var'_`j' "Deviation in `var' from `lr_years' yr avg"
-
-					qui: gen z_`var'_`j'  = (`var'_`j'-aux_mean_`var'_`j')/aux_sd_`var'_`j'
-					label var z_`var'_`j' "Z-score of `var' from `lr_years' yr avg"
-					
-					qui: drop aux_mean_`var'_`j' aux_sd_`var'_`j'
-				}
-
-			}
-
-		}
-	}
 
 	forval k = 1/10 {
 		qui: cap confirm numeric variable tempbin`k'`ini_year'
