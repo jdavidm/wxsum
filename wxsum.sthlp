@@ -55,6 +55,30 @@ The command can be used with either rainfall or temperature data from any source
 The data must be wide, where each location is a row and each column is a daily reading. 
 The variables for each column must contain {it:yyyymmdd}. For example, if the prefix is {it:pic_}, the variable for May 15, 1979 would be {it:pic_19790515}.
 
+{marker remarks}{...}
+{title:Remarks}
+
+{pstd}
+Using data sets as defined above, the wxsum command creates useful statistics in the same fashion for all years.
+
+{pstd}
+The general syntax of the command is as follows:
+
+{pstd}
+- After the command name, one has to define what variables contain the rain/temperature information. For example, for CHIRPS datasets, the prefix on the wxsum variables might be {it:pic_} while in the case of ECMWF the prefix could be {it:y_}.
+
+{pstd}
+- Next, one needs to tell the command whether the data is {opt rain_data} or {opt temp_data}.
+
+{pstd}
+- One then has to select a season to study using the options {opt ini_month(number)}, {opt fin_month(number)} and {opt ini_day(number)} and {opt fin_day(number)}. If the day options are not specified, the default is the first day of the month. For example, to choose a season from the middle of March to the middle of June, you would set ini_month(03), fin_month(06), ini_day(15), fin_day(15). The command seamlessly handles seasons that span across calendar years, such as November to February, keeping the data associated with the year the season starts.
+
+{pstd}
+- The option {opt keep} tells the command to keep the variables it creates plus some of the original variables in order to match them with other datasets.
+
+{pstd}
+- The {opt save} option tells the program to save the dataset in a given location with a given name.
+
 {marker options}{...}
 {title:Options}
 
