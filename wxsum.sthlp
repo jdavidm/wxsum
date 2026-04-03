@@ -37,6 +37,7 @@
 {synopt:{opt gdd_hi(#)}}Upper bound for growing degree days calculation (required if temp_data is used).{p_end}
 {synopt:{opt kdd_base(#)}}Temperature threshold for calculating Killing Degree Days (KDD).{p_end}
 {synopt:{opt bins(#)}}Number of temperature percentile bins. Minimum 4, Maximum 10. Default is 4.{p_end}
+{synopt:{opt lr_years(#)}}Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.{p_end}
 {synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
 {synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
@@ -70,10 +71,42 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 {opt fin_day(day)} specifies the day the season ends. If not specified, it defaults to 01.
 
 {phang}
-{opt temp_data} processes temperature variables to generate mean, median, sd, skew, and max statistics, as well as Growing Degree Days (GDD), Killing Degree Days (KDD), and percentile bins.
+{opt temp_data} processes temperature variables to generate:
+{break}- mean daily in a season
+{break}- median daily in a season
+{break}- standard deviation of daily in a season
+{break}- skew of temp in a season
+{break}- max daily in a season
+{break}- gdd in a season
+{break}- deviations from long run average gdd in a season
+{break}- z-score of gdd in a season
+{break}- deviations from long run average kdd in a season
+{break}- z-score of kdd in a season
+{break}- temperature bins
+{pstd}
+Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`. 
+{break}Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
 
 {phang}
-{opt rain_data} processes rainfall variables to generate mean, median, sd, skew, and total statistics, as well as number of rainy days, number of days without rain, percentage of rainy days, and the longest intra-season dry spell.
+{opt rain_data} processes rainfall variables to generate:
+{break}- mean daily in a season
+{break}- median daily in a season
+{break}- standard deviation of daily in a season
+{break}- skew of daily in a season
+{break}- mean total monthly in a season
+{break}- median total monthly in a season
+{break}- standard deviation of total monthly in a season
+{break}- skew of total monthly in a season
+{break}- total seasonal
+{break}- deviation from long run average of total seasonal
+{break}- z-score of total seasonal
+{break}- number of rainy days in a season
+{break}- number of days without rain in a season
+{break}- deviation from long run average of rainy days in a season
+{break}- deviation from long run average of days without rain in a season
+{break}- percentage of days with rain in a season
+{break}- deviation from the long run average of percentage of days with rain in a season
+{break}- longest intra-seasonal dry spell
 
 {phang}
 {opt gdd_lo(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
@@ -95,6 +128,9 @@ The variables for each column must contain {it:yyyymmdd}. For example, if the pr
 
 {phang}
 {opt rain_threshold(#)} allows the user to define what counts as a rainy day. Default is > 1.
+
+{phang}
+{opt lr_years(#)} Sets the rolling window history size for calculating deviations from the long run average. Defaults to 10.
 
 {marker examples}{...}
 {title:Examples}

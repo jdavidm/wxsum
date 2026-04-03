@@ -33,6 +33,7 @@ version 15.1
 		gdd_hi(real 0)								///
 		kdd_base(real 0)							///
 		bins(real 4)								///
+		lr_years(integer 10)						///
 		temp_data									///
 		rain_data									///
 		rain_threshold(real 1)						///
@@ -65,6 +66,10 @@ if "`temp_data'" == "temp_data" {
 	}
 	if `bins' < 4 | `bins' > 10 {
 		di in red "Bins must be between 4 and 10"
+		error
+	}
+	if `lr_years' < 2 | `lr_years' > 50 {
+		di in red "lr_years must be between 2 and 50"
 		error
 	}
 	if "`rain_data'" == "rain_data" {
@@ -174,29 +179,33 @@ forvalues j = 1979(1)2027 {
 
 					* At this point I calculate the statistics I want using vars in loc var
 
+					loc dtype = ""
+					if "`temp_data'" == "temp_data" loc dtype = "temp"
+					if "`rain_data'" == "rain_data" loc dtype = "rain"
+
 					* Mean
 					qui: egen mean_season_`j' = rowmean(`var')
-					label var mean_season_`j' "Season avg months: `ini_month' `fin_month' on `j'"
+					label var mean_season_`j' "Season avg `dtype' daily months: `ini_month' `fin_month' on `j'"
 
 					* Median
 					qui: egen median_season_`j' = rowmedian(`var')
-					label var median_season_`j' "Season median months: `ini_month' `fin_month' on `j'"
+					label var median_season_`j' "Season median `dtype' daily months: `ini_month' `fin_month' on `j'"
 
 					* sd
 					qui: egen sd_season_`j' = rowsd(`var')
-					label var sd_season_`j' "Season s.d months: `ini_month' `fin_month' on `j'"
+					label var sd_season_`j' "Season s.d `dtype' daily months: `ini_month' `fin_month' on `j'"
 
 					* Total
 					qui: egen total_season_`j' = rowtotal(`var')
-					label var total_season_`j' "Season total months: `ini_month' `fin_month' on `j'"
+					label var total_season_`j' "Season total `dtype' months: `ini_month' `fin_month' on `j'"
 
 					* skewness
 					qui: gen skew_season_`j' = (mean_season_`j' - median_season_`j')/sd_season_`j'
-					label var skew_season_`j' "Season skew months: `ini_month' `fin_month' on `j'"
+					label var skew_season_`j' "Season skew `dtype' daily months: `ini_month' `fin_month' on `j'"
 
 					* max
 					qui: egen max_season_`j' = rowmax(`var')
-					label var max_season_`j' "Season max months: `ini_month' `fin_month' on `j'"
+					label var max_season_`j' "Season max `dtype' daily months: `ini_month' `fin_month' on `j'"
 
 
 					* Number of days in the season
@@ -266,6 +275,39 @@ forvalues j = 1979(1)2027 {
 					}
 
 				if "`rain_data'" == "rain_data" {
+					* Calculate monthly totals
+					foreach m of loc months {
+						loc mvar = ""
+						foreach v of loc var {
+							* extract month portion from variable like pic_19790515
+							* safe check matching `v' ends with `m'xx
+							loc ml = length("`m'")
+							if substr("`v'", -4, 2) == "`m'" {
+								loc mvar = "`mvar' `v'"
+							}
+						}
+						
+						* if month had days in the season, get total
+						if "`mvar'" != "" {
+							qui: egen total_mo_`m'_`j' = rowtotal(`mvar')
+						}
+					}
+					
+					* Aggregate the monthly totals
+					qui: cap drop aux_mo_*
+					qui: cap egen mean_mo_total_`j' = rowmean(total_mo_*_`j')
+					qui: cap egen median_mo_total_`j' = rowmedian(total_mo_*_`j')
+					qui: cap egen sd_mo_total_`j' = rowsd(total_mo_*_`j')
+					
+					qui: cap gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j')/sd_mo_total_`j'
+					
+					qui: cap label var mean_mo_total_`j' "Mean total monthly rain in `j'"
+					qui: cap label var median_mo_total_`j' "Median total monthly rain in `j'"
+					qui: cap label var sd_mo_total_`j' "Standard deviation of total monthly rain in `j'"
+					qui: cap label var skew_mo_total_`j' "Skew of total monthly rain in `j'"
+
+					qui: cap drop total_mo_*_`j'
+
 
 					*days without rain
 					foreach f of local var {
@@ -324,33 +366,43 @@ forvalues j = 1979(1)2027 {
 ***********
 * Now we create deviations from the seasons
 ***********
+
 if "`rain_data'" == "rain_data" {
 
 loc deviation = "total_season raindays norain percent_raindays"
 
 foreach var of loc deviation {
 
-	* gen average of the seasons - keep this
-	qui: egen mean_period_`var' = rowmean(`var'_*)
-	label var mean_period_`var' "Average of `var' between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
-
-	* gen sd of the seasons - keep this
-	qui: egen sd_period_`var' = rowsd(`var'_*)
-	label var sd_period_`var' "SD of `var' between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
-
-
-	* Z-scores - keep this
 	forvalues j = 1979(1)2027{
 
-		* We only start until the variables start existing
 		qui: cap confirm numeric variable `var'_`j'
 
 		if _rc == 0 {
-			qui: gen dev_`var'_`j' = `var'_`j' - mean_period_`var'
-			label var dev_`var'_`j' "Deviation in `var' from long-run average"
+			* Build a varlist of previous lr_years
+			loc pvars = ""
+			loc start_year = `j' - `lr_years'
+			loc end_year = `j' - 1
+			forval y = `start_year'(1)`end_year' {
+				qui: cap confirm numeric variable `var'_`y'
+				if _rc == 0 {
+					loc pvars = "`pvars' `var'_`y'"
+				}
+			}
+			
+			* Check if we found exactly lr_years
+			loc wordcount : word count `pvars'
+			if `wordcount' == `lr_years' {
+				qui: egen aux_mean_`var'_`j' = rowmean(`pvars')
+				qui: egen aux_sd_`var'_`j' = rowsd(`pvars')
+				
+				qui: gen dev_`var'_`j' = `var'_`j' - aux_mean_`var'_`j'
+				label var dev_`var'_`j' "Deviation in `var' from `lr_years' yr avg"
 
-			qui: gen z_`var'_`j'  = (`var'_`j'-mean_period_`var')/sd_period_`var'
-			label var z_`var'_`j' "Z-score of `var'  between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
+				qui: gen z_`var'_`j'  = (`var'_`j'-aux_mean_`var'_`j')/aux_sd_`var'_`j'
+				label var z_`var'_`j' "Z-score of `var' from `lr_years' yr avg"
+				
+				qui: drop aux_mean_`var'_`j' aux_sd_`var'_`j'
+			}
 
 		}
 
@@ -364,51 +416,45 @@ foreach var of loc deviation {
 * Main Temperature Statistics
 ***********
 if "`temp_data'" == "temp_data" {
-*** GDD deviations from LR mean - keep this
-	* gen average annual number of growing degree days
-	qui: egen mean_gdd = rowmean(gdd_*)
-	label var mean_gdd "Long Term growing degree days between  `gdd_lo' `gdd_hi' seasons"
-
-	* gen sd of growing degree days - keep this
-	qui: egen sd_gdd = rowsd(gdd_*)
-	label var sd_gdd "Standard Deviation of growing days between seasons between  `gdd_lo' `gdd_hi'"
-
-
-	* Z-scores - keep this
-	forvalues j = 1979(1)2027{
-
-	* We only start until the variables start existing
-		qui: cap confirm numeric variable gdd_`j'
-
-		if _rc == 0 {
-			qui: gen dev_gdd_`j' = gdd_`j' - mean_gdd
-			label var dev_gdd_`j' "Deviation in GDD from long-run average"
-
-			qui: gen z_gdd_`j'  = (gdd_`j'-mean_gdd)/sd_gdd
-			label var z_gdd_`j' "Z-score of GDD between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
-
-		}
-
-	}
-
-*** KDD deviations from LR mean - keep this
+*** GDD and KDD deviations from LR mean - keep this
+	loc deviation = "total_season gdd"
 	if `kdd_base' > 0 {
-		qui: egen mean_kdd = rowmean(kdd_*)
-		label var mean_kdd "Long Term killing degree days base `kdd_base' seasons"
-
-		qui: egen sd_kdd = rowsd(kdd_*)
-		label var sd_kdd "Standard Deviation of killing days between seasons base `kdd_base'"
-
+		loc deviation = "`deviation' kdd"
+	}
+	
+	foreach var of loc deviation {
 		forvalues j = 1979(1)2027{
-			qui: cap confirm numeric variable kdd_`j'
+			qui: cap confirm numeric variable `var'_`j'
 
 			if _rc == 0 {
-				qui: gen dev_kdd_`j' = kdd_`j' - mean_kdd
-				label var dev_kdd_`j' "Deviation in KDD from long-run average"
+				* Build a varlist of previous lr_years
+				loc pvars = ""
+				loc start_year = `j' - `lr_years'
+				loc end_year = `j' - 1
+				forval y = `start_year'(1)`end_year' {
+					qui: cap confirm numeric variable `var'_`y'
+					if _rc == 0 {
+						loc pvars = "`pvars' `var'_`y'"
+					}
+				}
+				
+				* Check if we found exactly lr_years
+				loc wordcount : word count `pvars'
+				if `wordcount' == `lr_years' {
+					qui: egen aux_mean_`var'_`j' = rowmean(`pvars')
+					qui: egen aux_sd_`var'_`j' = rowsd(`pvars')
+					
+					qui: gen dev_`var'_`j' = `var'_`j' - aux_mean_`var'_`j'
+					label var dev_`var'_`j' "Deviation in `var' from `lr_years' yr avg"
 
-				qui: gen z_kdd_`j'  = (kdd_`j'-mean_kdd)/sd_kdd
-				label var z_kdd_`j' "Z-score of KDD between seasons in months: `ini_month' `fin_month' on years `ini_year' `final_year'"
+					qui: gen z_`var'_`j'  = (`var'_`j'-aux_mean_`var'_`j')/aux_sd_`var'_`j'
+					label var z_`var'_`j' "Z-score of `var' from `lr_years' yr avg"
+					
+					qui: drop aux_mean_`var'_`j' aux_sd_`var'_`j'
+				}
+
 			}
+
 		}
 	}
 
