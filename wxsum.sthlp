@@ -160,7 +160,7 @@ Z-scores and deviations from long run averages are dynamically computed strictly
 {title:Examples}
 
 {phang}{cmd:. use rain.dta, clear}{p_end}
-{phang}{cmd:. wxsum pic_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
+{phang}{cmd:. wxsum r_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
 
 {phang}{cmd:. use temp.dta, clear}{p_end}
 {phang}{cmd:. wxsum t_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(id region)}{p_end}

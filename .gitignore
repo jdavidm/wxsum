@@ -2,9 +2,7 @@
 # No version control for Stata project files or log files
 # No version control for image files
 
-*.dta
 *.sav
-*.csv
 *.rar
 *.stpr
 *.smcl
