@@ -499,14 +499,13 @@ if "`rain_data'" == "rain_data" {
 if "`keep'" != "" {
 	if "`rain_data'" == "rain_data" {
 		di in r "option keep was chosen"
-		qui: keep `keep' *_`j'
-
-
+		qui: keep `keep' *season* *mo_total* *norain* *raindays* dry* *percent_raindays*
+		qui: drop z_raindays* z_norain* max* z_percent*
 	}
 
 	if "`temp_data'" == "temp_data" {
-		qui: keep `keep' *_`j'
-
+		qui: keep `keep' *season* *gdd* *kdd* tempbin*
+		qui: drop total_season_*
 	}
 }
 

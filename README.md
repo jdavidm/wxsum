@@ -4,11 +4,12 @@ The following package processes remote sensing rainfall and temperature data and
 
 ## Data
 
-The command can be used with either rainfall or temperature data from any source. The only requirements are that:
+The command can be used with either rainfall or temperature data from any source. 
 
-1. The data is “wide,” meaning each location is a row and each column is rainfall or temperature reading from a different day.
-2. The data is measured daily.
-3. The variable names for each column contain yyyymmdd. The variable names can have any prefix but must contain the year, month, and day.
+The data must be wide, where each location is a row and each column is a daily reading. The variables for each column must contain `yyyymmdd`. For example, if the prefix is `pic_`, the variable for May 15, 1979 would be `pic_19790515`.
+
+Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`.
+Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
 
 ## Syntax
 
@@ -70,9 +71,6 @@ When the rainfall option is chosen, the command generates the following variable
 - percentage of days with rain in a season
 - deviation from the long run average of percentage of days with rain in a season
 - longest intra-seasonal dry spell
-
-In addition to these basic statistics, the command computes Z-scores and deviations dynamically against a rolling long run average defined by the option `lr_years` (default 10).
-Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
 
 2. **Temperatire variables**
 
