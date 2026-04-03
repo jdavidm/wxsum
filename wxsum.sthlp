@@ -50,10 +50,12 @@
 {pstd}
 The {cmd:wxsum} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
 The command can be used with either rainfall or temperature data from any source. 
-
-{pstd}
 The data must be wide, where each location is a row and each column is a daily reading. 
 The variables for each column must contain {it:yyyymmdd}. For example, if the prefix is {it:pic_}, the variable for May 15, 1979 would be {it:pic_19790515}.
+
+{pstd}
+Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`. 
+{break}Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
 
 {marker remarks}{...}
 {title:Remarks}
@@ -107,9 +109,6 @@ The general syntax of the command is as follows:
 {break}- deviations from long run average kdd in a season
 {break}- z-score of kdd in a season
 {break}- temperature bins
-{pstd}
-Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`. 
-{break}Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
 
 {phang}
 {opt rain_data} processes rainfall variables to generate:

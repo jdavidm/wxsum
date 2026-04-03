@@ -105,7 +105,7 @@ loc safe2 = 1
 
 * Help identify the first year that is used, so I can create a local with that name
 loc count = 0
-forvalues j = 1979(1)2027 {
+forvalues j = 1979(1)2040 {
 
 
 	* Tempname for the matrix
@@ -185,28 +185,20 @@ forvalues j = 1979(1)2027 {
 					if "`rain_data'" == "rain_data" loc dtype = "rain"
 
 					* Mean
-					qui: egen mean_season_`j' = rowmean(`var')
-					label var mean_season_`j' "Season avg `dtype' daily months: `ini_month' `fin_month' on `j'"
+					qui: egen mean_`j' = rowmean(`var')
+					label var mean_`j' "Mean daily `dtype' in `j'"
 
 					* Median
-					qui: egen median_season_`j' = rowmedian(`var')
-					label var median_season_`j' "Season median `dtype' daily months: `ini_month' `fin_month' on `j'"
+					qui: egen median_`j' = rowmedian(`var')
+					label var median_`j' "Median daily `dtype' in `j'"
 
 					* sd
-					qui: egen sd_season_`j' = rowsd(`var')
-					label var sd_season_`j' "Season s.d `dtype' daily months: `ini_month' `fin_month' on `j'"
-
-					* Total
-					qui: egen total_season_`j' = rowtotal(`var')
-					label var total_season_`j' "Season total `dtype' months: `ini_month' `fin_month' on `j'"
+					qui: egen sd_`j' = rowsd(`var')
+					label var sd_`j' "Std dev of daily `dtype' in `j'"
 
 					* skewness
-					qui: gen skew_season_`j' = (mean_season_`j' - median_season_`j')/sd_season_`j'
-					label var skew_season_`j' "Season skew `dtype' daily months: `ini_month' `fin_month' on `j'"
-
-					* max
-					qui: egen max_season_`j' = rowmax(`var')
-					label var max_season_`j' "Season max `dtype' daily months: `ini_month' `fin_month' on `j'"
+					qui: gen skew_`j' = (mean_`j' - median_`j')/sd_`j'
+					label var skew_`j' "Skew of daily `dtype' in `j'"
 
 
 					* Number of days in the season
@@ -217,13 +209,17 @@ forvalues j = 1979(1)2027 {
 
 					if "`temp_data'" == "temp_data" {
 
+						* max
+						qui: egen max_`j' = rowmax(`var')
+						label var max_`j' "Max daily `dtype' in `j'"
+
 						*growing degree days
 						foreach f of local var {
 							qui: gen aux_gd_`f' = inrange(`f' , `gdd_lo' , `gdd_hi')
 						}
 
 						qui: egen gdd_`j' = rowtotal(aux_gd_*)
-						label var gdd_`j' "Number of growing degree days in `j' between `gdd_lo' `gdd_hi'"
+						label var gdd_`j' "Growing degree days in `j' between `gdd_lo' `gdd_hi'"
 
 						drop aux_gd_*
 
@@ -233,7 +229,7 @@ forvalues j = 1979(1)2027 {
 								qui: gen aux_kd_`f' = max(`f' - `kdd_base', 0)
 							}
 							qui: egen kdd_`j' = rowtotal(aux_kd_*)
-							label var kdd_`j' "Number of killing degree days in `j' base `kdd_base'"
+							label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
 							drop aux_kd_*
 						}
 
@@ -265,7 +261,7 @@ forvalues j = 1979(1)2027 {
 							qui: egen tempbin`b'`j'  = rowtotal(aux`b'*)
 							qui: replace tempbin`b'`j' = tempbin`b'`j'/`count_days'
 							loc p_val_end = round(`b' * `step')
-							label var tempbin`b'`j' "The percentage of days in the `p_val_end'th percentile of temperature in year `j'"
+							label var tempbin`b'`j' "Percentage of days in the `p_val_end'th percentile in year `j'"
 						}
 
 						qui: drop aux1*
@@ -276,6 +272,11 @@ forvalues j = 1979(1)2027 {
 					}
 
 				if "`rain_data'" == "rain_data" {
+
+					* Total
+					qui: egen total_`j' = rowtotal(`var')
+					label var total_`j' "Total `dtype' in `j'"
+
 					* Calculate monthly totals
 					foreach m of loc months {
 						loc mvar = ""
@@ -302,10 +303,10 @@ forvalues j = 1979(1)2027 {
 					
 					qui: cap gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j')/sd_mo_total_`j'
 					
-					qui: cap label var mean_mo_total_`j' "Mean total monthly rain in `j'"
-					qui: cap label var median_mo_total_`j' "Median total monthly rain in `j'"
-					qui: cap label var sd_mo_total_`j' "Standard deviation of total monthly rain in `j'"
-					qui: cap label var skew_mo_total_`j' "Skew of total monthly rain in `j'"
+					qui: cap label var mean_mo_total_`j' "Mean monthly rain in `j'"
+					qui: cap label var median_mo_total_`j' "Median monthly rain in `j'"
+					qui: cap label var sd_mo_total_`j' "Std dev of monthly rain in `j'"
+					qui: cap label var skew_mo_total_`j' "Skew of monthly rain in `j'"
 
 					qui: cap drop total_mo_*_`j'
 
@@ -324,8 +325,8 @@ forvalues j = 1979(1)2027 {
 					label var raindays_`j' "Number of days with rain in `j'"
 
 					*percent days with rain
-					qui: gen percent_raindays_`j' = raindays_`j'/`count_days'
-					label var percent_raindays_`j' "Percentage of days with rain in `j'"
+					qui: gen pct_raindays_`j' = raindays_`j'/`count_days'
+					label var pct_raindays_`j' "Percentage of days with rain in `j'"
 
 					drop aux_norain_*
 
@@ -370,11 +371,11 @@ forvalues j = 1979(1)2027 {
 
 if "`rain_data'" == "rain_data" {
 
-loc deviation = "total_season raindays norain percent_raindays"
+loc deviation = "total_season raindays norain pct_raindays"
 
 foreach var of loc deviation {
 
-	forvalues j = 1979(1)2027{
+	forvalues j = 1979(1)2040{
 
 		qui: cap confirm numeric variable `var'_`j'
 
@@ -424,7 +425,7 @@ if "`temp_data'" == "temp_data" {
 	}
 	
 	foreach var of loc deviation {
-		forvalues j = 1979(1)2027{
+		forvalues j = 1979(1)2040{
 			qui: cap confirm numeric variable `var'_`j'
 
 			if _rc == 0 {
@@ -463,10 +464,10 @@ if "`temp_data'" == "temp_data" {
 		qui: cap confirm numeric variable tempbin`k'`ini_year'
 		if _rc == 0 {
 			qui: egen mean_`k' = rowmean(tempbin`k'*)
-			label var mean_`k' "Average percentage number of days in the bin `k' between all seasons"
+			label var mean_`k' "Mean percentage of days in the `k'th percentile across all seasons"
 
 			qui: egen sd_`k' = rowsd(tempbin`k'*)
-			label var sd_`k' "SD of the percentage of number of days in the bin `k' between all seasons"
+			label var sd_`k' "Std dev of percentage of days in the `k'th percentile across all seasons"
 		}
 	}
 }
@@ -498,15 +499,13 @@ if "`rain_data'" == "rain_data" {
 if "`keep'" != "" {
 	if "`rain_data'" == "rain_data" {
 		di in r "option keep was chosen"
-		qui: keep `keep' *season*  *norain* *raindays* dry* *percent_raindays*
-		qui: drop z_raindays* z_norain* max* z_percent*
+		qui: keep `keep' *_`j'
 
 
 	}
 
 	if "`temp_data'" == "temp_data" {
-		qui: keep `keep' *season* *gdd* *kdd* tempbin*
-		qui: drop total_season_*
+		qui: keep `keep' *_`j'
 
 	}
 }
