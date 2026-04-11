@@ -42,10 +42,10 @@ version 15.1
 
 *0.0) If day is missing, it is assumed to be 01
 
-if "'`ini_day'" == "" {
+if "`ini_day'" == "" {
 	loc ini_day = "01"
 }
-if "'`fin_day'" == "" {
+if "`fin_day'" == "" {
 	loc fin_day = "01"
 }
 
@@ -104,7 +104,9 @@ forvalues j = 1979(1)2040 {
 	*tempname mat_`j'
 	
 	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 continue
+	if _rc != 0 {
+		continue
+	}
 
 	foreach month of loc months  {
 		foreach day of loc days  {
