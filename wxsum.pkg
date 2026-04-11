@@ -1,10 +1,11 @@
 v 0.1
 d
-d 'StataConfig': some basic ado files
+d 'wxsum': Stata Weather Command
 d
-d Distribution-Date: 20200523
+d Distribution-Date: 20240411
 d
 d Author: Jeffrey D. Michler
 d Support: jdmichler@arizona.edu
 d
 f wxsum.ado
+f wxsum.sthlp
