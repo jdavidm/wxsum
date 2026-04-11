@@ -40,9 +40,6 @@ version 15.1
 		rain_threshold(real 1)						///
 		]											///
 
-
-
-
 *0.0) If day is missing, it is assumed to be 01
 
 if "'`ini_day'" == "" {
@@ -52,9 +49,7 @@ if "'`fin_day'" == "" {
 	loc fin_day = "01"
 }
 
-
 *0.3) Check options
-
 
 if "`temp_data'" == "temp_data" {
 	if `gdd_lo' == 0 {
@@ -82,9 +77,6 @@ if "`temp_data'" == "temp_data" {
 
 
 *1) loading variables to be use in the estimation
-
-
-
 
 /*
 *2) loading variables to be use in the estimation
