@@ -104,7 +104,9 @@ forvalues j = 1979(1)2040 {
 	*tempname mat_`j'
 	
 	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 continue
+	if _rc != 0 {
+		continue
+	}
 
 	foreach month of loc months  {
 		foreach day of loc days  {
