@@ -104,7 +104,9 @@ forvalues j = 1979(1)2040 {
 	*tempname mat_`j'
 	
 	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 continue
+	if _rc != 0 {
+		continue
+	}
 
 	foreach month of loc months  {
 		foreach day of loc days  {
@@ -399,7 +401,6 @@ forvalues j = 1979(1)2040 {
 
 		}
 	}
-}
 
 
 	forval k = 1/10 {
@@ -412,6 +413,7 @@ forvalues j = 1979(1)2040 {
 			label var sd_`k' "Std dev of percentage of days in the `k'th percentile across all seasons"
 		}
 	}
+}
 
 
 ***********
