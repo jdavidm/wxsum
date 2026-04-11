@@ -412,7 +412,6 @@ forvalues j = 1979(1)2040 {
 			label var sd_`k' "Std dev of percentage of days in the `k'th percentile across all seasons"
 		}
 	}
-}
 
 
 ***********
