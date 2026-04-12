@@ -38,7 +38,7 @@ version 15.1
 		temp_data									///
 		rain_data									///
 		rain_threshold(real 1)						///
-		]											///
+		]
 
 *0.0) If day is missing, it is assumed to be 01
 
