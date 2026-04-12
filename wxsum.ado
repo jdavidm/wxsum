@@ -104,9 +104,7 @@ forvalues j = 1979(1)2040 {
 	*tempname mat_`j'
 	
 	qui: cap unab check_vars : `anything'`j'*
-	if _rc != 0 {
-		continue
-	}
+	if _rc != 0 continue
 
 	foreach month of loc months  {
 		foreach day of loc days  {
@@ -401,8 +399,10 @@ forvalues j = 1979(1)2040 {
 
 		}
 	}
+}
 
 
+if "`temp_data'" == "temp_data" {
 	forval k = 1/10 {
 		qui: cap confirm numeric variable tempbin`k'`ini_year'
 		if _rc == 0 {
