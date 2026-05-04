@@ -109,8 +109,9 @@ If you run into any issues or bugs, please open an issue on the [GitHub reposito
 
 ## Authors
 - Oscar Barriga Cabanillas
-- Aleksandr Michuda
-- Jeffrey D. Michler
-- Brian McGreal
 - Anna Josepshon
+- Brian McGreal
+- Jeffrey D. Michler
+- Aleksandr Michuda
+- Jeffrey C. Oliver
 
