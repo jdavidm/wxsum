@@ -10,12 +10,11 @@ net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/master/
 
 ## Description
 
-The `wxsum` command processes remote sensing rainfall and temperature data and outputs useful statistics. The command can be used with either rainfall or temperature data from any source. 
+The `wxsum` command processes remote sensing rainfall and temperature data and outputs useful statistics. The command can be used with either rainfall or temperature data from any source.
 
-The data must be wide, where each location is a row and each column is a daily reading. The variables for each column must contain `yyyymmdd`. For example, if the prefix is `pic_`, the variable for May 15, 1979 would be `pic_19790515`.
+The data must be wide, where each location is a row and each column is a daily reading. Daily weather variable names must be the user-supplied prefix followed by `yyyymmdd`. For example, if the prefix is `rf_`, the variable for May 15, 1979 would be `rf_19790515`.
 
-Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`.
-Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
+Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding `lr_years`. If there is not enough preceding data to satisfy the requested window, deviations and z-scores are skipped for those initial years, though standard variables still generate.
 
 ## Syntax
 
@@ -39,11 +38,11 @@ wxsum prefix , ini_month(month) fin_month(month) [options]
 - `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
 - `keep(varlist)`: Variables to keep in the final dataset along with the generated wxsum variables.
 - `save(filename)`: File path to save the resulting dataset.
-- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1.
+- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from rain-day, no-rain-day, percentage, and dry-spell calculations.
 
 ## Generated Variables
 
-Using data sets as defined above, the wxsum command creates useful statistics in the same fashion for all years. The command seamlessly handles seasons that span across calendar years, such as November to February, keeping the data associated with the year the season starts.
+Using data sets as defined above, the wxsum command creates useful statistics in the same fashion for all detected season years. The command handles seasons that span calendar years, such as November to February, and labels the output with the year the season starts.
 
 ### 1. Rainfall Variables
 
@@ -84,7 +83,7 @@ When the `temp_data` option is chosen, the command generates the following varia
 - z-score of kdd in a season
 - temperature bins
 
-Growing degree days are calculated using the options `gdd_lo(number)` and `gdd_hi(number)` to determine the number of days where the temperature was between that range. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
+Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
 The command calculates temperature bins as the percentage of days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4).
 
@@ -95,13 +94,13 @@ To try the command out on the sample datasets included in this repository:
 **Rainfall Example:**
 ```stata
 use rain.dta, clear
-wxsum pic_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)
+wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)
 ```
 
 **Temperature Example:**
 ```stata
 use temp.dta, clear
-wxsum t_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(id region)
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)
 ```
 
 ## Reporting Bugs

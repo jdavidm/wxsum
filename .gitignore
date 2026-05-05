@@ -7,3 +7,6 @@
 *.stpr
 *.smcl
 *.png
+*.log
+codex_*.do
+rainfall_stats.dta
