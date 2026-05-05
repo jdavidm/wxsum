@@ -108,7 +108,9 @@ The general syntax of the command is as follows:
 {break}- z-score of gdd in a season
 {break}- deviations from long run average kdd in a season
 {break}- z-score of kdd in a season
-{break}- temperature bins
+{break}- year-specific temperature bin shares, named {it:tempbin01_YEAR}, {it:tempbin02_YEAR}, ..., {it:tempbin10_YEAR}
+{break}- cross-season temperature bin means, named {it:binmean_01}, {it:binmean_02}, ..., {it:binmean_10}
+{break}- cross-season temperature bin standard deviations, named {it:binsd_01}, {it:binsd_02}, ..., {it:binsd_10}
 
 {phang}
 {opt rain_data} processes rainfall variables to generate:
@@ -142,6 +144,9 @@ The general syntax of the command is as follows:
 
 {phang}
 {opt bins(#)} sets the number of equal-sized percentile bins for the temperature distribution. Allowed values: 4 to 10. Default is 4.
+
+{phang}
+For each season year, temperature bin outputs use two-digit bin numbers and the season year, such as {it:tempbin01_1993} through {it:tempbin10_1993}. Across all generated seasons, the command creates {it:binmean_01} through {it:binmean_10} and {it:binsd_01} through {it:binsd_10} when the corresponding bins exist.
 
 {phang}
 {opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).

@@ -81,11 +81,13 @@ When the `temp_data` option is chosen, the command generates the following varia
 - z-score of gdd in a season
 - deviations from long run average kdd in a season
 - z-score of kdd in a season
-- temperature bins
+- year-specific temperature bin shares named `tempbin01_YEAR`, `tempbin02_YEAR`, ..., `tempbin10_YEAR`
+- cross-season temperature bin means named `binmean_01`, `binmean_02`, ..., `binmean_10`
+- cross-season temperature bin standard deviations named `binsd_01`, `binsd_02`, ..., `binsd_10`
 
 Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
-The command calculates temperature bins as the percentage of days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4).
+The command calculates temperature bins as the share of observed days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4). For each season year, bin variables are named with two-digit bin numbers and the season year, such as `tempbin01_1993` through `tempbin10_1993`. Across all generated seasons, the command also creates summary variables `binmean_01` through `binmean_10` and `binsd_01` through `binsd_10` when the corresponding bins exist.
 
 ## Examples
 
