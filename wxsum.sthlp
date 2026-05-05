@@ -158,6 +158,9 @@ The general syntax of the command is as follows:
 {phang}
 Growing degree days are calculated as capped degree accumulation: {cmd:min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)}, summed over the season.
 
+{phang}
+Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approximation of distributional asymmetry (Pearson's second coefficient without the factor of 3).
+
 {marker examples}{...}
 {title:Examples}
 

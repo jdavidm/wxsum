@@ -1,6 +1,5 @@
-# No version control for data files: .dta, .csv, and .sav
-# No version control for Stata project files or log files
-# No version control for image files
+# Data files (.sav, .rar) are not version controlled
+# Bundled sample data (rain.dta, temp.dta, rain.csv, temp.csv) ARE tracked
 
 *.sav
 *.rar
@@ -8,5 +7,6 @@
 *.smcl
 *.png
 *.log
+*.code-workspace
 codex_*.do
 rainfall_stats.dta

@@ -241,6 +241,7 @@ version 15.1
 				}
 
 				forvalues b = 1/`bins' {
+					local b_str = string(`b', "%02.0f")
 					local bin_aux ""
 					foreach f of local var {
 						tempvar bin
@@ -261,12 +262,12 @@ version 15.1
 						local bin_aux "`bin_aux' `bin'"
 					}
 
-					quietly egen tempbin`b'`j' = rowtotal(`bin_aux')
-					quietly replace tempbin`b'`j' = tempbin`b'`j' / `observed_days' if `observed_days' > 0
-					quietly replace tempbin`b'`j' = . if `observed_days' == 0
+					quietly egen tempbin`b_str'_`j' = rowtotal(`bin_aux')
+					quietly replace tempbin`b_str'_`j' = tempbin`b_str'_`j' / `observed_days' if `observed_days' > 0
+					quietly replace tempbin`b_str'_`j' = . if `observed_days' == 0
 					local p_val_end = round(`b' * 100 / `bins')
-					label var tempbin`b'`j' "Share of observed days in bin `b' ending at `p_val_end'th percentile in `j'"
-					local created_vars "`created_vars' tempbin`b'`j'"
+					label var tempbin`b_str'_`j' "Share of observed days in bin `b' ending at `p_val_end'th percentile in `j'"
+					local created_vars "`created_vars' tempbin`b_str'_`j'"
 					quietly drop `bin_aux'
 				}
 				quietly drop `pct_vars'
@@ -400,25 +401,26 @@ version 15.1
 
 	if "`temp_data'" != "" {
 		forvalues k = 1/`bins' {
+			local k_str = string(`k', "%02.0f")
 			local binvars ""
 			forvalues y = `first_year'/`last_year' {
-				capture confirm numeric variable tempbin`k'`y'
-				if _rc == 0 local binvars "`binvars' tempbin`k'`y'"
+				capture confirm numeric variable tempbin`k_str'_`y'
+				if _rc == 0 local binvars "`binvars' tempbin`k_str'_`y'"
 			}
 			local binvar_count : word count `binvars'
 			if `binvar_count' > 0 {
-				quietly egen mean_`k' = rowmean(`binvars')
-				label var mean_`k' "Mean share of days in temperature bin `k' across all seasons"
-				local created_vars "`created_vars' mean_`k'"
+				quietly egen binmean_`k_str' = rowmean(`binvars')
+				label var binmean_`k_str' "Mean share of days in temperature bin `k' across all seasons"
+				local created_vars "`created_vars' binmean_`k_str'"
 
 				if `binvar_count' > 1 {
-					quietly egen sd_`k' = rowsd(`binvars')
+					quietly egen binsd_`k_str' = rowsd(`binvars')
 				}
 				else {
-					quietly gen sd_`k' = .
+					quietly gen binsd_`k_str' = .
 				}
-				label var sd_`k' "Std dev of share of days in temperature bin `k' across all seasons"
-				local created_vars "`created_vars' sd_`k'"
+				label var binsd_`k_str' "Std dev of share of days in temperature bin `k' across all seasons"
+				local created_vars "`created_vars' binsd_`k_str'"
 			}
 		}
 	}
