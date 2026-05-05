@@ -27,8 +27,8 @@ version 15.1
 		fin_day(string)								///
 		keep(string)								///
 		save(string)								///
-		gdd_lo(real 0)								///
-		gdd_hi(real 0)								///
+		gdd_lo(real -999999999)						///
+		gdd_hi(real -999999999)						///
 		kdd_base(real 0)							///
 		bins(real 4)								///
 		lr_years(integer 10)						///
@@ -48,6 +48,31 @@ if "`fin_day'" == "" {
 
 *0.3) Check options
 
+foreach opt in ini_month fin_month ini_day fin_day {
+	cap confirm integer number ``opt''
+	if _rc != 0 {
+		di as error "`opt' must be an integer"
+		error 198
+	}
+}
+
+if !inrange(`ini_month', 1, 12) {
+	di as error "ini_month must be between 1 and 12"
+	error 198
+}
+if !inrange(`fin_month', 1, 12) {
+	di as error "fin_month must be between 1 and 12"
+	error 198
+}
+if !inrange(`ini_day', 1, 31) {
+	di as error "ini_day must be between 1 and 31"
+	error 198
+}
+if !inrange(`fin_day', 1, 31) {
+	di as error "fin_day must be between 1 and 31"
+	error 198
+}
+
 * Require exactly one of rain_data or temp_data
 if "`rain_data'" == "" & "`temp_data'" == "" {
 	di as error "Please specify either rain_data or temp_data"
@@ -65,18 +90,31 @@ if `lr_years' < 2 | `lr_years' > 50 {
 }
 
 if "`temp_data'" == "temp_data" {
-	if `gdd_lo' == 0 {
+	if `gdd_lo' == -999999999 {
 		di as error "Please define the temperature range to evaluate"
 		error 198
 	}
-	if `gdd_hi' == 0 {
+	if `gdd_hi' == -999999999 {
 		di as error "Please define the temperature range to evaluate"
+		error 198
+	}
+	if `gdd_hi' <= `gdd_lo' {
+		di as error "gdd_hi must be greater than gdd_lo"
 		error 198
 	}
 	if `bins' < 4 | `bins' > 10 {
 		di as error "Bins must be between 4 and 10"
 		error 198
 	}
+	if `bins' != floor(`bins') {
+		di as error "bins must be an integer"
+		error 198
+	}
+}
+
+if `rain_threshold' < 0 {
+	di as error "rain_threshold must be nonnegative"
+	error 198
 }
 
 
@@ -177,7 +215,12 @@ forvalues j = `min_year'/`max_year' {
 	label var median_`j' "Median daily `dtype' in `j'"
 
 	* sd
-	qui: egen sd_`j' = rowsd(`var')
+	if `count_days' > 1 {
+		qui: egen sd_`j' = rowsd(`var')
+	}
+	else {
+		qui: gen sd_`j' = .
+	}
 	label var sd_`j' "Std dev of daily `dtype' in `j'"
 
 	* skewness
@@ -195,23 +238,29 @@ forvalues j = `min_year'/`max_year' {
 
 		* Growing degree days (standard accumulated formula)
 		* GDD = sum( min(max(T - T_lo, 0), T_hi - T_lo) )
+		loc gd_helpers = ""
 		foreach f of local var {
-			qui: gen aux_gd_`f' = min(max(`f' - `gdd_lo', 0), `gdd_hi' - `gdd_lo')
+			tempvar gd_day
+			qui: gen `gd_day' = min(max(`f' - `gdd_lo', 0), `gdd_hi' - `gdd_lo')
+			loc gd_helpers = "`gd_helpers' `gd_day'"
 		}
 
-		qui: egen gdd_`j' = rowtotal(aux_gd_*)
+		qui: egen gdd_`j' = rowtotal(`gd_helpers')
 		label var gdd_`j' "Growing degree days in `j' between `gdd_lo' `gdd_hi'"
 
-		drop aux_gd_*
+		drop `gd_helpers'
 
 		*killing degree days
 		if `kdd_base' > 0 {
+			loc kd_helpers = ""
 			foreach f of local var {
-				qui: gen aux_kd_`f' = max(`f' - `kdd_base', 0)
+				tempvar kd_day
+				qui: gen `kd_day' = max(`f' - `kdd_base', 0)
+				loc kd_helpers = "`kd_helpers' `kd_day'"
 			}
-			qui: egen kdd_`j' = rowtotal(aux_kd_*)
+			qui: egen kdd_`j' = rowtotal(`kd_helpers')
 			label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
-			drop aux_kd_*
+			drop `kd_helpers'
 		}
 
 		* Dynamic Temperature Bins
@@ -219,41 +268,47 @@ forvalues j = `min_year'/`max_year' {
 		loc max_bound = `bins' - 1
 		
 		* Calculate percentiles
+		loc pct_vars = ""
 		forval b=1/`max_bound' {
 			loc p_val = round(`b' * `step')
-			qui: egen percentile`b'`j' = rowpctile(`var'), p(`p_val')
+			tempvar pct_day
+			qui: egen `pct_day' = rowpctile(`var'), p(`p_val')
+			loc pct_vars = "`pct_vars' `pct_day'"
+		}
+
+		forval b=1/`bins' {
+			loc bcode = string(`b', "%02.0f")
+			qui: gen tempbin`bcode'_`j' = 0
 		}
 
 		foreach f of local var {
 			* First bin
-			qui: gen aux1`f' = `f' < percentile1`j'
+			loc pct_first : word 1 of `pct_vars'
+			qui: replace tempbin01_`j' = tempbin01_`j' + (`f' < `pct_first') if !missing(`f') & !missing(`pct_first')
 			
 			* Middle bins
 			forval b=2/`max_bound' {
 				loc prev = `b' - 1
-				qui: gen aux`b'`f' = inrange(`f' , percentile`prev'`j' , percentile`b'`j' - 0.00001)
+				loc bcode = string(`b', "%02.0f")
+				loc pct_prev : word `prev' of `pct_vars'
+				loc pct_current : word `b' of `pct_vars'
+				qui: replace tempbin`bcode'_`j' = tempbin`bcode'_`j' + inrange(`f' , `pct_prev' , `pct_current' - 0.00001) if !missing(`f') & !missing(`pct_prev') & !missing(`pct_current')
 			}
 			
 			* Last bin
-			qui: gen aux`bins'`f' = `f' >= percentile`max_bound'`j'
+			loc last_code = string(`bins', "%02.0f")
+			loc pct_last : word `max_bound' of `pct_vars'
+			qui: replace tempbin`last_code'_`j' = tempbin`last_code'_`j' + (`f' >= `pct_last') if !missing(`f') & !missing(`pct_last')
 		}
 
 		forval b=1/`bins' {
-			qui: egen tempbin`b'`j'  = rowtotal(aux`b'*)
-			qui: replace tempbin`b'`j' = tempbin`b'`j'/`count_days'
+			loc bcode = string(`b', "%02.0f")
+			qui: replace tempbin`bcode'_`j' = tempbin`bcode'_`j'/`count_days'
 			loc p_val_end = round(`b' * `step')
-			label var tempbin`b'`j' "Percentage of days in the `p_val_end'th percentile in year `j'"
+			label var tempbin`bcode'_`j' "Percentage of days in the `p_val_end'th percentile in year `j'"
 		}
 
-		qui: drop aux1*
-		forval b=2/`bins' {
-			qui: drop aux`b'*
-		}
-
-		* Drop percentile variables (no longer needed)
-		forval b=1/`max_bound' {
-			qui: drop percentile`b'`j'
-		}
+		drop `pct_vars'
 
 	}
 
@@ -264,12 +319,12 @@ forvalues j = `min_year'/`max_year' {
 		label var total_`j' "Total `dtype' in `j'"
 
 		* Calculate monthly totals
+		loc monthly_totals = ""
 		foreach m of loc months {
 			loc mvar = ""
 			foreach v of loc var {
 				* extract month portion from variable like pic_19790515
 				* safe check matching `v' ends with `m'xx
-				loc ml = length("`m'")
 				if substr("`v'", -4, 2) == "`m'" {
 					loc mvar = "`mvar' `v'"
 				}
@@ -278,64 +333,69 @@ forvalues j = `min_year'/`max_year' {
 			* if month had days in the season, get total
 			if "`mvar'" != "" {
 				qui: egen total_mo_`m'_`j' = rowtotal(`mvar')
+				loc monthly_totals = "`monthly_totals' total_mo_`m'_`j'"
 			}
 		}
 		
 		* Aggregate the monthly totals
-		qui: cap drop aux_mo_*
-		qui: cap egen mean_mo_total_`j' = rowmean(total_mo_*_`j')
-		qui: cap egen median_mo_total_`j' = rowmedian(total_mo_*_`j')
-		qui: cap egen sd_mo_total_`j' = rowsd(total_mo_*_`j')
-		
-		qui: cap gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j')/sd_mo_total_`j'
-		
-		qui: cap label var mean_mo_total_`j' "Mean monthly rain in `j'"
-		qui: cap label var median_mo_total_`j' "Median monthly rain in `j'"
-		qui: cap label var sd_mo_total_`j' "Std dev of monthly rain in `j'"
-		qui: cap label var skew_mo_total_`j' "Skew of monthly rain in `j'"
+		loc n_monthly_totals : word count `monthly_totals'
+		if `n_monthly_totals' > 0 {
+			qui: egen mean_mo_total_`j' = rowmean(`monthly_totals')
+			qui: egen median_mo_total_`j' = rowmedian(`monthly_totals')
+			if `n_monthly_totals' > 1 {
+				qui: egen sd_mo_total_`j' = rowsd(`monthly_totals')
+			}
+			else {
+				qui: gen sd_mo_total_`j' = .
+			}
 
-		qui: cap drop total_mo_*_`j'
+			qui: gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j')/sd_mo_total_`j'
+
+			label var mean_mo_total_`j' "Mean monthly rain in `j'"
+			label var median_mo_total_`j' "Median monthly rain in `j'"
+			label var sd_mo_total_`j' "Std dev of monthly rain in `j'"
+			label var skew_mo_total_`j' "Skew of monthly rain in `j'"
+
+			drop `monthly_totals'
+		}
 
 
-		*days without rain (missing values excluded)
+		*days without rain and rain, excluding missing values
+		tempvar observed_days
+		qui: egen `observed_days' = rownonmiss(`var')
+		loc norain_helpers = ""
+		loc rainday_helpers = ""
 		foreach f of local var {
-			qui: gen aux_norain_`f' = cond(mi(`f'), ., `f' < `rain_threshold')
+			tempvar norain_day rainday_day
+			qui: gen `norain_day' = cond(mi(`f'), 0, `f' < `rain_threshold')
+			qui: gen `rainday_day' = cond(mi(`f'), 0, `f' >= `rain_threshold')
+			loc norain_helpers = "`norain_helpers' `norain_day'"
+			loc rainday_helpers = "`rainday_helpers' `rainday_day'"
 		}
 
 		*days without rain count
-		qui: egen norain_`j' = rowtotal(aux_norain_*)
+		qui: egen norain_`j' = rowtotal(`norain_helpers')
 		label var norain_`j' "Number of days without rain in `j'"
 
 		*days with rain
-		qui: gen raindays_`j' = `count_days' - norain_`j'
+		qui: egen raindays_`j' = rowtotal(`rainday_helpers')
 		label var raindays_`j' "Number of days with rain in `j'"
 
 		*percent days with rain
-		qui: gen pct_raindays_`j' = raindays_`j'/`count_days'
+		qui: gen pct_raindays_`j' = raindays_`j'/`observed_days' if `observed_days' > 0
 		label var pct_raindays_`j' "Percentage of days with rain in `j'"
 
-		drop aux_norain_*
+		drop `norain_helpers' `rainday_helpers'
 
 		*longest dry spell (missing values treated as breaks)
-		foreach f of local var {
-			qui: gen aux_`f' = cond(mi(`f'), ., cond(`f' < `rain_threshold', 0, 1))
-		}
-
-		qui: egen hist_`j' = concat(aux*)
-		drop aux*
-		qui: gen ssn_`j' = substr(hist_`j', strpos(hist_`j', "1"), .)
-		qui: replace ssn_`j' = substr(ssn_`j', 1, strrpos(ssn_`j', "1"))
-
+		tempvar dry_run
+		qui: gen `dry_run' = 0
 		gen dry_`j'  = 0
 		label var dry_`j' "Longest intra-season dry spell in `j'"
-
-		local lookfor : di _dup(`count_days') "0"
-		qui forval k = 1/`count_days' {
-		replace dry_`j' = `k' if strpos(ssn_`j', substr("`lookfor'", 1, `k'))
+		foreach f of local var {
+			qui: replace `dry_run' = cond(mi(`f'), 0, cond(`f' < `rain_threshold', `dry_run' + 1, 0))
+			qui: replace dry_`j' = max(dry_`j', `dry_run')
 		}
-
-		* Drop orphaned temporary variables
-		drop hist_`j' ssn_`j'
  	}
 
 	* Calculate Deviations for the current year
@@ -386,14 +446,32 @@ forvalues j = `min_year'/`max_year' {
 }
 
 
+if missing(`first_year') {
+	di as error "No complete seasons found for the requested date range"
+	error 111
+}
+
 if "`temp_data'" == "temp_data" {
 	forval k = 1/`bins' {
-		qui: cap confirm numeric variable tempbin`k'`first_year'
-		if _rc == 0 {
-			qui: egen mean_`k' = rowmean(tempbin`k'*)
+		loc bcode = string(`k', "%02.0f")
+		loc bin_vars = ""
+		forval y = `first_year'/`last_year' {
+			qui: cap confirm numeric variable tempbin`bcode'_`y'
+			if _rc == 0 {
+				loc bin_vars = "`bin_vars' tempbin`bcode'_`y'"
+			}
+		}
+		loc n_bin_vars : word count `bin_vars'
+		if `n_bin_vars' > 0 {
+			qui: egen mean_`k' = rowmean(`bin_vars')
 			label var mean_`k' "Mean percentage of days in the `k'th percentile across all seasons"
 
-			qui: egen sd_`k' = rowsd(tempbin`k'*)
+			if `n_bin_vars' > 1 {
+				qui: egen sd_`k' = rowsd(`bin_vars')
+			}
+			else {
+				qui: gen sd_`k' = .
+			}
 			label var sd_`k' "Std dev of percentage of days in the `k'th percentile across all seasons"
 		}
 	}
@@ -404,11 +482,27 @@ if "`temp_data'" == "temp_data" {
 if "`keep'" != "" {
 	if "`rain_data'" == "rain_data" {
 		di in r "option keep was chosen"
-		qui: keep `keep' mean_* median_* sd_* skew_* total_* mean_mo_total_* median_mo_total_* sd_mo_total_* skew_mo_total_* raindays_* norain_* pct_raindays_* dry_* dev_* z_*
+		loc keep_vars = "`keep'"
+		loc keep_patterns = "mean_* median_* sd_* skew_* total_* mean_mo_total_* median_mo_total_* sd_mo_total_* skew_mo_total_* raindays_* norain_* pct_raindays_* dry_* dev_* z_*"
+		foreach pattern of local keep_patterns {
+			qui: cap unab matched_vars : `pattern'
+			if _rc == 0 {
+				loc keep_vars = "`keep_vars' `matched_vars'"
+			}
+		}
+		qui: keep `keep_vars'
 	}
 
 	if "`temp_data'" == "temp_data" {
-		qui: keep `keep' mean_* median_* sd_* skew_* max_* gdd_* kdd_* tempbin* dev_* z_*
+		loc keep_vars = "`keep'"
+		loc keep_patterns = "mean_* median_* sd_* skew_* max_* gdd_* kdd_* tempbin* dev_* z_*"
+		foreach pattern of local keep_patterns {
+			qui: cap unab matched_vars : `pattern'
+			if _rc == 0 {
+				loc keep_vars = "`keep_vars' `matched_vars'"
+			}
+		}
+		qui: keep `keep_vars'
 	}
 }
 

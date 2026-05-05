@@ -86,7 +86,7 @@ When the `temp_data` option is chosen, the command generates the following varia
 
 Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
-The command calculates temperature bins as the percentage of days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4).
+The command calculates temperature bins as the percentage of days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4). Year-specific bin variables are named `tempbin01_YEAR`, `tempbin02_YEAR`, ..., `tempbin10_YEAR`.
 
 ## Examples
 

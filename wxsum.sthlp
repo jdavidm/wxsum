@@ -158,6 +158,9 @@ The general syntax of the command is as follows:
 {phang}
 Growing degree days are calculated as capped degree accumulation: {cmd:min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)}, summed over the season.
 
+{phang}
+Year-specific temperature bin variables are named {it:tempbin01_YEAR}, {it:tempbin02_YEAR}, ..., {it:tempbin10_YEAR}.
+
 {marker examples}{...}
 {title:Examples}
 
