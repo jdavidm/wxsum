@@ -47,14 +47,14 @@
     </div>
 
     <h2>Overview</h2>
-    <p>The <code>wxsum</code> package processes remote sensing rainfall and temperature data, generating useful summary statistics across user-defined seasons.</p>
+    <p>The <code>wxsum</code> package processes remote sensing rainfall and temperature data, generating summary statistics across user-defined seasons. Seasons may fall within one calendar year or span two calendar years; cross-year output is labeled with the year the season starts.</p>
 
     <h2>Data Requirements</h2>
     <p>The command can be used with either rainfall or temperature data from any source. The only requirements are that:</p>
     <ol>
         <li>The data is "wide," meaning each location is a row and each column is a rainfall or temperature reading from a different day.</li>
         <li>The data is measured daily.</li>
-        <li>The variable names for each column contain <code>yyyymmdd</code>. The variable names can have any prefix but must contain the year, month, and day.</li>
+        <li>The variable names for each daily column use the supplied prefix followed by <code>yyyymmdd</code>, such as <code>rf_19790515</code>.</li>
     </ol>
 
     <h2>Syntax</h2>
@@ -62,12 +62,14 @@
 
     <h3>Options</h3>
     <ul>
-        <li><code>day_month(number)</code> - Starting and ending day of the season month. Default is 1.</li>
-        <li><code>ini_day(number)</code> / <code>fin_day(number)</code> - Override the starting and ending day of the season month.</li>
-        <li><code>temperature_data</code> - Specify that the data is temperature data.</li>
+        <li><code>ini_day(day)</code> / <code>fin_day(day)</code> - Start and end day of the season. Defaults are 01.</li>
+        <li><code>temp_data</code> - Specify that the data is temperature data.</li>
         <li><code>rain_data</code> - Specify that the data is rainfall data.</li>
-        <li><code>prefix(string)</code> - Add a custom prefix to all created variables.</li>
-        <li><code>growbase_low(real)</code> / <code>growbase_high(real)</code> - Bounds for growing degree days calculation.</li>
+        <li><code>gdd_lo(#)</code> / <code>gdd_hi(#)</code> - Bounds for capped growing degree day accumulation.</li>
+        <li><code>kdd_base(#)</code> - Temperature threshold for killing degree days.</li>
+        <li><code>bins(#)</code> - Number of temperature percentile bins, from 4 to 10. Default is 4.</li>
+        <li><code>lr_years(#)</code> - Number of preceding years for rolling deviations and z-scores. Default is 10.</li>
+        <li><code>rain_threshold(#)</code> - Rainfall threshold for rainy-day and dry-spell calculations. Default is 1.</li>
         <li><code>keep(varlist)</code> - Keep created variables and specified existing variables.</li>
         <li><code>save(filename)</code> - Save dataset as filename.</li>
     </ul>
@@ -75,14 +77,16 @@
     <h2>Examples</h2>
 
     <h3>Rainfall Data</h3>
-    <p>Process rainfall data for a season from mid-March to mid-June:</p>
-    <pre><code>wxsum pic_, ini_month(3) fin_month(6) day_month(15) rain_data keep(id) save("rain_stats.dta")</code></pre>
+    <p>Process rainfall data in the bundled sample dataset:</p>
+    <pre><code>use rain.dta, clear
+wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)</code></pre>
 
     <h3>Temperature Data (Cross-Year Season)</h3>
     <p>Process temperature data for a season that crosses a calendar year (November to February):</p>
-    <pre><code>wxsum t_, ini_month(11) fin_month(2) temperature_data growbase_low(10) growbase_high(30) save("temp_stats.dta")</code></pre>
+    <pre><code>use temp.dta, clear
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)</code></pre>
 
     <h2>Authors</h2>
-    <p>Oscar Barriga Cabanillas, Aleksandr Michuda, Jeffrey D. Michler, Brian McGreal, Anna Josepshon</p>
+    <p>Oscar Barriga Cabanillas, Anna Josepshon, Brian McGreal, Jeffrey D. Michler, Aleksandr Michuda, Jeffrey C. Oliver</p>
 </body>
 </html>

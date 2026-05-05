@@ -7,3 +7,13 @@
 *.stpr
 *.smcl
 *.png
+
+# Stata log files
+*.log
+
+# Test scripts and generated output
+codex_*.do
+tests/
+
+# Generated output datasets (rainfall_stats.dta is created by examples)
+rainfall_stats.dta

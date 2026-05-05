@@ -84,7 +84,7 @@ When the `temp_data` option is chosen, the command generates the following varia
 - z-score of kdd in a season
 - temperature bins
 
-Growing degree days are calculated using the options `gdd_lo(number)` and `gdd_hi(number)` to determine the number of days where the temperature was between that range. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
+Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
 The command calculates temperature bins as the percentage of days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4).
 
@@ -95,13 +95,13 @@ To try the command out on the sample datasets included in this repository:
 **Rainfall Example:**
 ```stata
 use rain.dta, clear
-wxsum pic_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)
+wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)
 ```
 
 **Temperature Example:**
 ```stata
 use temp.dta, clear
-wxsum t_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(id region)
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)
 ```
 
 ## Reporting Bugs
