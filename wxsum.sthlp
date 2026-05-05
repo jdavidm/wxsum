@@ -160,6 +160,10 @@ Growing degree days are calculated as capped degree accumulation: {cmd:min(max(t
 
 {phang}
 Year-specific temperature bin variables are named {it:tempbin01_YEAR}, {it:tempbin02_YEAR}, ..., {it:tempbin10_YEAR}.
+Cross-season summaries are named {it:binmean_01}, {it:binmean_02}, ..., {it:binmean_10} and {it:binsd_01}, {it:binsd_02}, ..., {it:binsd_10}.
+
+{phang}
+Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approximation of distributional asymmetry (Pearson's second coefficient without the factor of 3).
 
 {marker examples}{...}
 {title:Examples}
