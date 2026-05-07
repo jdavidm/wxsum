@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 3.3 2nov2023}{...}
+{* *! version 4.0 4may2026}{...}
 {vieweralsosee "" "--"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -40,7 +40,7 @@
 {synopt:{opt lr_years(#)}}Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.{p_end}
 {synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
-{synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1.{p_end}
+{synopt:{opt rain_threshold(#)}}Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from rain-day and dry-spell calculations.{p_end}
 {synoptline}
 {p2colreset}{...}
 
@@ -51,11 +51,11 @@
 The {cmd:wxsum} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
 The command can be used with either rainfall or temperature data from any source. 
 The data must be wide, where each location is a row and each column is a daily reading. 
-The variables for each column must contain {it:yyyymmdd}. For example, if the prefix is {it:pic_}, the variable for May 15, 1979 would be {it:pic_19790515}.
+Daily weather variable names must be the user-supplied prefix followed by {it:yyyymmdd}. For example, if the prefix is {it:rf_}, the variable for May 15, 1979 would be {it:rf_19790515}.
 
 {pstd}
-Z-scores and deviations from long run averages are dynamically computed strictly against the specified number of preceding `lr_years`. 
-{break}Warning: If there isn't enough historical preceding data to satisfy the user-defined `lr_years` constraint (e.g. asking for 10 years of history when calculating the year 2005 using a dataset that begins in 2000), deviations and z-scores will be skipped for those initial years, though standard variables will still generate.
+Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding {opt lr_years}.
+{break}If there is not enough historical preceding data to satisfy the user-defined {opt lr_years} constraint, deviations and z-scores are skipped for those initial years, though standard variables are still generated.
 
 {marker remarks}{...}
 {title:Remarks}
@@ -108,7 +108,9 @@ The general syntax of the command is as follows:
 {break}- z-score of gdd in a season
 {break}- deviations from long run average kdd in a season
 {break}- z-score of kdd in a season
-{break}- temperature bins
+{break}- year-specific temperature bin shares, named {it:tempbin01_YEAR}, {it:tempbin02_YEAR}, ..., {it:tempbin10_YEAR}
+{break}- cross-season temperature bin means, named {it:binmean_01}, {it:binmean_02}, ..., {it:binmean_10}
+{break}- cross-season temperature bin standard deviations, named {it:binsd_01}, {it:binsd_02}, ..., {it:binsd_10}
 
 {phang}
 {opt rain_data} processes rainfall variables to generate:
@@ -144,30 +146,40 @@ The general syntax of the command is as follows:
 {opt bins(#)} sets the number of equal-sized percentile bins for the temperature distribution. Allowed values: 4 to 10. Default is 4.
 
 {phang}
+For each season year, temperature bin outputs use two-digit bin numbers and the season year, such as {it:tempbin01_1993} through {it:tempbin10_1993}. Across all generated seasons, the command creates {it:binmean_01} through {it:binmean_10} and {it:binsd_01} through {it:binsd_10} when the corresponding bins exist.
+
+{phang}
 {opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
 
 {phang}
 {opt save(filename)} saves the output dataset.
 
 {phang}
-{opt rain_threshold(#)} allows the user to define what counts as a rainy day. Default is > 1.
+{opt rain_threshold(#)} allows the user to define what counts as a rainy day. Default is 1. Missing rainfall values are excluded from rain-day, no-rain-day, percentage, and dry-spell calculations.
 
 {phang}
 {opt lr_years(#)} Sets the rolling window history size for calculating deviations from the long run average. Defaults to 10.
+
+{phang}
+Growing degree days are calculated as capped degree accumulation: {cmd:min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)}, summed over the season.
+
+{phang}
+Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approximation of distributional asymmetry (Pearson's second coefficient without the factor of 3).
 
 {marker examples}{...}
 {title:Examples}
 
 {phang}{cmd:. use rain.dta, clear}{p_end}
-{phang}{cmd:. wxsum r_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
+{phang}{cmd:. wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)}{p_end}
 
 {phang}{cmd:. use temp.dta, clear}{p_end}
-{phang}{cmd:. wxsum t_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(id region)}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)}{p_end}
 
 {title:Authors}
 
 {pstd}Oscar Barriga Cabanillas{p_end}
-{pstd}Aleksandr Michuda{p_end}
-{pstd}Jeffrey D. Michler{p_end}
-{pstd}Brian McGreal{p_end}
 {pstd}Anna Josepshon{p_end}
+{pstd}Brian McGreal{p_end}
+{pstd}Jeffrey D. Michler{p_end}
+{pstd}Aleksandr Michuda{p_end}
+{pstd}Jeffrey C. Oliver{p_end}
