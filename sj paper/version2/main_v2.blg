@@ -1,23 +1,23 @@
 This is BibTeX, Version 0.99d
 Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
-The top-level auxiliary file: main.aux
+The top-level auxiliary file: main_v2.aux
 Reallocating 'name_of_file' (item size: 1) to 3 items.
 The style file: sj.bst
-Reallocating 'name_of_file' (item size: 1) to 10 items.
-Database file #1: wxsum_ref.bib
+Reallocating 'name_of_file' (item size: 1) to 13 items.
+Database file #1: wxsum_ref_v2.bib
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'wiz_functions' (item size: 4) to 6000 items.
 You've used 15 entries,
             3197 wiz_defined-function locations,
-            776 strings with 8287 characters,
-and the built_in function-call counts, 8925 in all, are:
-= -- 740
+            775 strings with 8230 characters,
+and the built_in function-call counts, 8915 in all, are:
+= -- 737
 > -- 584
 < -- 6
 + -- 201
 - -- 176
-* -- 906
-:= -- 1585
+* -- 905
+:= -- 1584
 add.period$ -- 61
 call.type$ -- 15
 change.case$ -- 196
@@ -38,13 +38,13 @@ purify$ -- 193
 quote$ -- 0
 skip$ -- 251
 stack$ -- 0
-substring$ -- 388
+substring$ -- 384
 swap$ -- 41
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
 type$ -- 135
 warning$ -- 0
-while$ -- 58
+while$ -- 57
 width$ -- 0
 write$ -- 201

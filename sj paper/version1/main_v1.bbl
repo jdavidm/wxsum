@@ -1,10 +1,17 @@
-\ifnum 15=1 \def\bibname{Reference}
+\ifnum 9=1 \def\bibname{Reference}
 \else \def\bibname{References} \fi
-\begin{thebibliography}{15}
+\begin{thebibliography}{9}
 \expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
 \expandafter\ifx\csname url\endcsname\relax
   \def\url#1{\texttt{#1}}\fi
 \expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+
+\bibitem[{Auffhammer et~al.\@(2013)Auffhammer, Hsiangy, Schlenker, and
+  Sobelz}]{AuffhammerEtAl13}
+Auffhammer, M., S.~Hsiangy, W.~Schlenker, and A.~Sobelz. 2013.
+\newblock Using Weather Data and Climate Model Output in Economic Analyses of
+  Climate Change.
+\newblock \emph{Review of Environmental Economics and Policy} 7(2): 181–198.
 
 \bibitem[{Benami et~al.\@(2026)Benami, Michler, Josephson, Cecil, and
   Maskell}]{BenamiEtAl26}
@@ -14,49 +21,16 @@ Benami, E., J.~D. Michler, A.~Josephson, M.~Cecil, and G.~Maskell. 2026.
 \newblock In \emph{Geospatial Impact Evaluation in Practice}, ed. A.~BenYishay
   and K.~Singh. Taylor \& Francis.
 
-\bibitem[{Bosilovich et~al.\@(2016)Bosilovich, Lucchesi, and Suarez}]{MERRA2}
-Bosilovich, M., R.~Lucchesi, and M.~Suarez. 2016.
-\newblock {MERRA}-2: File Specification.
-\newblock GMAO Office Note No. 9 (Version 1.1).
-  \texttt{http://gmao.gsfc.nasa.gov/pubs/office\_notes}.
-
-\bibitem[{Chen et~al.\@(2008)Chen, Shi, Xie, Silva, Kousky, Higgins, and
-  Janowiak}]{CPC}
-Chen, M., W.~Shi, P.~Xie, V.~B. Silva, V.~E. Kousky, R.~W. Higgins, and J.~E.
-  Janowiak. 2008.
-\newblock Assessing objective techniques for gauge‐based analyses of global
-  daily precipitation.
-\newblock \emph{Journal of Geophysical Research} 113: D04110.
-
 \bibitem[{Dell et~al.\@(2014)Dell, Jones, and Olken}]{Dell2014-rf}
 Dell, M., B.~F. Jones, and B.~A. Olken. 2014.
 \newblock What Do We Learn from the Weather? {T}he New {Climate-Economy}
   Literature.
 \newblock \emph{Journal of Economic Literature} 52(3): 740--798.
 
-\bibitem[{Desch{\^e}ne and Greenstone(2007)}]{DescheneGreenstone07}
-Desch{\^e}ne, O., and M.~Greenstone. 2007.
-\newblock The Economic Impacts of Climate Change: Evidence from Agricultural
-  Output and Random Fluctuations in Weather.
-\newblock \emph{American Economic Review} 97(1): 354--85.
-
-\bibitem[{Dinku(2020)}]{Dinku2020}
-Dinku, T. 2020.
-\newblock Remote sensing of {A}frican rainfall.
-\newblock \emph{Oxford Research Encyclopedia of Climate Science} 30 July.
-
 \bibitem[{Donaldson and Storeygard(2016)}]{DonaldsonStoreygard16}
 Donaldson, D., and A.~Storeygard. 2016.
 \newblock The View from Above: Applications of Satellite Data in Economics.
 \newblock \emph{Journal of Economic Perspectives} 30(4): 171--98.
-
-\bibitem[{Funk et~al.\@(2015)Funk, Peterson, Landsfeld, Pedreros, Verdin,
-  Shukla, Husak, Rowland, Harrison, Hoell, and Michaelsen}]{CHIRPS}
-Funk, C., P.~Peterson, M.~Landsfeld, D.~Pedreros, J.~Verdin, S.~Shukla,
-  G.~Husak, J.~Rowland, L.~Harrison, A.~Hoell, and J.~Michaelsen. 2015.
-\newblock The climate hazards infrared precipitation with stations—a new
-  environmental record for monitoring extremes.
-\newblock \emph{Scientific Data} 2: 150066.
 
 \bibitem[{Josephson et~al.\@(2026)Josephson, Michler, Kilic, and
   Murray}]{JosephsonEtAl26}
@@ -84,25 +58,9 @@ Michler, J.~D., A.~Josephson, T.~Kilic, and S.~Murray. 2021.
   sensing and socioeconomic survey data.
 \newblock \emph{Journal of Development Economics} 158: 102927.
 
-\bibitem[{Novella and Thiaw(2013)}]{ARC2}
-Novella, N.~S., and W.~M. Thiaw. 2013.
-\newblock African Rainfall Climatology Version 2 for Famine Early Warning
-  Systems.
-\newblock \emph{Journal of Applied Meteorology and Climatology} 52(3):
-  588--606.
-
 \bibitem[{Sarsons(2015)}]{Sarsons15}
 Sarsons, H. 2015.
 \newblock Rainfall and Conflict: A Cautionary Tale.
 \newblock \emph{Journal of Development Economics} 115: 62--72.
-
-\bibitem[{Tarnavsky et~al.\@(2014)Tarnavsky, Grimes, Maidment, Black, Allan,
-  Stringer, Chadwick, and Kayitakire}]{TAMSAT}
-Tarnavsky, E., D.~Grimes, R.~Maidment, E.~Black, R.~P. Allan, M.~Stringer,
-  R.~Chadwick, and F.~Kayitakire. 2014.
-\newblock Extension of the {TAMSAT} Satellite-Based Rainfall Monitoring over
-  {A}frica and from 1983 to Present.
-\newblock \emph{Journal of Applied Meteorology and Climatology} 53(12):
-  2805--22.
 
 \end{thebibliography}
