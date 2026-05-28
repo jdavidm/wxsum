@@ -96,13 +96,13 @@ To try the command out on the sample datasets included in this repository:
 **Rainfall Example:**
 ```stata
 use rain.dta, clear
-wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(rainfall_stats.dta)
+wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data lr_years(10) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)
 ```
 
 **Temperature Example:**
 ```stata
 use temp.dta, clear
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(32) bins(4) keep(hhid) save(temperature_stats.dta)
 ```
 
 ## Reporting Bugs
