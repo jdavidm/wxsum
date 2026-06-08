@@ -8,6 +8,10 @@ You can install the latest version of `wxsum` directly from this GitHub reposito
 net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/master/") replace
 ```
 
+## Requirements
+
+The command requires Stata 15 or later. Users working with long time series in Stata/IC may need to split the data into shorter panels due to variable limits.
+
 ## Description
 
 The `wxsum` command processes remote sensing rainfall and temperature data and outputs useful statistics. The command can be used with either rainfall or temperature data from any source.
@@ -62,9 +66,12 @@ When the `rain_data` option is chosen, the command generates the following varia
 - number of rainy days in a season
 - number of days without rain in a season
 - deviation from long run average of rainy days in a season
+- z-score of rainy days in a season
 - deviation from long run average of days without rain in a season
+- z-score of days without rain in a season
 - percentage of days with rain in a season
 - deviation from the long run average of percentage of days with rain in a season
+- z-score of percentage of days with rain in a season
 - longest intra-seasonal dry spell
 
 ### 2. Temperature Variables
@@ -108,10 +115,15 @@ wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(
 ## Reporting Bugs
 If you run into any issues or bugs, please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues). Be sure to include your exact Stata version, the command you ran, and a sample of your data (or ideally, reproduce the bug using `rain.dta` or `temp.dta`).
 
+## Citation
+
+If you use `wxsum` in your research, please cite:
+
+> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 1.
+
 ## Authors
-- Oscar Barriga Cabanillas
-- Anna Josepshon
-- Brian McGreal
+- Oscar Barriga-Cabanillas
+- Anna Josephson
 - Jeffrey D. Michler
 - Aleksandr Michuda
 - Jeffrey C. Oliver
