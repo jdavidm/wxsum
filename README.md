@@ -5,7 +5,7 @@
 You can install the latest version of `wxsum` directly from this GitHub repository using Stata's `net install` command:
 
 ```stata
-net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/master/") replace
+net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/") replace
 ```
 
 ## Description
