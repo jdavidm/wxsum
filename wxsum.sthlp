@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.0 4may2026}{...}
+{* *! version 4.1 9jun2026}{...}
 {vieweralsosee "" "--"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -36,7 +36,9 @@
 {synopt:{opt gdd_lo(#)}}Lower bound for growing degree days calculation (required if temp_data is used).{p_end}
 {synopt:{opt gdd_hi(#)}}Upper bound for growing degree days calculation (required if temp_data is used).{p_end}
 {synopt:{opt kdd_base(#)}}Temperature threshold for calculating Killing Degree Days (KDD).{p_end}
-{synopt:{opt bins(#)}}Number of temperature percentile bins. Minimum 4, Maximum 10. Default is 4.{p_end}
+{synopt:{opt gdd_bin(#)}}Width of fixed-interval seasonal GDD categories.{p_end}
+{synopt:{opt gdd_binlo(#)}}Lower endpoint for regular GDD intervals. Default 0.{p_end}
+{synopt:{opt gdd_binhi(#)}}Upper endpoint for regular GDD intervals; values at or above are top-coded.{p_end}
 {synopt:{opt lr_years(#)}}Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.{p_end}
 {synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
@@ -108,9 +110,7 @@ The general syntax of the command is as follows:
 {break}- z-score of gdd in a season
 {break}- deviations from long run average kdd in a season
 {break}- z-score of kdd in a season
-{break}- year-specific temperature bin shares, named {it:tempbin01_YEAR}, {it:tempbin02_YEAR}, ..., {it:tempbin10_YEAR}
-{break}- cross-season temperature bin means, named {it:binmean_01}, {it:binmean_02}, ..., {it:binmean_10}
-{break}- cross-season temperature bin standard deviations, named {it:binsd_01}, {it:binsd_02}, ..., {it:binsd_10}
+{break}- seasonal GDD category variable {it:gddcat_YEAR} (when {opt gdd_bin()} is specified)
 
 {phang}
 {opt rain_data} processes rainfall variables to generate:
@@ -143,10 +143,13 @@ The general syntax of the command is as follows:
 {opt kdd_base(#)} specifies the threshold temperature above which to calculate Killing Degree Days.
 
 {phang}
-{opt bins(#)} sets the number of equal-sized percentile bins for the temperature distribution. Allowed values: 4 to 10. Default is 4.
+{opt gdd_bin(#)} specifies the fixed width of seasonal GDD categories. When specified, {cmd:wxsum} creates one integer categorical variable {it:gddcat_YYYY} for each generated GDD season. The categories are defined over fixed-width intervals of the seasonal GDD total, following the approach used in Deschênes and Greenstone-style specifications. The user can then use Stata's factor-variable notation (e.g., {cmd:i.gddcat_1993}) to generate dummies in estimation commands. The command assigns Stata value labels to each category so that {cmd:tabulate gddcat_1993} displays the GDD intervals. The bin width is specified in the same units as the generated GDD variable. Requires {opt temp_data}.
 
 {phang}
-For each season year, temperature bin outputs use two-digit bin numbers and the season year, such as {it:tempbin01_1993} through {it:tempbin10_1993}. Across all generated seasons, the command creates {it:binmean_01} through {it:binmean_10} and {it:binsd_01} through {it:binsd_10} when the corresponding bins exist.
+{opt gdd_binlo(#)} specifies the lower endpoint at which regular fixed-width GDD intervals begin. Default is 0 when {opt gdd_bin()} is specified. If any seasonal GDD total falls below this value, a bottom-coded category "GDD < {it:#}" is created. Requires {opt gdd_bin()}.
+
+{phang}
+{opt gdd_binhi(#)} specifies the upper endpoint at which regular fixed-width GDD intervals end. Values at or above this endpoint are assigned to a top-coded category "GDD >= {it:#}". When omitted, the command automatically extends the regular intervals to cover the empirical maximum. Requires {opt gdd_bin()}. Must be greater than {opt gdd_binlo()}. The range ({opt gdd_binhi()} - {opt gdd_binlo()}) must be evenly divisible by {opt gdd_bin()}.
 
 {phang}
 {opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
@@ -166,6 +169,9 @@ Growing degree days are calculated as capped degree accumulation: {cmd:min(max(t
 {phang}
 Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approximation of distributional asymmetry (Pearson's second coefficient without the factor of 3).
 
+{phang}
+GDD categories are constructed over the seasonal GDD total, not over daily temperatures. Let tau_0 < tau_1 < ... < tau_J be fixed cutpoints generated from {opt gdd_bin()}, {opt gdd_binlo()}, and either {opt gdd_binhi()} or the automatic endpoint. Then {it:gddcat_it} = j if tau_{j-1} <= GDD_it < tau_j. If a bottom-coded category is needed, {it:gddcat_it} = 1 when GDD_it < tau_0. If a top-coded category is requested, {it:gddcat_it} = J+1 when GDD_it >= tau_J.
+
 {marker examples}{...}
 {title:Examples}
 
@@ -174,6 +180,12 @@ Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approxima
 
 {phang}{cmd:. use temp.dta, clear}{p_end}
 {phang}{cmd:. wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)}{p_end}
+
+{phang}{cmd:. * GDD categories with 500 degree-day width (Fahrenheit degree-day example)}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(46.4) gdd_hi(89.6) gdd_bin(500)}{p_end}
+
+{phang}{cmd:. * GDD categories with bottom and top coding}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) gdd_bin(250) gdd_binlo(0) gdd_binhi(3000)}{p_end}
 
 {title:Authors}
 

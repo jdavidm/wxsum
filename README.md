@@ -34,7 +34,9 @@ wxsum prefix , ini_month(month) fin_month(month) [options]
 - `gdd_lo(#)`: Lower bound for growing degree days calculation (required if temp_data is used).
 - `gdd_hi(#)`: Upper bound for growing degree days calculation (required if temp_data is used).
 - `kdd_base(#)`: Temperature threshold for calculating Killing Degree Days (KDD).
-- `bins(#)`: Number of temperature percentile bins. Minimum 4, Maximum 10. Default is 4.
+- `gdd_bin(#)`: Width of fixed-interval seasonal GDD categories. When specified, creates one integer categorical variable `gddcat_YYYY` for each generated GDD season. Requires `temp_data`.
+- `gdd_binlo(#)`: Lower endpoint for regular fixed-width GDD intervals. Default is 0 when `gdd_bin()` is specified. Values below this threshold are assigned to a bottom-coded category. Requires `gdd_bin()`.
+- `gdd_binhi(#)`: Upper endpoint for regular fixed-width GDD intervals. Values at or above this threshold are assigned to a top-coded category. When omitted, the command automatically extends intervals to cover the empirical maximum. Requires `gdd_bin()`.
 - `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
 - `keep(varlist)`: Variables to keep in the final dataset along with the generated wxsum variables.
 - `save(filename)`: File path to save the resulting dataset.
@@ -81,13 +83,11 @@ When the `temp_data` option is chosen, the command generates the following varia
 - z-score of gdd in a season
 - deviations from long run average kdd in a season
 - z-score of kdd in a season
-- year-specific temperature bin shares named `tempbin01_YEAR`, `tempbin02_YEAR`, ..., `tempbin10_YEAR`
-- cross-season temperature bin means named `binmean_01`, `binmean_02`, ..., `binmean_10`
-- cross-season temperature bin standard deviations named `binsd_01`, `binsd_02`, ..., `binsd_10`
+- GDD category variable `gddcat_YYYY` (when `gdd_bin()` is specified)
 
 Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
-The command calculates temperature bins as the share of observed days that fall into equal-sized quantiles during the season, defined by the option `bins(number)` ranging from 4 to 10 (default 4). For each season year, bin variables are named with two-digit bin numbers and the season year, such as `tempbin01_1993` through `tempbin10_1993`. Across all generated seasons, the command also creates summary variables `binmean_01` through `binmean_10` and `binsd_01` through `binsd_10` when the corresponding bins exist.
+When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [0,500)`, `GDD [500,1000)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
 
 ## Examples
 
@@ -102,7 +102,21 @@ wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data lr_year
 **Temperature Example:**
 ```stata
 use temp.dta, clear
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(32) bins(4) keep(hhid) save(temperature_stats.dta)
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid) save(temperature_stats.dta)
+```
+
+**GDD Categories Example (Fahrenheit degree-days):**
+```stata
+use temp.dta, clear
+wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(46.4) gdd_hi(89.6) gdd_bin(500)
+```
+
+Note: 500 is in the units of the generated GDD variable (here, Fahrenheit degree-days). For Celsius data, the user should choose a width appropriate for their units.
+
+**GDD Categories with Bottom and Top Coding:**
+```stata
+use temp.dta, clear
+wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) gdd_bin(250) gdd_binlo(0) gdd_binhi(3000)
 ```
 
 ## Reporting Bugs
@@ -115,4 +129,3 @@ If you run into any issues or bugs, please open an issue on the [GitHub reposito
 - Jeffrey D. Michler
 - Aleksandr Michuda
 - Jeffrey C. Oliver
-

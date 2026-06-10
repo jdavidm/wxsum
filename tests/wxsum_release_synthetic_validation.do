@@ -80,7 +80,7 @@ forvalues d = `=td(30nov2021)'/`=td(02jan2022)' {
 	}
 }
 
-wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(18) bins(4) lr_years(2)
+wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(18) lr_years(2)
 
 confirm variable mean_2021
 capture confirm variable mean_2022
@@ -89,34 +89,83 @@ assert abs(mean_2021 - cond(hhid == 1, 360 / 34, 190 / 34)) < 1e-6
 assert gdd_2021 == cond(hhid == 1, 88, 14)
 assert kdd_2021 == cond(hhid == 1, 4, 0)
 
-display "4. equal-temperature bins produce exact zero-padded outputs and bin summaries"
+display "4. GDD categories with default lo, auto hi, known GDD totals"
 clear
-set obs 2
+set obs 3
 gen hhid = _n
-forvalues y = 2020/2021 {
-	forvalues d = 1/4 {
-		local day = string(`d', "%02.0f")
-		gen tmp_`y'01`day' = cond(hhid == 1, 10, 20)
-	}
+* Create two seasons with hand-calculable GDD totals
+* Season 2020: 4 days, temps such that gdd_lo=0, gdd_hi=100
+* Location 1: temps = 10, 20, 30, 40 => GDD = 10+20+30+40 = 100
+* Location 2: temps = 50, 60, 70, 80 => GDD = capped at 100 each = 400
+* Location 3: temps = 5, 5, 5, 5 => GDD = 20
+forvalues d = 1/4 {
+	local day = string(`d', "%02.0f")
+	gen tmp_202001`day' = .
 }
+replace tmp_20200101 = 10 if hhid == 1
+replace tmp_20200102 = 20 if hhid == 1
+replace tmp_20200103 = 30 if hhid == 1
+replace tmp_20200104 = 40 if hhid == 1
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(30) bins(4) lr_years(2)
+replace tmp_20200101 = 50 if hhid == 2
+replace tmp_20200102 = 60 if hhid == 2
+replace tmp_20200103 = 70 if hhid == 2
+replace tmp_20200104 = 80 if hhid == 2
 
-confirm variable tempbin01_2020
-confirm variable tempbin04_2021
-capture confirm variable tempbin12020
+replace tmp_20200101 = 5 if hhid == 3
+replace tmp_20200102 = 5 if hhid == 3
+replace tmp_20200103 = 5 if hhid == 3
+replace tmp_20200104 = 5 if hhid == 3
+
+* Season 2021: same structure
+forvalues d = 1/4 {
+	local day = string(`d', "%02.0f")
+	gen tmp_202101`day' = .
+}
+replace tmp_20210101 = 25 if hhid == 1
+replace tmp_20210102 = 25 if hhid == 1
+replace tmp_20210103 = 25 if hhid == 1
+replace tmp_20210104 = 25 if hhid == 1
+
+replace tmp_20210101 = 50 if hhid == 2
+replace tmp_20210102 = 50 if hhid == 2
+replace tmp_20210103 = 50 if hhid == 2
+replace tmp_20210104 = 50 if hhid == 2
+
+replace tmp_20210101 = 0 if hhid == 3
+replace tmp_20210102 = 0 if hhid == 3
+replace tmp_20210103 = 0 if hhid == 3
+replace tmp_20210104 = 0 if hhid == 3
+
+* gdd_lo=0 gdd_hi=100 => GDD capped at 100 per day
+* 2020: loc1 GDD=100, loc2 GDD=400, loc3 GDD=20
+* 2021: loc1 GDD=100, loc2 GDD=400, loc3 GDD=0
+* Pool max=400, pool min=0. gdd_bin(100), default lo=0
+* auto hi: ceil(400/100)=4, 0+4*100=400, but 400>=400 so push to 5*100=500
+* Categories: 1=[0,100), 2=[100,200), 3=[200,300), 4=[300,400), 5=[400,500)
+
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(100) gdd_bin(100) lr_years(2)
+
+confirm variable gddcat_2020
+confirm variable gddcat_2021
+* Location 3, 2020: GDD=20 => [0,100) => cat 1
+assert gddcat_2020 == 1 if hhid == 3
+* Location 1, 2020: GDD=100 => [100,200) => cat 2
+assert gddcat_2020 == 2 if hhid == 1
+* Location 2, 2020: GDD=400 => [400,500) => cat 5
+assert gddcat_2020 == 5 if hhid == 2
+* Location 3, 2021: GDD=0 => [0,100) => cat 1
+assert gddcat_2021 == 1 if hhid == 3
+* Location 1, 2021: GDD=100 => [100,200) => cat 2
+assert gddcat_2021 == 2 if hhid == 1
+
+* Verify no tempbin/binmean/binsd variables exist
+capture confirm variable tempbin01_2020
 assert _rc != 0
-capture confirm variable mean_1
+capture confirm variable binmean_01
 assert _rc != 0
-assert tempbin01_2020 == 0
-assert tempbin02_2020 == 0
-assert tempbin03_2020 == 0
-assert tempbin04_2020 == 1
-assert tempbin04_2021 == 1
-assert binmean_01 == 0
-assert binmean_04 == 1
-assert binsd_01 == 0
-assert binsd_04 == 0
+capture confirm variable binsd_01
+assert _rc != 0
 
 display "5. keep() keeps requested ids plus generated variables and drops unrelated source columns"
 clear

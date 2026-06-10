@@ -9,6 +9,7 @@
 *  v 3.3  24apr2020 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 3.3  2nov2023  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.0  2apr2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.1  9jun2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
@@ -28,7 +29,9 @@ version 15.1
 		gdd_lo(real -999999999)					///
 		gdd_hi(real -999999999)					///
 		kdd_base(real 0)						///
-		bins(real 4)							///
+		gdd_bin(real -999999999)					///
+		gdd_binlo(real -999999999)				///
+		gdd_binhi(real -999999999)				///
 		lr_years(integer 10)					///
 		temp_data								///
 		rain_data								///
@@ -98,9 +101,42 @@ version 15.1
 			di as error "gdd_hi() must be greater than gdd_lo()"
 			exit 198
 		}
-		if `bins' != floor(`bins') | `bins' < 4 | `bins' > 10 {
-			di as error "bins() must be an integer between 4 and 10"
+	}
+
+	* gdd_bin / gdd_binlo / gdd_binhi validation
+	local has_gdd_bin = (`gdd_bin' != -999999999)
+	local has_gdd_binlo = (`gdd_binlo' != -999999999)
+	local has_gdd_binhi = (`gdd_binhi' != -999999999)
+
+	if `has_gdd_binlo' & !`has_gdd_bin' {
+		di as error "gdd_binlo() requires gdd_bin()"
+		exit 198
+	}
+	if `has_gdd_binhi' & !`has_gdd_bin' {
+		di as error "gdd_binhi() requires gdd_bin()"
+		exit 198
+	}
+	if `has_gdd_bin' {
+		if "`rain_data'" != "" {
+			di as error "gdd_bin() cannot be used with rain_data"
 			exit 198
+		}
+		if `gdd_bin' <= 0 {
+			di as error "gdd_bin() must be positive"
+			exit 198
+		}
+		local gb_lo = cond(`has_gdd_binlo', `gdd_binlo', 0)
+		if `has_gdd_binhi' {
+			if `gdd_binhi' <= `gb_lo' {
+				di as error "gdd_binhi() must be greater than gdd_binlo()"
+				exit 198
+			}
+			local gb_q = (`gdd_binhi' - `gb_lo') / `gdd_bin'
+			if abs(`gb_q' - round(`gb_q')) > 1e-8 {
+				di as error "(gdd_binhi() - gdd_binlo()) must be evenly divisible by gdd_bin()"
+				di as error "Range = " %12.4g (`gdd_binhi' - `gb_lo') ", width = " %12.4g `gdd_bin'
+				exit 198
+			}
 		}
 	}
 
@@ -147,6 +183,7 @@ version 15.1
 	local max_year = year(`max_date')
 	local crosses = (`ini_ref' > `fin_ref')
 	local created_vars ""
+	local gdd_vars ""
 	local first_year = .
 	local last_year = .
 	local dtype = cond("`temp_data'" != "", "temp", "rain")
@@ -215,6 +252,7 @@ version 15.1
 			quietly egen gdd_`j' = rowtotal(`gdd_aux')
 			label var gdd_`j' "Growing degree days in `j' between `gdd_lo' and `gdd_hi'"
 			local created_vars "`created_vars' gdd_`j'"
+			local gdd_vars "`gdd_vars' gdd_`j'"
 			quietly drop `gdd_aux'
 
 			if `kdd_base' > 0 {
@@ -230,48 +268,6 @@ version 15.1
 				quietly drop `kdd_aux'
 			}
 
-			local max_bound = `bins' - 1
-			if `count_days' >= `bins' {
-				local pct_vars ""
-				forvalues b = 1/`max_bound' {
-					local p_val = round(`b' * 100 / `bins')
-					tempvar pct`b'
-					quietly egen `pct`b'' = rowpctile(`var'), p(`p_val')
-					local pct_vars "`pct_vars' `pct`b''"
-				}
-
-				forvalues b = 1/`bins' {
-					local b_str = string(`b', "%02.0f")
-					local bin_aux ""
-					foreach f of local var {
-						tempvar bin
-						if `b' == 1 {
-							local upper "`pct1'"
-							quietly gen byte `bin' = (`f' < `upper') if !missing(`f') & !missing(`upper')
-						}
-						else if `b' == `bins' {
-							local lower "`pct`max_bound''"
-							quietly gen byte `bin' = (`f' >= `lower') if !missing(`f') & !missing(`lower')
-						}
-						else {
-							local prev = `b' - 1
-							local lower "`pct`prev''"
-							local upper "`pct`b''"
-							quietly gen byte `bin' = (`f' >= `lower' & `f' < `upper') if !missing(`f') & !missing(`lower') & !missing(`upper')
-						}
-						local bin_aux "`bin_aux' `bin'"
-					}
-
-					quietly egen tempbin`b_str'_`j' = rowtotal(`bin_aux')
-					quietly replace tempbin`b_str'_`j' = tempbin`b_str'_`j' / `observed_days' if `observed_days' > 0
-					quietly replace tempbin`b_str'_`j' = . if `observed_days' == 0
-					local p_val_end = round(`b' * 100 / `bins')
-					label var tempbin`b_str'_`j' "Share of observed days in bin `b' ending at `p_val_end'th percentile in `j'"
-					local created_vars "`created_vars' tempbin`b_str'_`j'"
-					quietly drop `bin_aux'
-				}
-				quietly drop `pct_vars'
-			}
 		}
 
 		if "`rain_data'" != "" {
@@ -399,28 +395,124 @@ version 15.1
 		exit 2000
 	}
 
-	if "`temp_data'" != "" {
-		forvalues k = 1/`bins' {
-			local k_str = string(`k', "%02.0f")
-			local binvars ""
-			forvalues y = `first_year'/`last_year' {
-				capture confirm numeric variable tempbin`k_str'_`y'
-				if _rc == 0 local binvars "`binvars' tempbin`k_str'_`y'"
+	* ---- GDD category construction ----
+	if `has_gdd_bin' & "`gdd_vars'" != "" {
+		* find pooled empirical min and max across all gdd_YYYY
+		local gb_lo = cond(`has_gdd_binlo', `gdd_binlo', 0)
+		local gdd_pool_min = .
+		local gdd_pool_max = .
+		foreach gv of local gdd_vars {
+			quietly summarize `gv', meanonly
+			if r(N) > 0 {
+				if missing(`gdd_pool_min') | r(min) < `gdd_pool_min' {
+					local gdd_pool_min = r(min)
+				}
+				if missing(`gdd_pool_max') | r(max) > `gdd_pool_max' {
+					local gdd_pool_max = r(max)
+				}
 			}
-			local binvar_count : word count `binvars'
-			if `binvar_count' > 0 {
-				quietly egen binmean_`k_str' = rowmean(`binvars')
-				label var binmean_`k_str' "Mean share of days in temperature bin `k' across all seasons"
-				local created_vars "`created_vars' binmean_`k_str'"
+		}
 
-				if `binvar_count' > 1 {
-					quietly egen binsd_`k_str' = rowsd(`binvars')
+		if !missing(`gdd_pool_max') {
+			* determine upper endpoint
+			local gb_width = `gdd_bin'
+			if `has_gdd_binhi' {
+				local gb_hi = `gdd_binhi'
+				local gb_has_top = 1
+			}
+			else {
+				* auto upper: next bin boundary strictly above empirical max
+				local gb_n = ceil((`gdd_pool_max' - `gb_lo') / `gb_width')
+				* if max falls exactly on a boundary, push up one more
+				local gb_auto_hi = `gb_lo' + `gb_n' * `gb_width'
+				if `gdd_pool_max' >= `gb_auto_hi' - 1e-12 {
+					local gb_n = `gb_n' + 1
+					local gb_auto_hi = `gb_lo' + `gb_n' * `gb_width'
 				}
-				else {
-					quietly gen binsd_`k_str' = .
+				* handle case where pool max == lo (e.g. all zeros)
+				if `gb_n' < 1 local gb_n = 1
+				local gb_hi = `gb_lo' + `gb_n' * `gb_width'
+				local gb_has_top = 0
+			}
+
+			* determine if bottom-coded category is needed
+			local gb_has_bot = 0
+			if !missing(`gdd_pool_min') & `gdd_pool_min' < `gb_lo' {
+				local gb_has_bot = 1
+			}
+
+			* compute number of regular intervals
+			local gb_nreg = round((`gb_hi' - `gb_lo') / `gb_width')
+			local gb_ncat = `gb_nreg' + `gb_has_bot' + `gb_has_top'
+
+			if `gb_ncat' > 100 {
+				di as error "gdd_bin() would create `gb_ncat' categories (max 100)"
+				di as error "Consider a wider gdd_bin(), a lower gdd_binhi(), or different endpoints"
+				exit 198
+			}
+
+			* --- helper: format a number cleanly for labels ---
+			* Uses %12.0g for general formatting, then strips spaces
+
+			* build the value label
+			capture label drop _gddcat_lbl
+			local catnum = 0
+
+			if `gb_has_bot' {
+				local catnum = `catnum' + 1
+				local lo_str : di %12.0g `gb_lo'
+				local lo_str = strtrim("`lo_str'")
+				label define _gddcat_lbl `catnum' "GDD < `lo_str'", add
+			}
+
+			forvalues r = 1/`gb_nreg' {
+				local catnum = `catnum' + 1
+				local edge_lo = `gb_lo' + (`r' - 1) * `gb_width'
+				local edge_hi = `gb_lo' + `r' * `gb_width'
+				local elo_str : di %12.0g `edge_lo'
+				local elo_str = strtrim("`elo_str'")
+				local ehi_str : di %12.0g `edge_hi'
+				local ehi_str = strtrim("`ehi_str'")
+				label define _gddcat_lbl `catnum' "GDD [`elo_str',`ehi_str')", add
+			}
+
+			if `gb_has_top' {
+				local catnum = `catnum' + 1
+				local hi_str : di %12.0g `gb_hi'
+				local hi_str = strtrim("`hi_str'")
+				label define _gddcat_lbl `catnum' "GDD >= `hi_str'", add
+			}
+
+			* assign categories to each gdd_YYYY
+			local w_str : di %12.0g `gb_width'
+			local w_str = strtrim("`w_str'")
+
+			foreach gv of local gdd_vars {
+				local gyear = substr("`gv'", 5, .)
+				quietly gen int gddcat_`gyear' = .
+
+				* bottom-coded
+				if `gb_has_bot' {
+					quietly replace gddcat_`gyear' = 1 if !missing(`gv') & `gv' < `gb_lo'
 				}
-				label var binsd_`k_str' "Std dev of share of days in temperature bin `k' across all seasons"
-				local created_vars "`created_vars' binsd_`k_str'"
+
+				* regular intervals
+				forvalues r = 1/`gb_nreg' {
+					local edge_lo = `gb_lo' + (`r' - 1) * `gb_width'
+					local edge_hi = `gb_lo' + `r' * `gb_width'
+					local rc = `r' + `gb_has_bot'
+					quietly replace gddcat_`gyear' = `rc' if !missing(`gv') & `gv' >= `edge_lo' - 1e-12 & `gv' < `edge_hi' - 1e-12 & missing(gddcat_`gyear')
+				}
+
+				* top-coded
+				if `gb_has_top' {
+					local tc = `gb_nreg' + `gb_has_bot' + 1
+					quietly replace gddcat_`gyear' = `tc' if !missing(`gv') & `gv' >= `gb_hi' - 1e-12
+				}
+
+				label values gddcat_`gyear' _gddcat_lbl
+				label var gddcat_`gyear' "GDD category in `gyear', width `w_str'"
+				local created_vars "`created_vars' gddcat_`gyear'"
 			}
 		}
 	}

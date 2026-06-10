@@ -51,7 +51,7 @@ quietly {
 		replace tmp_`y'`m'`day' = 100 if `y' == 1994 & inlist(month(`d'), 1, 2)
 	}
 }
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) bins(4)
+wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32)
 assert abs(mean_1993 - ((61 * 10 + 32 * 100) / 93)) < .0001
 
 display "4. rainfall total deviations"
@@ -132,7 +132,7 @@ gen tmp_19930501 = 9
 gen tmp_19930502 = 31
 gen tmp_19930503 = 40
 gen tmp_19930504 = 20
-wxsum tmp_, ini_month(05) fin_month(05) ini_day(01) fin_day(04) temp_data gdd_lo(8) gdd_hi(32) kdd_base(30) bins(4)
+wxsum tmp_, ini_month(05) fin_month(05) ini_day(01) fin_day(04) temp_data gdd_lo(8) gdd_hi(32) kdd_base(30)
 assert gdd_1993 == 60
 assert kdd_1993 == 11
 
@@ -144,21 +144,29 @@ gen tmp_20000102 = 20
 capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(32) gdd_hi(8) lr_years(2)
 _assert_rc _rc 198 "gdd_hi must be greater than gdd_lo"
 
-display "12. temp bins are zero-padded: tempbin01_YYYY through tempbin10_YYYY"
+display "12. GDD categories with gdd_bin()"
 clear
-set obs 1
-gen hhid = 1
+set obs 2
+gen hhid = _n
+* Create 10 days with known temps, gdd_lo(0) gdd_hi(20)
 forvalues d = 1/10 {
 	local dd = string(`d', "%02.0f")
 	gen tmp_200001`dd' = `d'
 }
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(10) temp_data gdd_lo(0) gdd_hi(20) bins(10) lr_years(2)
-confirm variable tempbin01_2000
-confirm variable tempbin10_2000
-capture confirm variable tempbin12000
+* GDD = sum of min(max(T-0,0),20) = 1+2+3+...+10 = 55
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(10) temp_data gdd_lo(0) gdd_hi(20) gdd_bin(20) lr_years(2)
+confirm variable gddcat_2000
+* GDD=55, gdd_bin(20), default lo=0
+* auto hi: ceil(55/20)=3, 0+3*20=60, 55<60 => hi=60
+* Categories: 1=[0,20), 2=[20,40), 3=[40,60)
+* GDD=55 => [40,60) => cat 3
+assert gddcat_2000 == 3
+
+* No old tempbin or binmean variables
+capture confirm variable tempbin01_2000
 assert _rc != 0
-assert binmean_01 == tempbin01_2000
-assert binmean_10 == tempbin10_2000
+capture confirm variable binmean_01
+assert _rc != 0
 
 display "13. keep() works without optional KDD or deviation variables"
 clear
@@ -181,13 +189,61 @@ confirm variable z_total_2003
 capture ds hist_* ssn_* percentile* aux*
 assert _rc != 0
 
-display "15. bundled temperature sample runs with zero-padded temp bins"
+display "15. bundled temperature sample runs without old bin variables"
 use temp.dta, clear
 wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)
-confirm variable tempbin01_1993
-confirm variable tempbin04_1993
-capture confirm variable tempbin11993
+* Old bin variables should not exist
+capture confirm variable tempbin01_1993
 assert _rc != 0
+capture confirm variable binmean_01
+assert _rc != 0
+* GDD should exist
+confirm variable gdd_1993
+
+display "16. gdd_bin() with rain_data errors"
+clear
+set obs 1
+gen rf_20200101 = 1
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) rain_data gdd_bin(500)
+_assert_rc _rc 198 "gdd_bin with rain_data is rejected"
+
+display "17. gdd_binlo() without gdd_bin() errors"
+clear
+set obs 1
+gen tmp_20200101 = 10
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binlo(100)
+_assert_rc _rc 198 "gdd_binlo without gdd_bin is rejected"
+
+display "18. gdd_binhi() without gdd_bin() errors"
+clear
+set obs 1
+gen tmp_20200101 = 10
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binhi(3000)
+_assert_rc _rc 198 "gdd_binhi without gdd_bin is rejected"
+
+display "19. gdd_binhi <= gdd_binlo errors"
+clear
+set obs 1
+gen tmp_20200101 = 10
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(1000) gdd_binhi(500)
+_assert_rc _rc 198 "gdd_binhi <= gdd_binlo is rejected"
+
+display "20. non-divisible (hi-lo)/width errors"
+clear
+set obs 1
+gen tmp_20200101 = 10
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(750) gdd_binhi(3000)
+_assert_rc _rc 198 "non-divisible hi-lo range is rejected"
+
+display "21. gdd_bin() <= 0 errors"
+clear
+set obs 1
+gen tmp_20200101 = 10
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(0)
+_assert_rc _rc 198 "gdd_bin(0) is rejected"
+
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(-100)
+_assert_rc _rc 198 "gdd_bin(-100) is rejected"
 
 display as result "All wxsum validation tests passed."
 exit, clear

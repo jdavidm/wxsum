@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,9 +14,13 @@
             margin: 0 auto;
             padding: 20px;
         }
-        h1, h2, h3 {
+
+        h1,
+        h2,
+        h3 {
             color: #24292e;
         }
+
         code {
             background-color: #f6f8fa;
             padding: 0.2em 0.4em;
@@ -23,16 +28,19 @@
             font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
             font-size: 85%;
         }
+
         pre {
             background-color: #f6f8fa;
             padding: 16px;
             overflow: auto;
             border-radius: 3px;
         }
+
         pre code {
             background-color: transparent;
             padding: 0;
         }
+
         .header {
             border-bottom: 1px solid #eaecef;
             padding-bottom: 10px;
@@ -40,6 +48,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>wxsum</h1>
@@ -47,14 +56,19 @@
     </div>
 
     <h2>Overview</h2>
-    <p>The <code>wxsum</code> package processes remote sensing rainfall and temperature data, generating summary statistics across user-defined seasons. Seasons may fall within one calendar year or span two calendar years; cross-year output is labeled with the year the season starts.</p>
+    <p>The <code>wxsum</code> package processes remote sensing rainfall and temperature data, generating summary
+        statistics across user-defined seasons. Seasons may fall within one calendar year or span two calendar years;
+        cross-year output is labeled with the year the season starts.</p>
 
     <h2>Data Requirements</h2>
-    <p>The command can be used with either rainfall or temperature data from any source. The only requirements are that:</p>
+    <p>The command can be used with either rainfall or temperature data from any source. The only requirements are that:
+    </p>
     <ol>
-        <li>The data is "wide," meaning each location is a row and each column is a rainfall or temperature reading from a different day.</li>
+        <li>The data is "wide," meaning each location is a row and each column is a rainfall or temperature reading from
+            a different day.</li>
         <li>The data is measured daily.</li>
-        <li>The variable names for each daily column use the supplied prefix followed by <code>yyyymmdd</code>, such as <code>rf_19790515</code>.</li>
+        <li>The variable names for each daily column use the supplied prefix followed by <code>yyyymmdd</code>, such as
+            <code>rf_19790515</code>.</li>
     </ol>
 
     <h2>Syntax</h2>
@@ -62,17 +76,20 @@
 
     <h3>Options</h3>
     <ul>
-        <li><code>ini_day(day)</code> / <code>fin_day(day)</code> - Start and end day of the season. Defaults are 01.</li>
+        <li><code>ini_day(day)</code> / <code>fin_day(day)</code> - Start and end day of the season. Defaults are 01.
+        </li>
         <li><code>temp_data</code> - Specify that the data is temperature data.</li>
         <li><code>rain_data</code> - Specify that the data is rainfall data.</li>
         <li><code>gdd_lo(#)</code> / <code>gdd_hi(#)</code> - Bounds for capped growing degree day accumulation.</li>
         <li><code>kdd_base(#)</code> - Temperature threshold for killing degree days.</li>
-        <li><code>bins(#)</code> - Number of temperature percentile bins, from 4 to 10. Default is 4.</li>
-        <li><code>tempbin01_YEAR</code> ... <code>tempbin10_YEAR</code> - Year-specific temperature bin shares.</li>
-        <li><code>binmean_01</code> ... <code>binmean_10</code> - Cross-season temperature bin means.</li>
-        <li><code>binsd_01</code> ... <code>binsd_10</code> - Cross-season temperature bin standard deviations.</li>
-        <li><code>lr_years(#)</code> - Number of preceding years for rolling deviations and z-scores. Default is 10.</li>
-        <li><code>rain_threshold(#)</code> - Rainfall threshold for rainy-day and dry-spell calculations. Default is 1.</li>
+        <li><code>gdd_bin(#)</code> - Width of fixed-interval seasonal GDD categories. Creates <code>gddcat_YEAR</code>
+            variables.</li>
+        <li><code>gdd_binlo(#)</code> - Lower endpoint for regular GDD intervals. Default 0.</li>
+        <li><code>gdd_binhi(#)</code> - Upper endpoint for regular GDD intervals; values at or above are top-coded.</li>
+        <li><code>lr_years(#)</code> - Number of preceding years for rolling deviations and z-scores. Default is 10.
+        </li>
+        <li><code>rain_threshold(#)</code> - Rainfall threshold for rainy-day and dry-spell calculations. Default is 1.
+        </li>
         <li><code>keep(varlist)</code> - Keep created variables and specified existing variables.</li>
         <li><code>save(filename)</code> - Save dataset as filename.</li>
     </ul>
@@ -89,7 +106,14 @@ wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save(ra
     <pre><code>use temp.dta, clear
 wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)</code></pre>
 
+    <h3>GDD Categories</h3>
+    <p>Create seasonal GDD categories with 500 degree-day intervals:</p>
+    <pre><code>use temp.dta, clear
+wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(46.4) gdd_hi(89.6) gdd_bin(500)</code></pre>
+
     <h2>Authors</h2>
-    <p>Oscar Barriga Cabanillas, Anna Josepshon, Brian McGreal, Jeffrey D. Michler, Aleksandr Michuda, Jeffrey C. Oliver</p>
+    <p>Oscar Barriga Cabanillas, Anna Josepshon, Brian McGreal, Jeffrey D. Michler, Aleksandr Michuda, Jeffrey C. Oliver
+    </p>
 </body>
+
 </html>
