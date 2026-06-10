@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.1 9jun2026}{...}
+{* *! version 4.2 10jun2026}{...}
 {vieweralsosee "" "--"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -39,6 +39,10 @@
 {synopt:{opt gdd_bin(#)}}Width of fixed-interval seasonal GDD categories.{p_end}
 {synopt:{opt gdd_binlo(#)}}Lower endpoint for regular GDD intervals. Default 0.{p_end}
 {synopt:{opt gdd_binhi(#)}}Upper endpoint for regular GDD intervals; values at or above are top-coded.{p_end}
+{synopt:{opt tmp_bin(#)}}Total number of fixed daily-temperature bin count variables per season. Integer from 1 to 42.{p_end}
+{synopt:{opt tmp_binlo(#)}}Lower bound of the temperature range for bin construction. Required with {opt tmp_bin()}.{p_end}
+{synopt:{opt tmp_binhi(#)}}Upper bound of the temperature range for bin construction. Required with {opt tmp_bin()}.{p_end}
+{synopt:{opt shape(wide|long)}}Shape of the final output. Default is {it:wide}.{p_end}
 {synopt:{opt lr_years(#)}}Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.{p_end}
 {synopt:{opt keep(varlist)}}Variables to keep in the final dataset along with the generated wxsum variables.{p_end}
 {synopt:{opt save(filename)}}File path to save the resulting dataset.{p_end}
@@ -111,6 +115,7 @@ The general syntax of the command is as follows:
 {break}- deviations from long run average kdd in a season
 {break}- z-score of kdd in a season
 {break}- seasonal GDD category variable {it:gddcat_YEAR} (when {opt gdd_bin()} is specified)
+{break}- fixed daily-temperature bin count variables {it:tmpbinXX_YEAR} (when {opt tmp_bin()} is specified)
 
 {phang}
 {opt rain_data} processes rainfall variables to generate:
@@ -152,6 +157,65 @@ The general syntax of the command is as follows:
 {opt gdd_binhi(#)} specifies the upper endpoint at which regular fixed-width GDD intervals end. Values at or above this endpoint are assigned to a top-coded category "GDD >= {it:#}". When omitted, the command automatically extends the regular intervals to cover the empirical maximum. Requires {opt gdd_bin()}. Must be greater than {opt gdd_binlo()}. The range ({opt gdd_binhi()} - {opt gdd_binlo()}) must be evenly divisible by {opt gdd_bin()}.
 
 {phang}
+{opt tmp_bin(#)} specifies the total number of fixed daily-temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires {opt temp_data} and both {opt tmp_binlo()} and {opt tmp_binhi()}.
+
+{pmore}
+These are fixed daily-temperature bin counts based on one observed daily temperature reading per day, not exact Schlenker-Roberts within-day exposure bins. When only one daily reading is available, the entire day is assigned to the bin containing that reading. This approximates the Schlenker-Roberts temperature-bin idea.
+
+{pmore}
+The command is unit agnostic: the user must supply {opt tmp_binlo()} and {opt tmp_binhi()} in the same units as the daily temperature data.
+
+{pmore}
+Missing daily temperatures are not counted in any bin. If all daily temperatures for a location-season are missing, all {it:tmpbinXX_YYYY} variables for that location-season are set to missing. Otherwise, the sum of all {it:tmpbinXX_YYYY} equals the number of nonmissing daily temperature readings in that season.
+
+{pmore}
+For {opt tmp_bin(J)} with J >= 3, the bins are constructed as follows. Let lo = {opt tmp_binlo()}, hi = {opt tmp_binhi()}, and w = (hi - lo) / (J - 2). Then:
+{break}  tmpbin01 counts days with T < lo (lower tail)
+{break}  tmpbin02 counts days with lo <= T < lo + w
+{break}  tmpbin03 counts days with lo + w <= T < lo + 2w
+{break}  ...
+{break}  tmpbinJJ counts days with T >= hi (upper tail)
+
+{pmore}
+Formally:
+{break}  tmpbin_it^(1)   = sum_d 1{c -(}T_id < lo{c )-}
+{break}  tmpbin_it^(j)   = sum_d 1{c -(}lo + (j-2)w <= T_id < lo + (j-1)w{c )-},  j = 2,...,J-1
+{break}  tmpbin_it^(J)   = sum_d 1{c -(}T_id >= hi{c )-}
+{break}  where w = (hi - lo) / (J - 2)
+
+{pmore}
+Interior bins are lower-closed and upper-open. The lower tail is strictly below lo. The upper tail is at or above hi.
+
+{pmore}
+The usual Schlenker-Roberts-style lower-tail/interior/upper-tail bins are obtained with {opt tmp_bin(3)} or larger. Common fine-bin specifications use values such as {opt tmp_bin(15)} or {opt tmp_bin(42)}.
+
+{pmore}
+Special cases for small J:
+{break}- {opt tmp_bin(1)}: Creates a single variable counting all nonmissing daily temperature readings. {opt tmp_binlo()} and {opt tmp_binhi()} are required for syntax consistency but are not used for assignment.
+{break}- {opt tmp_bin(2)}: Splits at the midpoint m = (lo + hi) / 2. tmpbin01 counts T < m, tmpbin02 counts T >= m.
+
+{phang}
+{opt tmp_binlo(#)} specifies the lower bound of the temperature range for bin construction. Required when {opt tmp_bin()} is specified. Must be in the same units as the daily temperature data.
+
+{phang}
+{opt tmp_binhi(#)} specifies the upper bound of the temperature range for bin construction. Required when {opt tmp_bin()} is specified. Must be greater than {opt tmp_binlo()} and in the same units as the daily temperature data.
+
+{phang}
+{opt shape(wide|long)} specifies the shape of the final output. The default is {it:wide}, producing one row per spatial/analytic unit with year-suffixed variable names (e.g., {it:mean_1993}, {it:tmpbin01_1993}).
+
+{pmore}
+When {opt shape(long)} is specified, the final output is stacked long with one row per retained unit-year. A variable named {it:year} is created to identify the season year. Generated variables have their {it:_YYYY} suffixes stripped (e.g., {it:mean}, {it:tmpbin01}). Variables specified in {opt keep()} are repeated across years.
+
+{pmore}
+It is strongly recommended to use {opt keep(id ...)} or {opt keep()} with whatever merge keys are needed when {opt shape(long)} is requested. If {opt keep()} is empty, a note is printed but no error occurs.
+
+{pmore}
+{opt shape(long)} is a final-output stacking operation; the wide input requirement is unchanged. It can make panel workflows easier and can reduce the final number of variables when many years or temperature bins are generated, although it does not yet reduce the peak number of variables created internally.
+
+{pmore}
+If a variable named {it:year} is included in {opt keep()}, the command exits with an error to prevent naming conflicts.
+
+{phang}
 {opt keep(varlist)} specifies variables to keep in the final output (e.g., location identifiers).
 
 {phang}
@@ -186,6 +250,15 @@ GDD categories are constructed over the seasonal GDD total, not over daily tempe
 
 {phang}{cmd:. * GDD categories with bottom and top coding}{p_end}
 {phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) gdd_bin(250) gdd_binlo(0) gdd_binhi(3000)}{p_end}
+
+{phang}{cmd:. * Fixed daily-temperature bin counts (15 bins, Celsius)}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39)}{p_end}
+
+{phang}{cmd:. * Fine 42-bin specification for degree-day style analysis}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(42) tmp_binlo(1) tmp_binhi(41)}{p_end}
+
+{phang}{cmd:. * Long output for panel workflows}{p_end}
+{phang}{cmd:. wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid) shape(long)}{p_end}
 
 {title:Authors}
 

@@ -10,6 +10,7 @@
 *  v 3.3  2nov2023  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.0  2apr2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.1  9jun2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.2  10jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
@@ -29,9 +30,13 @@ version 15.1
 		gdd_lo(real -999999999)					///
 		gdd_hi(real -999999999)					///
 		kdd_base(real 0)						///
-		gdd_bin(real -999999999)					///
+		gdd_bin(real -999999999)				///
 		gdd_binlo(real -999999999)				///
 		gdd_binhi(real -999999999)				///
+		tmp_bin(integer -999999999)				///
+		tmp_binlo(real -999999999)				///
+		tmp_binhi(real -999999999)				///
+		shape(string)							///
 		lr_years(integer 10)					///
 		temp_data								///
 		rain_data								///
@@ -140,6 +145,67 @@ version 15.1
 		}
 	}
 
+	* ---- tmp_bin / tmp_binlo / tmp_binhi validation ----
+	local has_tmp_bin = (`tmp_bin' != -999999999)
+	local has_tmp_binlo = (`tmp_binlo' != -999999999)
+	local has_tmp_binhi = (`tmp_binhi' != -999999999)
+
+	if `has_tmp_binlo' & !`has_tmp_bin' {
+		di as error "tmp_binlo() requires tmp_bin()"
+		exit 198
+	}
+	if `has_tmp_binhi' & !`has_tmp_bin' {
+		di as error "tmp_binhi() requires tmp_bin()"
+		exit 198
+	}
+	if `has_tmp_bin' {
+		if "`rain_data'" != "" {
+			di as error "tmp_bin() cannot be used with rain_data"
+			exit 198
+		}
+		if `tmp_bin' != floor(`tmp_bin') | `tmp_bin' < 1 {
+			di as error "tmp_bin() must be a positive integer"
+			exit 198
+		}
+		if `tmp_bin' > 42 {
+			di as error "tmp_bin() must be 42 or less"
+			exit 198
+		}
+		if !`has_tmp_binlo' | !`has_tmp_binhi' {
+			di as error "tmp_binlo() and tmp_binhi() are required when tmp_bin() is specified"
+			exit 198
+		}
+		if `tmp_binhi' <= `tmp_binlo' {
+			di as error "tmp_binhi() must be greater than tmp_binlo()"
+			exit 198
+		}
+	}
+
+	* ---- shape() validation ----
+	if "`shape'" == "" local shape "wide"
+	if "`shape'" != "wide" & "`shape'" != "long" {
+		di as error "shape() must be wide or long"
+		exit 198
+	}
+
+	if "`shape'" == "long" {
+		if "`keep'" == "" {
+			di as text "note: shape(long) requested without keep(); output will not contain an explicit unit identifier."
+		}
+		else {
+			local keep_has_year = 0
+			foreach kv of local keep {
+				if "`kv'" == "year" {
+					local keep_has_year = 1
+				}
+			}
+			if `keep_has_year' {
+				di as error "shape(long) creates a variable named year; remove or rename year from keep()."
+				exit 198
+			}
+		}
+	}
+
 	if `rain_threshold' < 0 {
 		di as error "rain_threshold() must be nonnegative"
 		exit 198
@@ -187,6 +253,7 @@ version 15.1
 	local first_year = .
 	local last_year = .
 	local dtype = cond("`temp_data'" != "", "temp", "rain")
+	local season_years ""
 
 	forvalues j = `min_year'/`max_year' {
 		local end_year = `j' + `crosses'
@@ -213,6 +280,7 @@ version 15.1
 
 		if missing(`first_year') local first_year = `j'
 		local last_year = `j'
+		local season_years "`season_years' `j'"
 
 		quietly egen mean_`j' = rowmean(`var')
 		label var mean_`j' "Mean daily `dtype' in `j'"
@@ -266,6 +334,103 @@ version 15.1
 				label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
 				local created_vars "`created_vars' kdd_`j'"
 				quietly drop `kdd_aux'
+			}
+
+			* ---- tmp_bin() temperature bin counts ----
+			if `has_tmp_bin' {
+				local tb_J = `tmp_bin'
+				local tb_lo = `tmp_binlo'
+				local tb_hi = `tmp_binhi'
+
+				if `tb_J' == 1 {
+					* J == 1: count all nonmissing daily temperature readings
+					quietly gen tmpbin01_`j' = `observed_days'
+					quietly replace tmpbin01_`j' = . if `observed_days' == 0
+					label var tmpbin01_`j' "Temperature bin count, all nonmissing, `j'"
+					local created_vars "`created_vars' tmpbin01_`j'"
+				}
+				else if `tb_J' == 2 {
+					* J == 2: split at midpoint m = (lo + hi) / 2
+					local tb_mid = (`tb_lo' + `tb_hi') / 2
+					local tb_mid_str : di %12.0g `tb_mid'
+					local tb_mid_str = strtrim("`tb_mid_str'")
+
+					local tb_below_aux ""
+					local tb_above_aux ""
+					foreach f of local var {
+						tempvar tb1 tb2
+						quietly gen byte `tb1' = (`f' < `tb_mid') if !missing(`f')
+						quietly gen byte `tb2' = (`f' >= `tb_mid') if !missing(`f')
+						local tb_below_aux "`tb_below_aux' `tb1'"
+						local tb_above_aux "`tb_above_aux' `tb2'"
+					}
+					quietly egen tmpbin01_`j' = rowtotal(`tb_below_aux')
+					quietly egen tmpbin02_`j' = rowtotal(`tb_above_aux')
+					quietly replace tmpbin01_`j' = . if `observed_days' == 0
+					quietly replace tmpbin02_`j' = . if `observed_days' == 0
+					label var tmpbin01_`j' "Temperature bin count, T < `tb_mid_str', `j'"
+					label var tmpbin02_`j' "Temperature bin count, T >= `tb_mid_str', `j'"
+					local created_vars "`created_vars' tmpbin01_`j' tmpbin02_`j'"
+					quietly drop `tb_below_aux' `tb_above_aux'
+				}
+				else {
+					* J >= 3: lower tail / interior bins / upper tail
+					local tb_width = (`tb_hi' - `tb_lo') / (`tb_J' - 2)
+
+					forvalues b = 1/`tb_J' {
+						local bpad = string(`b', "%02.0f")
+
+						if `b' == 1 {
+							* Lower tail: T < lo
+							local tb_ind_aux ""
+							foreach f of local var {
+								tempvar tbi
+								quietly gen byte `tbi' = (`f' < `tb_lo') if !missing(`f')
+								local tb_ind_aux "`tb_ind_aux' `tbi'"
+							}
+							quietly egen tmpbin`bpad'_`j' = rowtotal(`tb_ind_aux')
+							local lo_str : di %12.0g `tb_lo'
+							local lo_str = strtrim("`lo_str'")
+							label var tmpbin`bpad'_`j' "Temperature bin count, T < `lo_str', `j'"
+							quietly drop `tb_ind_aux'
+						}
+						else if `b' == `tb_J' {
+							* Upper tail: T >= hi
+							local tb_ind_aux ""
+							foreach f of local var {
+								tempvar tbi
+								quietly gen byte `tbi' = (`f' >= `tb_hi') if !missing(`f')
+								local tb_ind_aux "`tb_ind_aux' `tbi'"
+							}
+							quietly egen tmpbin`bpad'_`j' = rowtotal(`tb_ind_aux')
+							local hi_str : di %12.0g `tb_hi'
+							local hi_str = strtrim("`hi_str'")
+							label var tmpbin`bpad'_`j' "Temperature bin count, T >= `hi_str', `j'"
+							quietly drop `tb_ind_aux'
+						}
+						else {
+							* Interior bin: lo + (b-2)*width <= T < lo + (b-1)*width
+							local edge_lo = `tb_lo' + (`b' - 2) * `tb_width'
+							local edge_hi = `tb_lo' + (`b' - 1) * `tb_width'
+							local tb_ind_aux ""
+							foreach f of local var {
+								tempvar tbi
+								quietly gen byte `tbi' = (`f' >= `edge_lo' & `f' < `edge_hi') if !missing(`f')
+								local tb_ind_aux "`tb_ind_aux' `tbi'"
+							}
+							quietly egen tmpbin`bpad'_`j' = rowtotal(`tb_ind_aux')
+							local elo_str : di %12.0g `edge_lo'
+							local elo_str = strtrim("`elo_str'")
+							local ehi_str : di %12.0g `edge_hi'
+							local ehi_str = strtrim("`ehi_str'")
+							label var tmpbin`bpad'_`j' "Temperature bin count, `elo_str' <= T < `ehi_str', `j'"
+							quietly drop `tb_ind_aux'
+						}
+
+						quietly replace tmpbin`bpad'_`j' = . if `observed_days' == 0
+						local created_vars "`created_vars' tmpbin`bpad'_`j'"
+					}
+				}
 			}
 
 		}
@@ -517,8 +682,117 @@ version 15.1
 		}
 	}
 
-	if "`keep'" != "" {
-		quietly keep `keep' `created_vars'
+	* ---- shape(long) output stacking ----
+	if "`shape'" == "long" {
+		* Build list of unique season years from season_years
+		* For each year, identify created vars with _YYYY suffix,
+		* rename them by stripping the suffix, add year variable, and save to tempfile
+
+		* collect the set of unique years
+		local long_years ""
+		foreach cy of local season_years {
+			local already = 0
+			foreach ly of local long_years {
+				if `cy' == `ly' local already = 1
+			}
+			if !`already' local long_years "`long_years' `cy'"
+		}
+
+		* also check created_vars for gddcat years (they may have years
+		* from the gdd_vars list, extracted from the suffix)
+		foreach cv of local created_vars {
+			* extract trailing _YYYY pattern using string operations
+			local cv_len = strlen("`cv'")
+			if `cv_len' >= 5 {
+				local cv_sfx = substr("`cv'", `cv_len' - 4, .)
+				local cv_sfx1 = substr("`cv_sfx'", 1, 1)
+				local cv_yr_str = substr("`cv_sfx'", 2, .)
+				if "`cv_sfx1'" == "_" & real("`cv_yr_str'") != . & strlen("`cv_yr_str'") == 4 {
+					local cv_yr_n = real("`cv_yr_str'")
+					local already = 0
+					foreach ly of local long_years {
+						if `cv_yr_n' == `ly' local already = 1
+					}
+					if !`already' local long_years "`long_years' `cv_yr_n'"
+				}
+			}
+		}
+
+		local long_tempfiles ""
+		local long_count = 0
+
+		foreach yr of local long_years {
+			* identify created vars for this year
+			local yr_vars ""
+			local yr_sfx "_`yr'"
+			local yr_sfx_len = strlen("`yr_sfx'")
+			foreach cv of local created_vars {
+				local cv_len = strlen("`cv'")
+				if `cv_len' > `yr_sfx_len' {
+					local cv_tail = substr("`cv'", `cv_len' - `yr_sfx_len' + 1, .)
+					if "`cv_tail'" == "`yr_sfx'" {
+						local yr_vars "`yr_vars' `cv'"
+					}
+				}
+			}
+
+			if "`yr_vars'" == "" continue
+
+			local long_count = `long_count' + 1
+			tempfile _long_tf_`long_count'
+
+			preserve
+
+			* keep only keep() vars plus this year's created vars
+			if "`keep'" != "" {
+				quietly keep `keep' `yr_vars'
+			}
+			else {
+				quietly keep `yr_vars'
+			}
+
+			* rename each var_YYYY -> var (strip _YYYY suffix)
+			foreach cv of local yr_vars {
+				local cv_len = strlen("`cv'")
+				local stem = substr("`cv'", 1, `cv_len' - `yr_sfx_len')
+				quietly rename `cv' `stem'
+			}
+
+			quietly gen int year = `yr'
+			label var year "Season year"
+
+			* apply value labels to gddcat if it exists
+			capture confirm variable gddcat
+			if _rc == 0 {
+				capture label values gddcat _gddcat_lbl
+			}
+
+			quietly save `_long_tf_`long_count'', replace
+
+			restore
+		}
+
+		* stack all tempfiles
+		if `long_count' > 0 {
+			quietly use `_long_tf_1', clear
+			forvalues lf = 2/`long_count' {
+				quietly append using `_long_tf_`lf''
+			}
+
+			* sort by keep vars and year if possible
+			if "`keep'" != "" {
+				capture sort `keep' year
+			}
+			else {
+				capture sort year
+			}
+		}
+	}
+	else {
+		* shape(wide): existing keep/save logic
+		if "`keep'" != "" {
+			quietly keep `keep' `created_vars'
+		}
 	}
 
 	if "`save'" != "" {
