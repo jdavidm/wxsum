@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 4.2 10jun2026}{...}
+{* *! version 4.3 11jun2026}{...}
 {vieweralsosee "" "--"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -124,9 +124,8 @@ The general syntax of the command is as follows:
 {break}- standard deviation of daily in a season
 {break}- skew of daily in a season
 {break}- mean total monthly in a season
-{break}- median total monthly in a season
-{break}- standard deviation of total monthly in a season
-{break}- skew of total monthly in a season
+{break}- deviation from long run average of mean total monthly in a season
+{break}- z-score of mean total monthly in a season
 {break}- total seasonal
 {break}- deviation from long run average of total seasonal
 {break}- z-score of total seasonal
@@ -136,7 +135,9 @@ The general syntax of the command is as follows:
 {break}- deviation from long run average of days without rain in a season
 {break}- percentage of days with rain in a season
 {break}- deviation from the long run average of percentage of days with rain in a season
-{break}- longest intra-seasonal dry spell
+{break}- longest mid-season dry spell
+{break}- leading dry spell at the start of the season
+{break}- trailing dry spell at the end of the season
 
 {phang}
 {opt gdd_lo(#)} specifies the lower temperature threshold for calculating Growing Degree Days.
@@ -231,7 +232,13 @@ If a variable named {it:year} is included in {opt keep()}, the command exits wit
 Growing degree days are calculated as capped degree accumulation: {cmd:min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)}, summed over the season.
 
 {phang}
-Skewness is calculated as {cmd:(mean - median) / sd}, a non-parametric approximation of distributional asymmetry (Pearson's second coefficient without the factor of 3).
+Skewness is calculated as the raw third standardized moment. It requires at least 3 non-missing observations.
+
+{phang}
+Dry spells are calculated strictly from non-missing rainfall data. A dry day is defined as rainfall strictly less than {opt rain_threshold(#)}. A rainy day is rainfall greater than or equal to {opt rain_threshold(#)}. Missing daily rainfall values are excluded from dry counts and break consecutive dry spells.
+{break}- {it:dry_start_YYYY} captures the length of the leading dry spell before the first rainy day or missing value.
+{break}- {it:dry_YYYY} captures the longest mid-season dry spell strictly after the first observed rainy day and strictly before the last observed rainy day.
+{break}- {it:dry_end_YYYY} captures the trailing dry spell after the last rainy day or missing value.
 
 {phang}
 GDD categories are constructed over the seasonal GDD total, not over daily temperatures. Let tau_0 < tau_1 < ... < tau_J be fixed cutpoints generated from {opt gdd_bin()}, {opt gdd_binlo()}, and either {opt gdd_binhi()} or the automatic endpoint. Then {it:gddcat_it} = j if tau_{j-1} <= GDD_it < tau_j. If a bottom-coded category is needed, {it:gddcat_it} = 1 when GDD_it < tau_0. If a top-coded category is requested, {it:gddcat_it} = J+1 when GDD_it >= tau_J.

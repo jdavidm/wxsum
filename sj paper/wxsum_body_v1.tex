@@ -119,11 +119,11 @@ When \texttt{rain\_data} is specified, the command produces the precipitation st
 			Group & Generated statistics \\
 			\hline
 			Daily distribution & Mean, median, standard deviation, and skewness of daily precipitation within the season. \\
-			Monthly totals & Mean, median, standard deviation, skewness of monthly precipitation totals within the season. \\
+			Monthly totals & Mean monthly precipitation within the season, deviation from the long-run average of mean monthly precipitation, and its $z$-score. \\
 			Seasonal total & Total precipitation in the season, deviation from the long-run average of total precipitation, $z$-score of total precipitation. \\
 			Rainy days & Number of rainy days, number of days without rain, deviations from the corresponding long-run averages, and corresponding $z$-scores. \\
 			Rainy-day share & Share of observed days with rain, deviation from the long-run average share, corresponding $z$-score. \\
-			Dry spells & Longest intra-seasonal dry spell. \\
+			Dry spells & Length of the leading dry spell, longest mid-season dry spell, and trailing dry spell within the season. \\
 			\hline
 		\end{tabularx}
 	\end{center}
@@ -169,13 +169,13 @@ The daily median, \texttt{median\_}$t$, is the median of the non-missing values 
 	\texttt{sd\_} t_i = \left\{\frac{1}{N_{it} - 1} \sum_{\substack{d \in \mathcal{S}_{t} \\ X_{id} \neq \text{missing}}} \left(X_{id} - \texttt{mean\_} t_i \right)^2 \right\}^{1 / 2} .
 \end{equation}
 
-The skewness variable is a standardized mean-median difference,
+The skewness variable is the raw third standardized moment,
 
 \begin{equation}
-	\texttt{skew\_} t_i = \frac{\texttt{mean\_} t_i - \texttt{median\_} t_i}{\texttt{sd\_} t_i}.
+	\texttt{skew\_} t_i = \frac{1}{N_{it}} \sum_{\substack{d \in \mathcal{S}_{t} \\ X_{id} \neq \text{missing}}} \left( \frac{X_{id} - \texttt{mean\_} t_i}{\texttt{sd\_} t_i} \right)^3 .
 \end{equation}
 
-\noindent When the standard deviation is missing or zero, the skewness variable is missing.
+\noindent The raw third moment variable requires at least 3 non-missing observations. When $N_{it} < 3$ or the standard deviation is zero, the skewness variable is missing.
 
 \subsection{Rainfall calculations}
 
@@ -193,11 +193,7 @@ Monthly totals are computed first for each calendar month $m$ represented in the
 	M_{imt} = \sum_{\substack{d \in \mathcal{S}_{t} \\ \text{month} (d) = m}} R_{id}.
 \end{equation}
 
-\noindent The variables \texttt{mean\_mo\_total\_}$t$, \texttt{median\_mo\_total\_}$t$, and \texttt{sd\_mo\_total\_}$t$ are respectively the mean, median, and sample standard deviation of the monthly totals $M_{imt}$ across the months represented in the season. The monthly skewness variable is:
-
-\begin{equation}
-	\texttt{skew\_mo\_total\_} t_i = \frac{\texttt{mean\_mo\_total\_} t_i - \texttt{median\_mo\_total\_} t_i}{\texttt{sd\_mo\_total\_} t_i} .
-\end{equation}
+\noindent The variable \texttt{mon\_}$t$ is the mean of the monthly totals $M_{imt}$ across the months represented in the season.
 
 Let $c$ denote the value supplied in \texttt{rain\_threshold()}. Rainy days and days without rain are counted only among non-missing daily rainfall values:
 
@@ -212,7 +208,13 @@ Let $c$ denote the value supplied in \texttt{rain\_threshold()}. Rainy days and 
 	\texttt{pct\_raindays\_} t_i = \frac{\texttt{raindays\_} t_i}{N_{it}}.
 \end{equation}
 
-The dry-spell variable \texttt{dry\_}$t$ is the maximum length of a run of consecutive non-missing days in the season for which $R_{id} < c$. Missing rainfall values break a dry spell rather than extending it.
+The variable \texttt{dry\_}$t$ is the longest mid-season dry spell: the maximum run of consecutive non-missing days with $R_{id} < c$ that occurs strictly after the first observed rainy day and strictly before the last observed rainy day in the season. Leading dry days before the first rainy day and trailing dry days after the last rainy day are excluded from \texttt{dry\_}$t$.
+
+The variable \texttt{dry\_start\_}$t$ is the number of consecutive non-missing dry days at the start of the season before the first rainy day or missing value.
+
+The variable \texttt{dry\_end\_}$t$ is the number of consecutive non-missing dry days at the end of the season after the last rainy day or missing value, counted backward from the final day of the season.
+
+If all daily rainfall values in a location-season are missing, all three dry-spell variables are missing. Missing rainfall values break dry spells rather than extending them.
 
 \subsection{Temperature calculations}
 

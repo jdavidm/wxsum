@@ -11,6 +11,7 @@
 *  v 4.0  2apr2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.1  9jun2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.2  10jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
@@ -299,13 +300,18 @@ version 15.1
 		label var sd_`j' "Std dev of daily `dtype' in `j'"
 		local created_vars "`created_vars' sd_`j'"
 
-		quietly gen skew_`j' = (mean_`j' - median_`j') / sd_`j'
-		label var skew_`j' "Skew of daily `dtype' in `j'"
-		local created_vars "`created_vars' skew_`j'"
-
 		tempvar observed_days
 		quietly egen `observed_days' = rownonmiss(`var')
 
+		tempvar sum3
+		quietly gen double `sum3' = 0
+		foreach f of local var {
+			quietly replace `sum3' = `sum3' + ((`f' - mean_`j') / sd_`j')^3 if !missing(`f') & sd_`j' > 0
+		}
+		quietly gen skew_`j' = (1 / `observed_days') * `sum3' if `observed_days' >= 3 & sd_`j' > 0
+		label var skew_`j' "Raw 3rd moment skew of daily `dtype' in `j'"
+		local created_vars "`created_vars' skew_`j'"
+		quietly drop `sum3'
 		if "`temp_data'" != "" {
 			quietly egen max_`j' = rowmax(`var')
 			label var max_`j' "Max daily `dtype' in `j'"
@@ -457,27 +463,9 @@ version 15.1
 			}
 
 			if "`monthly_totals'" != "" {
-				quietly egen mean_mo_total_`j' = rowmean(`monthly_totals')
-				label var mean_mo_total_`j' "Mean monthly rain in `j'"
-				local created_vars "`created_vars' mean_mo_total_`j'"
-
-				quietly egen median_mo_total_`j' = rowmedian(`monthly_totals')
-				label var median_mo_total_`j' "Median monthly rain in `j'"
-				local created_vars "`created_vars' median_mo_total_`j'"
-
-				local monthly_count : word count `monthly_totals'
-				if `monthly_count' > 1 {
-					quietly egen sd_mo_total_`j' = rowsd(`monthly_totals')
-				}
-				else {
-					quietly gen sd_mo_total_`j' = .
-				}
-				label var sd_mo_total_`j' "Std dev of monthly rain in `j'"
-				local created_vars "`created_vars' sd_mo_total_`j'"
-
-				quietly gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j') / sd_mo_total_`j'
-				label var skew_mo_total_`j' "Skew of monthly rain in `j'"
-				local created_vars "`created_vars' skew_mo_total_`j'"
+				quietly egen mon_`j' = rowmean(`monthly_totals')
+				label var mon_`j' "Mean of monthly rainfall totals in `j'"
+				local created_vars "`created_vars' mon_`j'"
 				quietly drop `monthly_totals'
 			}
 
@@ -504,21 +492,61 @@ version 15.1
 			local created_vars "`created_vars' pct_raindays_`j'"
 			quietly drop `no_rain_aux' `rain_aux'
 
-			tempvar dry_run
-			quietly gen `dry_run' = 0
-			quietly gen dry_`j' = 0
+			tempvar first_rain_idx last_rain_idx
+			quietly gen int `first_rain_idx' = .
+			quietly gen int `last_rain_idx' = .
+			
+			local d_idx = 1
 			foreach f of local var {
-				quietly replace `dry_run' = cond(missing(`f'), 0, cond(`f' < `rain_threshold', `dry_run' + 1, 0))
-				quietly replace dry_`j' = max(dry_`j', `dry_run')
+				quietly replace `first_rain_idx' = `d_idx' if missing(`first_rain_idx') & !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `last_rain_idx' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
+				local d_idx = `d_idx' + 1
 			}
-			label var dry_`j' "Longest observed dry spell in `j'"
-			local created_vars "`created_vars' dry_`j'"
-			quietly drop `dry_run'
+			
+			quietly gen dry_start_`j' = 0
+			quietly gen dry_end_`j' = 0
+			quietly gen dry_`j' = 0
+			
+			tempvar dstart_flag dend_flag mid_run
+			quietly gen byte `dstart_flag' = 1
+			quietly gen byte `dend_flag' = 1
+			quietly gen int `mid_run' = 0
+			
+			local d_idx = 1
+			foreach f of local var {
+				quietly replace dry_start_`j' = dry_start_`j' + 1 if `dstart_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `dstart_flag' = 0 if `dstart_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+				
+				quietly replace `mid_run' = `mid_run' + 1 if !missing(`first_rain_idx') & !missing(`last_rain_idx') & `d_idx' > `first_rain_idx' & `d_idx' < `last_rain_idx' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `mid_run' = 0 if missing(`f') | (`f' >= `rain_threshold' & !missing(`f'))
+				quietly replace dry_`j' = max(dry_`j', `mid_run')
+				
+				local d_idx = `d_idx' + 1
+			}
+			
+			local rev_var ""
+			foreach f of local var {
+				local rev_var "`f' `rev_var'"
+			}
+			foreach f of local rev_var {
+				quietly replace dry_end_`j' = dry_end_`j' + 1 if `dend_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `dend_flag' = 0 if `dend_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+			}
+			
+			quietly replace dry_start_`j' = . if `observed_days' == 0
+			quietly replace dry_end_`j' = . if `observed_days' == 0
+			quietly replace dry_`j' = . if `observed_days' == 0
+			
+			label var dry_start_`j' "Leading dry spell at start of season in `j'"
+			label var dry_end_`j' "Trailing dry spell at end of season in `j'"
+			label var dry_`j' "Longest mid-season dry spell in `j'"
+			local created_vars "`created_vars' dry_start_`j' dry_end_`j' dry_`j'"
+			quietly drop `first_rain_idx' `last_rain_idx' `dstart_flag' `dend_flag' `mid_run'
 		}
 
 		local deviation ""
 		if "`rain_data'" != "" {
-			local deviation "total raindays norain pct_raindays"
+			local deviation "total raindays norain pct_raindays mon"
 		}
 		if "`temp_data'" != "" {
 			local deviation "gdd"
