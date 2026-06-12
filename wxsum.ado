@@ -118,8 +118,16 @@ version 15.1
 	}
 
 	if "`temp_data'" != "" {
-		if `gdd_lo' == -999999999 | `gdd_hi' == -999999999 | `kdd_base' == -999999999 {
-			di as error "Please define gdd_lo(), gdd_hi(), and kdd_base() for type(temp)"
+		if `gdd_lo' == -999999999 {
+			di as error "Please define gdd_lo() for type(temp)"
+			exit 198
+		}
+		if `gdd_hi' == -999999999 {
+			di as error "Please define gdd_hi() for type(temp)"
+			exit 198
+		}
+		if `kdd_base' == -999999999 {
+			di as error "Please define kdd_base() for type(temp)"
 			exit 198
 		}
 		if `gdd_hi' <= `gdd_lo' {
@@ -331,11 +339,15 @@ version 15.1
 
 		tempvar sum3
 		quietly gen double `sum3' = 0
+		quietly gen var_`j' = sd_`j'^2 if `observed_days' >= 2
+		label var var_`j' "Variance of daily `dtype' in `j'"
+		local created_vars "`created_vars' var_`j'"
+
 		foreach f of local var {
 			quietly replace `sum3' = `sum3' + ((`f' - mean_`j') / sd_`j')^3 if !missing(`f') & sd_`j' > 0
 		}
-		quietly gen skew_`j' = (1 / `observed_days') * `sum3' if `observed_days' >= 3 & sd_`j' > 0
-		label var skew_`j' "Raw 3rd moment skew of daily `dtype' in `j'"
+		quietly gen skew_`j' = (`observed_days' / ((`observed_days' - 1) * (`observed_days' - 2))) * `sum3' if `observed_days' >= 3 & sd_`j' > 0
+		label var skew_`j' "Adj sample skewness of daily `dtype' in `j'"
 		local created_vars "`created_vars' skew_`j'"
 		quietly drop `sum3'
 		if "`temp_data'" != "" {
@@ -487,9 +499,10 @@ version 15.1
 			}
 
 			if "`monthly_totals'" != "" {
-				quietly egen mon_`j' = rowmean(`monthly_totals')
-				label var mon_`j' "Mean of monthly rainfall totals in `j'"
-				local created_vars "`created_vars' mon_`j'"
+				quietly egen mean_mo_`j' = rowmean(`monthly_totals')
+				label var mean_mo_`j' "Mean of monthly rainfall totals in `j'"
+				local created_vars "`created_vars' mean_mo_`j'"
+
 				quietly drop `monthly_totals'
 			}
 
@@ -570,11 +583,10 @@ version 15.1
 
 		local deviation ""
 		if "`rain_data'" != "" {
-			local deviation "total raindays norain pct_raindays mon"
+			local deviation "total raindays norain pct_raindays mean_mo"
 		}
 		if "`temp_data'" != "" {
-			local deviation "gdd"
-			if `kdd_base' > 0 local deviation "`deviation' kdd"
+			local deviation "gdd kdd"
 		}
 
 		foreach v of local deviation {
@@ -732,6 +744,40 @@ version 15.1
 				local created_vars "`created_vars' gddcat_`gyear'"
 			}
 		}
+	}
+
+	* ---- Final Variable Ordering ----
+	local final_order ""
+	foreach j of local season_years {
+		if "`temp_data'" != "" {
+			local try_vars mean_`j' median_`j' var_`j' sd_`j' skew_`j' max_`j' gdd_`j' dev_gdd_`j' z_gdd_`j' gddcat_`j' kdd_`j' dev_kdd_`j' z_kdd_`j'
+			foreach v of local try_vars {
+				capture confirm variable `v'
+				if _rc == 0 local final_order "`final_order' `v'"
+			}
+			if `has_tmp_bin' {
+				forvalues b = 1/`tmp_bin' {
+					local bpad = string(`b', "%02.0f")
+					capture confirm variable tmpbin`bpad'_`j'
+					if _rc == 0 local final_order "`final_order' tmpbin`bpad'_`j'"
+				}
+			}
+		}
+		else {
+			local try_vars mean_`j' median_`j' var_`j' sd_`j' skew_`j' mean_mo_`j' dev_mean_mo_`j' z_mean_mo_`j' total_`j' dev_total_`j' z_total_`j' raindays_`j' dev_raindays_`j' z_raindays_`j' norain_`j' dev_norain_`j' z_norain_`j' pct_raindays_`j' dev_pct_raindays_`j' z_pct_raindays_`j' dry_start_`j' dry_`j' dry_end_`j'
+			foreach v of local try_vars {
+				capture confirm variable `v'
+				if _rc == 0 local final_order "`final_order' `v'"
+			}
+		}
+	}
+
+	local created_vars "`final_order'"
+	if "`keep'" != "" {
+		capture order `keep' `final_order'
+	}
+	else {
+		capture order `final_order'
 	}
 
 	* ---- shape(long) output stacking ----

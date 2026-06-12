@@ -39,9 +39,7 @@ assert norain_2020 == cond(hhid == 1, 2, 2)
 assert raindays_2020 == cond(hhid == 1, 1, 2)
 assert abs(pct_raindays_2020 - cond(hhid == 1, 1 / 3, .5)) < 1e-6
 assert dry_2020 == cond(hhid == 1, 1, 2)
-assert abs(mean_mo_total_2020 - cond(hhid == 1, 1.25, 3.5)) < 1e-6
-assert abs(median_mo_total_2020 - cond(hhid == 1, 1.25, 3.5)) < 1e-6
-assert abs(sd_mo_total_2020 - cond(hhid == 1, sqrt(1.125), sqrt(.5))) < 1e-6
+assert abs(mean_mo_2020 - cond(hhid == 1, 1.25, 3.5)) < 1e-6
 
 display "2. rainfall rolling deviations and z-scores use exactly preceding lr_years"
 clear

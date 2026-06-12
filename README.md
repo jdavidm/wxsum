@@ -61,6 +61,7 @@ When the `rain_data` option is chosen, the command generates the following varia
 - mean daily in a season
 - median daily in a season
 - standard deviation of daily in a season
+- variance of daily in a season
 - skew of daily in a season
 - mean total monthly in a season
 - median total monthly in a season
@@ -87,6 +88,7 @@ When the `temp_data` option is chosen, the command generates the following varia
 - mean daily in a season
 - median daily in a season
 - standard deviation of daily in a season
+- variance of daily in a season
 - skew of temp in a season
 - max daily in a season
 - gdd in a season

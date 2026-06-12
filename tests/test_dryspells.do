@@ -107,7 +107,7 @@ assert dry_2020       == 2 if id == 7
 assert dry_end_2020   == 1 if id == 7
 
 * Check skewness on row 8
-* Calculate expected skew manually for raw 3rd moment
+* Calculate expected skew manually for adjusted Fisher-Pearson sample skewness
 preserve
 keep if id == 8
 xpose, clear
@@ -119,7 +119,7 @@ local s = r(sd)
 local n = r(N)
 gen dev3 = ((v1 - `m') / `s')^3
 quietly sum dev3
-local exp_skew = r(sum) / `n'
+local exp_skew = (`n' / ((`n' - 1) * (`n' - 2))) * r(sum)
 restore
 * Because floating point arithmetic, use abs(diff) < 1e-6
 assert abs(skew_2020 - `exp_skew') < 1e-6 if id == 8

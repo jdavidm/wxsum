@@ -107,6 +107,7 @@ The general syntax of the command is as follows:
 {break}- mean daily in a season
 {break}- median daily in a season
 {break}- standard deviation of daily in a season
+{break}- variance of daily in a season
 {break}- skew of temp in a season
 {break}- max daily in a season
 {break}- gdd in a season
@@ -122,10 +123,11 @@ The general syntax of the command is as follows:
 {break}- mean daily in a season
 {break}- median daily in a season
 {break}- standard deviation of daily in a season
+{break}- variance of daily in a season
 {break}- skew of daily in a season
-{break}- mean total monthly in a season
-{break}- deviation from long run average of mean total monthly in a season
-{break}- z-score of mean total monthly in a season
+{break}- mean of monthly rainfall totals in a season
+{break}- deviation from long run average of mean monthly rainfall in a season
+{break}- z-score of mean monthly rainfall in a season
 {break}- total seasonal
 {break}- deviation from long run average of total seasonal
 {break}- z-score of total seasonal
@@ -232,7 +234,7 @@ If a variable named {it:year} is included in {opt keep()}, the command exits wit
 Growing degree days are calculated as capped degree accumulation: {cmd:min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)}, summed over the season.
 
 {phang}
-Skewness is calculated as the raw third standardized moment. It requires at least 3 non-missing observations.
+Variance requires at least 2 non-missing observations. Skewness is calculated as the adjusted Fisher-Pearson sample skewness. It requires at least 3 non-missing observations.
 
 {phang}
 Dry spells are calculated strictly from non-missing rainfall data. A dry day is defined as rainfall strictly less than {opt rain_threshold(#)}. A rainy day is rainfall greater than or equal to {opt rain_threshold(#)}. Missing daily rainfall values are excluded from dry counts and break consecutive dry spells.
