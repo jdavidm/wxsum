@@ -12,6 +12,7 @@
 *  v 4.1  9jun2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.2  10jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
@@ -23,6 +24,7 @@ version 15.1
 		,										///
 		ini_month(string)						///
 		fin_month(string)						///
+		type(string)							///
 		[										///
 		ini_day(string)							///
 		fin_day(string)							///
@@ -30,7 +32,7 @@ version 15.1
 		save(string)							///
 		gdd_lo(real -999999999)					///
 		gdd_hi(real -999999999)					///
-		kdd_base(real 0)						///
+		kdd_base(real -999999999)				///
 		gdd_bin(real -999999999)				///
 		gdd_binlo(real -999999999)				///
 		gdd_binhi(real -999999999)				///
@@ -39,20 +41,23 @@ version 15.1
 		tmp_binhi(real -999999999)				///
 		shape(string)							///
 		lr_years(integer 10)					///
-		temp_data								///
-		rain_data								///
 		rain_threshold(real 1)					///
 		]
 
 	local prefix "`anything'"
 
+	local default_fin_day = ("`fin_day'" == "")
 	if "`ini_day'" == "" local ini_day = "01"
-	if "`fin_day'" == "" local fin_day = "01"
 
 	local ini_month_n = real("`ini_month'")
 	local fin_month_n = real("`fin_month'")
 	local ini_day_n = real("`ini_day'")
-	local fin_day_n = real("`fin_day'")
+	if `default_fin_day' {
+		local fin_day_n = 28
+	}
+	else {
+		local fin_day_n = real("`fin_day'")
+	}
 
 	if missing(`ini_month_n') | `ini_month_n' != floor(`ini_month_n') | `ini_month_n' < 1 | `ini_month_n' > 12 {
 		di as error "ini_month() must be an integer between 1 and 12"
@@ -77,20 +82,34 @@ version 15.1
 	local fin_day = `fin_day_n'
 
 	local ini_ref = mdy(`ini_month', `ini_day', 2000)
-	local fin_ref = mdy(`fin_month', `fin_day', 2000)
+	if `default_fin_day' {
+		local fin_ref = dofm(ym(2000, `fin_month') + 1) - 1
+	}
+	else {
+		local fin_ref = mdy(`fin_month', `fin_day', 2000)
+	}
 	if missing(`ini_ref') | month(`ini_ref') != `ini_month' | day(`ini_ref') != `ini_day' {
 		di as error "ini_month()/ini_day() is not a valid date"
 		exit 198
 	}
-	if missing(`fin_ref') | month(`fin_ref') != `fin_month' | day(`fin_ref') != `fin_day' {
-		di as error "fin_month()/fin_day() is not a valid date"
-		exit 198
+	if !`default_fin_day' {
+		if missing(`fin_ref') | month(`fin_ref') != `fin_month' | day(`fin_ref') != `fin_day' {
+			di as error "fin_month()/fin_day() is not a valid date"
+			exit 198
+		}
 	}
 
-	local modes = ("`rain_data'" != "") + ("`temp_data'" != "")
-	if `modes' != 1 {
-		di as error "Specify exactly one of rain_data or temp_data"
+	if "`type'" != "rain" & "`type'" != "temp" {
+		di as error "type() must be either rain or temp"
 		exit 198
+	}
+	if "`type'" == "rain" {
+		local rain_data "rain_data"
+		local temp_data ""
+	}
+	else {
+		local rain_data ""
+		local temp_data "temp_data"
 	}
 
 	if `lr_years' < 2 | `lr_years' > 50 {
@@ -99,8 +118,8 @@ version 15.1
 	}
 
 	if "`temp_data'" != "" {
-		if `gdd_lo' == -999999999 | `gdd_hi' == -999999999 {
-			di as error "Please define gdd_lo() and gdd_hi() for temperature data"
+		if `gdd_lo' == -999999999 | `gdd_hi' == -999999999 | `kdd_base' == -999999999 {
+			di as error "Please define gdd_lo(), gdd_hi(), and kdd_base() for type(temp)"
 			exit 198
 		}
 		if `gdd_hi' <= `gdd_lo' {
@@ -124,7 +143,7 @@ version 15.1
 	}
 	if `has_gdd_bin' {
 		if "`rain_data'" != "" {
-			di as error "gdd_bin() cannot be used with rain_data"
+			di as error "gdd_bin() cannot be used with type(rain)"
 			exit 198
 		}
 		if `gdd_bin' <= 0 {
@@ -161,7 +180,7 @@ version 15.1
 	}
 	if `has_tmp_bin' {
 		if "`rain_data'" != "" {
-			di as error "tmp_bin() cannot be used with rain_data"
+			di as error "tmp_bin() cannot be used with type(rain)"
 			exit 198
 		}
 		if `tmp_bin' != floor(`tmp_bin') | `tmp_bin' < 1 {
@@ -258,12 +277,19 @@ version 15.1
 
 	forvalues j = `min_year'/`max_year' {
 		local end_year = `j' + `crosses'
+		if `default_fin_day' {
+			local end_date = dofm(ym(`end_year', `fin_month') + 1) - 1
+			local fd = day(`end_date')
+		}
+		else {
+			local fd = `fin_day'
+			local end_date = mdy(`fin_month', `fd', `end_year')
+		}
 		local start_date = mdy(`ini_month', `ini_day', `j')
-		local end_date = mdy(`fin_month', `fin_day', `end_year')
 
 		if missing(`start_date') | missing(`end_date') continue
 		if month(`start_date') != `ini_month' | day(`start_date') != `ini_day' continue
-		if month(`end_date') != `fin_month' | day(`end_date') != `fin_day' continue
+		if month(`end_date') != `fin_month' | day(`end_date') != `fd' continue
 		if `start_date' < `min_date' | `end_date' > `max_date' continue
 
 		local var ""
@@ -329,18 +355,16 @@ version 15.1
 			local gdd_vars "`gdd_vars' gdd_`j'"
 			quietly drop `gdd_aux'
 
-			if `kdd_base' > 0 {
-				local kdd_aux ""
-				foreach f of local var {
-					tempvar kd
-					quietly gen double `kd' = max(`f' - `kdd_base', 0) if !missing(`f')
-					local kdd_aux "`kdd_aux' `kd'"
-				}
-				quietly egen kdd_`j' = rowtotal(`kdd_aux')
-				label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
-				local created_vars "`created_vars' kdd_`j'"
-				quietly drop `kdd_aux'
+			local kdd_aux ""
+			foreach f of local var {
+				tempvar kd
+				quietly gen double `kd' = max(`f' - `kdd_base', 0) if !missing(`f')
+				local kdd_aux "`kdd_aux' `kd'"
 			}
+			quietly egen kdd_`j' = rowtotal(`kdd_aux')
+			label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
+			local created_vars "`created_vars' kdd_`j'"
+			quietly drop `kdd_aux'
 
 			* ---- tmp_bin() temperature bin counts ----
 			if `has_tmp_bin' {
@@ -807,12 +831,14 @@ version 15.1
 				quietly append using `_long_tf_`lf''
 			}
 
-			* sort by keep vars and year if possible
+			* sort and order by keep vars and year if possible
 			if "`keep'" != "" {
 				capture sort `keep' year
+				capture order `keep' year *
 			}
 			else {
 				capture sort year
+				capture order year *
 			}
 		}
 	}

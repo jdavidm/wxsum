@@ -42,7 +42,7 @@ The syntax is
 
 \begin{stsyntax}
 	wxsum {\it prefix\/} , ini\_month({\it month\/}) fin\_month({\it month\/})
-	[ ini\_day({\it day\/}) fin\_day({\it day\/}) rain\_data temp\_data
+	type({\it rain|temp\/}) [ ini\_day({\it day\/}) fin\_day({\it day\/})
 	rain\_threshold({\it num\/}) gdd\_lo({\it num\/}) gdd\_hi({\it num\/}) 
     kdd\_base({\it num\/}) gdd\_bin({\it num\/}) gdd\_binlo({\it num\/})
     gdd\_binhi({\it num\/}) tmp\_bin({\it num\/}) tmp\_binlo({\it num\/})
@@ -50,7 +50,7 @@ The syntax is
     lr\_years({\it num\/}) keep({\it varlist\/}) save({\it filename\/}) ]
 \end{stsyntax}
 
-\noindent Here \textit{prefix} is the common stub for the variables. It is not a varlist. If the data contain variables named \texttt{rf\_19790101}, \texttt{rf\_19790102}, and so on, the prefix supplied to the command is \texttt{rf\_}. Exactly one of \texttt{rain\_data} and \texttt{temp\_data} must be specified.
+\noindent Here \textit{prefix} is the common stub for the variables. It is not a varlist. If the data contain variables named \texttt{rf\_19790101}, \texttt{rf\_19790102}, and so on, the prefix supplied to the command is \texttt{rf\_}. The \texttt{type()} option must be specified as either \texttt{rain} or \texttt{temp}.
 
 \subsection{Required variables}
 
@@ -67,8 +67,8 @@ The minimal dataset contains an identifier for each location and a set of variab
 			Observation & One row per spatial or analytic unit. \\
 			Weather variables & One variable per day, with a common stub and a \texttt{yyyymmdd} date suffix. \\
 			Date information & Encoded in the daily variable names rather than stored in separate year, month, and day variables. \\
-			Rainfall data & Numeric daily precipitation variables; use \texttt{rain\_data}. \\
-			Temperature data & Numeric daily temperature variables; use \texttt{temp\_data}. \\
+			Rainfall data & Numeric daily precipitation variables; use \texttt{type(rain)}. \\
+			Temperature data & Numeric daily temperature variables; use \texttt{type(temp)}. \\
 			Other variables & Retain with \texttt{keep()} if identifiers, coordinates, or covariates should remain in the output. \\
 			\hline
 		\end{tabularx}
@@ -81,17 +81,16 @@ The minimal dataset contains an identifier for each location and a set of variab
 	\item[\texttt{ini\_month(month)}] specifies the initial month of the season. This option is required.
 	\item[\texttt{fin\_month(month)}] specifies the final month of the season. This option is required. If the final month precedes the initial month in the calendar year, the command treats the season as crossing calendar years.
 	\item[\texttt{ini\_day(day)}] specifies the first day of the initial month to be included in the season. The default is \texttt{01}.
-	\item[\texttt{fin\_day(day)}] specifies the last day of the final month to be included in the season. The default is \texttt{01}.
-	\item[\texttt{rain\_data}] specifies that the daily variables contain precipitation. This option is mutually exclusive with \texttt{temp\_data}.
-	\item[\texttt{temp\_data}] specifies that the daily variables contain temperature. This option is mutually exclusive with \texttt{rain\_data}.
+	\item[\texttt{fin\_day(day)}] specifies the last day of the final month to be included in the season. If not specified, it dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
+	\item[\texttt{type(rain\textbar temp)}] specifies the data type. Use \texttt{rain} for precipitation data or \texttt{temp} for temperature data. This option is required.
 	\item[\texttt{rain\_threshold(num)}] specifies the threshold used to define a rainy day. The default is 1.
-	\item[\texttt{gdd\_lo(num)}] specifies the lower bound for growing degree days. This option is required when \texttt{temp\_data} is specified.
-	\item[\texttt{gdd\_hi(num)}] specifies the upper bound for growing degree days. This option is required when \texttt{temp\_data} is specified.
-	\item[\texttt{kdd\_base(num)}] specifies the threshold above which killing degree days are calculated.
-	\item[\texttt{gdd\_bin(num)}] specifies the fixed width of seasonal GDD categories. When specified, the command creates an integer categorical variable \texttt{gddcat\_}\textit{YYYY} for each generated GDD season. The argument is a positive numeric bin width, expressed in the units of the generated GDD variable. Valid only with \texttt{temp\_data}.
+	\item[\texttt{gdd\_lo(num)}] specifies the lower bound for growing degree days. This option is required when \texttt{type(temp)} is specified.
+	\item[\texttt{gdd\_hi(num)}] specifies the upper bound for growing degree days. This option is required when \texttt{type(temp)} is specified.
+	\item[\texttt{kdd\_base(num)}] specifies the threshold above which killing degree days are calculated. This option is required when \texttt{type(temp)} is specified.
+	\item[\texttt{gdd\_bin(num)}] specifies the fixed width of seasonal GDD categories. When specified, the command creates an integer categorical variable \texttt{gddcat\_}\textit{YYYY} for each generated GDD season. The argument is a positive numeric bin width, expressed in the units of the generated GDD variable. Valid only with \texttt{type(temp)}.
 	\item[\texttt{gdd\_binlo(num)}] specifies the optional lower endpoint for regular fixed-width GDD categories. The default is 0 when \texttt{gdd\_bin()} is specified. If any seasonal GDD total falls below this value, a bottom-coded category is created. Requires \texttt{gdd\_bin()}.
 	\item[\texttt{gdd\_binhi(num)}] specifies the optional upper endpoint for regular fixed-width GDD categories. Values at or above this endpoint are assigned to a top-coded category. When omitted, the command determines an upper endpoint from the pooled empirical maximum of generated seasonal GDD values and the chosen bin width. Requires \texttt{gdd\_bin()}. Must be greater than \texttt{gdd\_binlo()}. The range between \texttt{gdd\_binhi()} and \texttt{gdd\_binlo()} must be evenly divisible by \texttt{gdd\_bin()}.
-	\item[\texttt{tmp\_bin(num)}] specifies the total number of fixed daily-temperature bin count variables to create per season. Must be a positive integer from 1 through 42. Valid only with \texttt{temp\_data}. Requires \texttt{tmp\_binlo()} and \texttt{tmp\_binhi()}. Creates variables \texttt{tmpbin01\_}\textit{YYYY} through \texttt{tmpbin}\textit{JJ}\texttt{\_}\textit{YYYY}.
+	\item[\texttt{tmp\_bin(num)}] specifies the total number of fixed daily-temperature bin count variables to create per season. Must be a positive integer from 1 through 42. Valid only with \texttt{type(temp)}. Requires \texttt{tmp\_binlo()} and \texttt{tmp\_binhi()}. Creates variables \texttt{tmpbin01\_}\textit{YYYY} through \texttt{tmpbin}\textit{JJ}\texttt{\_}\textit{YYYY}.
 	\item[\texttt{tmp\_binlo(num)}] specifies the lower endpoint for fixed daily-temperature bin counts. Required when \texttt{tmp\_bin()} is specified. Must be in the same units as the daily temperature data. No default.
 	\item[\texttt{tmp\_binhi(num)}] specifies the upper endpoint for fixed daily-temperature bin counts. Required when \texttt{tmp\_bin()} is specified. Must be greater than \texttt{tmp\_binlo()}. No default.
 	\item[\texttt{shape(wide\textbar long)}] specifies the final output shape. The default is \texttt{wide}, which produces one row per spatial unit with year-suffixed variable names. When \texttt{long} is specified, the output is stacked into one row per retained unit-year and a variable named \texttt{year} is created. Input data must still be wide. The \texttt{shape(long)} option is a final-output stacking operation; it does not change the internal computation strategy or reduce peak memory use.
@@ -108,7 +107,7 @@ In the default \texttt{shape(wide)} output, the command generates one set of var
 
 When \texttt{shape(long)} is specified, the output is stacked with one row per retained unit-year. A variable named \texttt{year} identifies the season-start year. Generated variables are renamed without their year suffixes; for example, \texttt{mean\_1993} becomes \texttt{mean} with \texttt{year == 1993}, \texttt{gddcat\_1993} becomes \texttt{gddcat}, and \texttt{tmpbin01\_1993} becomes \texttt{tmpbin01}. Variables specified in \texttt{keep()} are repeated across years. Users are strongly encouraged to include unit identifiers in \texttt{keep()} when using \texttt{shape(long)}, because otherwise the long output may not contain an explicit merge key. The \texttt{shape(long)} option does not change the requirement that input data be wide; it is a final-output stacking step only.
 
-When \texttt{rain\_data} is specified, the command produces the precipitation statistics in Table~\ref{tab:rainout}. These variables combine simple summaries of the daily distribution, summaries of monthly totals, seasonal totals, rainy-day counts, and shock measures relative to the rolling long-run reference period.
+When \texttt{type(rain)} is specified, the command produces the precipitation statistics in Table~\ref{tab:rainout}. These variables combine simple summaries of the daily distribution, summaries of monthly totals, seasonal totals, rainy-day counts, and shock measures relative to the rolling long-run reference period.
 
 \begin{table}[htbp]
 	\caption{Rainfall statistics generated by \texttt{wxsum}}
@@ -129,7 +128,7 @@ When \texttt{rain\_data} is specified, the command produces the precipitation st
 	\end{center}
 \end{table}
 
-When \texttt{temp\_data} is specified, the command produces the temperature statistics in Table~\ref{tab:tempout}. The growing degree day calculation uses \texttt{gdd\_lo()} and \texttt{gdd\_hi()} as lower and upper bounds, whereas killing degree days are calculated relative to \texttt{kdd\_base()} when a positive value of \texttt{kdd\_base()} is specified. GDD categories, generated when \texttt{gdd\_bin()} is specified, classify the seasonal GDD total into fixed-width intervals. Daily-temperature bin counts, generated when \texttt{tmp\_bin()} is specified, count the number of observed daily temperature readings in each fixed absolute temperature interval.
+When \texttt{type(temp)} is specified, the command produces the temperature statistics in Table~\ref{tab:tempout}. The growing degree day calculation uses \texttt{gdd\_lo()} and \texttt{gdd\_hi()} as lower and upper bounds, whereas killing degree days are calculated relative to \texttt{kdd\_base()}. GDD categories, generated when \texttt{gdd\_bin()} is specified, classify the seasonal GDD total into fixed-width intervals. Daily-temperature bin counts, generated when \texttt{tmp\_bin()} is specified, count the number of observed daily temperature readings in each fixed absolute temperature interval.
 
 \begin{table}[htbp]
 	\caption{Temperature statistics generated by \texttt{wxsum}}

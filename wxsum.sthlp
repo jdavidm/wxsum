@@ -19,7 +19,8 @@
 {cmd:,}
 {opt ini_month(month)}
 {opt fin_month(month)}
-[{it:options}]
+		{opt type(datatype)}
+		[{it:options}]
 
 {synoptset 20 tabbed}{...}
 {synopthdr}
@@ -27,15 +28,14 @@
 {syntab:Main}
 {synopt:{opt ini_month(month)}}Initial month of the season (e.g., 05 for May){p_end}
 {synopt:{opt fin_month(month)}}Final month of the season (e.g., 10 for October){p_end}
+{synopt:{opt type(datatype)}}Specify {it:rain} for rainfall data or {it:temp} for temperature data.{p_end}
 
 {syntab:Options}
 {synopt:{opt ini_day(day)}}Start day of the season. Default is 01.{p_end}
-{synopt:{opt fin_day(day)}}End day of the season. Default is 01.{p_end}
-{synopt:{opt temp_data}}Specify that data is temperature data. Mutually exclusive with rain_data.{p_end}
-{synopt:{opt rain_data}}Specify that data is rainfall data. Mutually exclusive with temp_data.{p_end}
+{synopt:{opt fin_day(day)}}End day of the season. Defaults to the last day of the final month.{p_end}
 {synopt:{opt gdd_lo(#)}}Lower bound for growing degree days calculation (required if temp_data is used).{p_end}
 {synopt:{opt gdd_hi(#)}}Upper bound for growing degree days calculation (required if temp_data is used).{p_end}
-{synopt:{opt kdd_base(#)}}Temperature threshold for calculating Killing Degree Days (KDD).{p_end}
+{synopt:{opt kdd_base(#)}}Temperature threshold for calculating Killing Degree Days (KDD) (required if type(temp) is used).{p_end}
 {synopt:{opt gdd_bin(#)}}Width of fixed-interval seasonal GDD categories.{p_end}
 {synopt:{opt gdd_binlo(#)}}Lower endpoint for regular GDD intervals. Default 0.{p_end}
 {synopt:{opt gdd_binhi(#)}}Upper endpoint for regular GDD intervals; values at or above are top-coded.{p_end}
@@ -76,7 +76,7 @@ The general syntax of the command is as follows:
 - After the command name, one has to define what variables contain the rain/temperature information. For example, for CHIRPS datasets, the prefix on the wxsum variables might be {it:pic_} while in the case of ECMWF the prefix could be {it:y_}.
 
 {pstd}
-- Next, one needs to tell the command whether the data is {opt rain_data} or {opt temp_data}.
+- Next, one needs to tell the command whether the data is {opt type(rain)} or {opt type(temp)}.
 
 {pstd}
 - One then has to select a season to study using the options {opt ini_month(number)}, {opt fin_month(number)} and {opt ini_day(number)} and {opt fin_day(number)}. If the day options are not specified, the default is the first day of the month. For example, to choose a season from the middle of March to the middle of June, you would set ini_month(03), fin_month(06), ini_day(15), fin_day(15). The command seamlessly handles seasons that span across calendar years, such as November to February, keeping the data associated with the year the season starts.
@@ -100,10 +100,10 @@ The general syntax of the command is as follows:
 {opt ini_day(day)} specifies the day the season begins. If not specified, it defaults to 01.
 
 {phang}
-{opt fin_day(day)} specifies the day the season ends. If not specified, it defaults to 01.
+{opt fin_day(day)} specifies the day the season ends. If not specified, it dynamically defaults to the exact last day of the final month in the given season, correctly accounting for leap years.
 
 {phang}
-{opt temp_data} processes temperature variables to generate:
+{opt type(temp)} processes temperature variables to generate:
 {break}- mean daily in a season
 {break}- median daily in a season
 {break}- standard deviation of daily in a season
@@ -118,7 +118,7 @@ The general syntax of the command is as follows:
 {break}- fixed daily-temperature bin count variables {it:tmpbinXX_YEAR} (when {opt tmp_bin()} is specified)
 
 {phang}
-{opt rain_data} processes rainfall variables to generate:
+{opt type(rain)} processes rainfall variables to generate:
 {break}- mean daily in a season
 {break}- median daily in a season
 {break}- standard deviation of daily in a season

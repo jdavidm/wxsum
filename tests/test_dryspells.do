@@ -75,7 +75,7 @@ replace rf_20200105 = 100 if id == 8
 
 
 * Run wxsum
-wxsum rf_, ini_month(1) fin_month(1) ini_day(1) fin_day(9) rain_data rain_threshold(1) keep(id)
+wxsum rf_, ini_month(1) fin_month(1) ini_day(1) fin_day(9) type(rain) rain_threshold(1) keep(id)
 
 * Check values
 assert dry_start_2020 == 2 if id == 1

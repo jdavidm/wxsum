@@ -81,7 +81,7 @@ replace tmp_20210102 = 500 if hhid == 3
 replace tmp_20210103 = 500 if hhid == 3
 replace tmp_20210104 = 500 if hhid == 3
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
 
 * Verify GDD totals first
 assert gdd_2020 == 0    if hhid == 1
@@ -126,7 +126,7 @@ forvalues d = 1/4 {
 }
 * GDD = 4 * 625 = 2500
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
 
 assert gdd_2020 == 2500
 * 2500 falls exactly on a boundary. Since intervals are [lo, hi),
@@ -158,7 +158,7 @@ replace tmp_20200103 = 1000 if hhid == 2
 replace tmp_20200104 = 1000 if hhid == 2
 * GDD loc2 = 4000
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binhi(3000) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binhi(3000) lr_years(2)
 
 * Categories: 1=[0,500), 2=[500,1000), 3=[1000,1500), 4=[1500,2000),
 *             5=[2000,2500), 6=[2500,3000), 7=GDD>=3000
@@ -176,7 +176,7 @@ forvalues d = 1/4 {
 	gen tmp_202001`dd' = 750
 }
 * GDD = 3000
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binhi(3000) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binhi(3000) lr_years(2)
 assert gdd_2020 == 3000
 assert gddcat_2020 == 7
 
@@ -203,7 +203,7 @@ replace tmp_20200103 = 500 if hhid == 2
 replace tmp_20200104 = 500 if hhid == 2
 * GDD loc2 = 2000
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binlo(750) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binlo(750) lr_years(2)
 
 * Pooled min=400<750 so bottom-coded. Pooled max=2000.
 * Auto hi from 750: ceil((2000-750)/500)=3, 750+3*500=2250, 2000<2250 => hi=2250
@@ -240,7 +240,7 @@ replace tmp_20200103 = 1000 if hhid == 3
 replace tmp_20200104 = 1000 if hhid == 3
 * GDD loc3 = 4000 (above hi=3000)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binlo(500) gdd_binhi(3000) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) gdd_binlo(500) gdd_binhi(3000) lr_years(2)
 
 * Categories: 1=GDD<500, 2=[500,1000), 3=[1000,1500), 4=[1500,2000),
 *             5=[2000,2500), 6=[2500,3000), 7=GDD>=3000
@@ -265,7 +265,7 @@ gen tmp_20210102 = 10
 gen tmp_20210103 = 10
 gen tmp_20210104 = 10
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
 
 * gdd_2020 uses rowtotal, which gives 0 for all-missing
 * gddcat_2020 should therefore be assigned (it's not truly missing GDD)
@@ -282,7 +282,7 @@ gen hhid = 1
 gen tmp_20200101 = 0
 gen tmp_20200102 = 0
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) lr_years(2)
 
 assert gdd_2020 == 0
 * Auto hi: max=0, ceil((0-0)/500)=0, gb_n<1 so gb_n=1, hi=500
@@ -299,7 +299,7 @@ gen hhid = 1
 gen tmp_20200101 = 10
 gen tmp_20200102 = 20
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(32) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) lr_years(2)
 
 capture confirm variable gddcat_2020
 assert _rc != 0
@@ -309,56 +309,56 @@ di as result "PASS: Test 8 - no gdd_bin => no gddcat"
 
 display "--- Validation error tests ---"
 
-display "--- Test 9: gdd_bin with rain_data errors ---"
+display "--- Test 9: gdd_bin with type(rain) errors ---"
 clear
 set obs 1
 gen rf_20200101 = 1
-capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) rain_data gdd_bin(500)
-_assert_rc _rc 198 "gdd_bin with rain_data"
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) gdd_bin(500)
+_assert_rc _rc 198 "gdd_bin with type(rain)"
 
 display "--- Test 10: gdd_binlo without gdd_bin errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binlo(100)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_binlo(100)
 _assert_rc _rc 198 "gdd_binlo without gdd_bin"
 
 display "--- Test 11: gdd_binhi without gdd_bin errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binhi(3000)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_binhi(3000)
 _assert_rc _rc 198 "gdd_binhi without gdd_bin"
 
 display "--- Test 12: gdd_binhi <= gdd_binlo errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(1000) gdd_binhi(500)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(1000) gdd_binhi(500)
 _assert_rc _rc 198 "gdd_binhi <= gdd_binlo"
 
 display "--- Test 13: non-divisible (hi-lo)/width errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(750) gdd_binhi(3000)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(750) gdd_binhi(3000)
 _assert_rc _rc 198 "non-divisible (hi-lo)/width"
 
 display "--- Test 14: gdd_bin <= 0 errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(0)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(0)
 _assert_rc _rc 198 "gdd_bin(0)"
 
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(-100)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(-100)
 _assert_rc _rc 198 "gdd_bin(-100)"
 
 display "--- Test 15: divisible (hi-lo)/width passes ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(500) gdd_binhi(3000)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(500) gdd_binhi(3000)
 confirm variable gddcat_2020
 di as result "PASS: Test 15 - divisible (hi-lo)/width"
 
@@ -368,7 +368,7 @@ set obs 1
 gen hhid = 1
 gen tmp_20200101 = 10
 gen tmp_20200102 = 20
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(12.5) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(12.5) lr_years(2)
 * GDD = 30, bin width 12.5, lo=0
 * auto hi: ceil(30/12.5) = 3, 0+3*12.5=37.5, 30<37.5 => hi=37.5
 * Categories: 1=[0,12.5), 2=[12.5,25), 3=[25,37.5)
