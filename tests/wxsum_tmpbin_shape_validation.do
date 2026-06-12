@@ -54,7 +54,7 @@ gen tmp_20200102 = cond(hhid == 1, 5, 10)
 gen tmp_20200103 = cond(hhid == 1, 15, 20)
 gen tmp_20200104 = cond(hhid == 1, 35, 30)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
 
 * Location 1
 assert tmpbin01_2020 == 1 if hhid == 1
@@ -88,7 +88,7 @@ gen tmp_20200103 = 2.9
 gen tmp_20200104 = 3
 gen tmp_20200105 = 39
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(05) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(05) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) lr_years(2)
 
 confirm variable tmpbin01_2020
 confirm variable tmpbin15_2020
@@ -120,7 +120,7 @@ gen tmp_20200102 = 1
 gen tmp_20200103 = 20.5
 gen tmp_20200104 = 41
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(42) tmp_binlo(1) tmp_binhi(41) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(42) tmp_binlo(1) tmp_binhi(41) lr_years(2)
 
 confirm variable tmpbin01_2020
 confirm variable tmpbin42_2020
@@ -145,7 +145,7 @@ gen tmp_20200102 = cond(hhid == 1, 20, .)
 gen tmp_20200103 = cond(hhid == 1, 30, 5)
 gen tmp_20200104 = cond(hhid == 1, 40, 15)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(1) tmp_binlo(0) tmp_binhi(30) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(1) tmp_binlo(0) tmp_binhi(30) lr_years(2)
 
 confirm variable tmpbin01_2020
 assert tmpbin01_2020 == 4 if hhid == 1
@@ -165,7 +165,7 @@ gen tmp_20200102 = 14.9
 gen tmp_20200103 = 15
 gen tmp_20200104 = 25
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(2) tmp_binlo(0) tmp_binhi(30) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(2) tmp_binlo(0) tmp_binhi(30) lr_years(2)
 
 confirm variable tmpbin01_2020
 confirm variable tmpbin02_2020
@@ -184,7 +184,7 @@ gen tmp_20200102 = cond(hhid == 1, ., .)
 gen tmp_20200103 = cond(hhid == 1, 15, .)
 gen tmp_20200104 = cond(hhid == 1, 25, .)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
 
 * Location 1: 3 nonmissing, bins should sum to 3
 assert tmpbin01_2020 + tmpbin02_2020 + tmpbin03_2020 + tmpbin04_2020 + tmpbin05_2020 == 3 if hhid == 1
@@ -208,7 +208,7 @@ gen tmp_20200102 = cond(hhid == 1, 15, 35)
 gen tmp_20210101 = cond(hhid == 1, -5, 10)
 gen tmp_20210102 = cond(hhid == 1, 45, 20)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) lr_years(2)
 
 * Both seasons should have tmpbin vars
 confirm variable tmpbin01_2020
@@ -235,7 +235,7 @@ gen extra = 999
 gen tmp_20200101 = 10
 gen tmp_20200102 = 20
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(3) tmp_binlo(0) tmp_binhi(30) keep(hhid) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(3) tmp_binlo(0) tmp_binhi(30) keep(hhid) lr_years(2)
 
 confirm variable hhid
 confirm variable tmpbin01_2020
@@ -256,52 +256,52 @@ display "--- Test 9: tmp_bin(0) errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_bin(0) tmp_binlo(0) tmp_binhi(30)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_bin(0) tmp_binlo(0) tmp_binhi(30)
 _assert_rc _rc 198 "tmp_bin(0) is rejected"
 
 display "--- Test 10: tmp_bin(43) errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_bin(43) tmp_binlo(0) tmp_binhi(30)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_bin(43) tmp_binlo(0) tmp_binhi(30)
 _assert_rc _rc 198 "tmp_bin(43) is rejected"
 
-display "--- Test 11: tmp_bin with rain_data errors ---"
+display "--- Test 11: tmp_bin with type(rain) errors ---"
 clear
 set obs 1
 gen rf_20200101 = 1
-capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) rain_data tmp_bin(5) tmp_binlo(0) tmp_binhi(30)
-_assert_rc _rc 198 "tmp_bin with rain_data is rejected"
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) tmp_bin(5) tmp_binlo(0) tmp_binhi(30)
+_assert_rc _rc 198 "tmp_bin with type(rain) is rejected"
 
 display "--- Test 12: tmp_binlo without tmp_bin errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_binlo(0)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_binlo(0)
 _assert_rc _rc 198 "tmp_binlo without tmp_bin is rejected"
 
 display "--- Test 13: tmp_binhi without tmp_bin errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_binhi(30)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_binhi(30)
 _assert_rc _rc 198 "tmp_binhi without tmp_bin is rejected"
 
 display "--- Test 14: tmp_bin without tmp_binlo/tmp_binhi errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_bin(5)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_bin(5)
 _assert_rc _rc 198 "tmp_bin without tmp_binlo/tmp_binhi is rejected"
 
 display "--- Test 15: tmp_binhi <= tmp_binlo errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_bin(5) tmp_binlo(30) tmp_binhi(10)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_bin(5) tmp_binlo(30) tmp_binhi(10)
 _assert_rc _rc 198 "tmp_binhi <= tmp_binlo is rejected"
 
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) tmp_bin(5) tmp_binlo(10) tmp_binhi(10)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) tmp_bin(5) tmp_binlo(10) tmp_binhi(10)
 _assert_rc _rc 198 "tmp_binhi == tmp_binlo is rejected"
 
 
@@ -318,7 +318,7 @@ gen tmp_20200102 = cond(hhid == 1, 15, 25)
 gen tmp_20210101 = cond(hhid == 1, 12, 22)
 gen tmp_20210102 = cond(hhid == 1, 18, 28)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) keep(hhid) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) keep(hhid) lr_years(2)
 
 * Wide: should have year-suffixed vars and 2 rows
 assert _N == 2
@@ -341,7 +341,7 @@ gen tmp_20200102 = cond(hhid == 1, 15, 25)
 gen tmp_20210101 = cond(hhid == 1, 12, 22)
 gen tmp_20210102 = cond(hhid == 1, 18, 28)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) keep(hhid) shape(wide) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) keep(hhid) shape(wide) lr_years(2)
 
 assert _N == 2
 confirm variable mean_2020
@@ -361,7 +361,7 @@ gen tmp_20200102 = cond(hhid == 1, 15, 25)
 gen tmp_20210101 = cond(hhid == 1, 12, 22)
 gen tmp_20210102 = cond(hhid == 1, 18, 28)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) keep(hhid) shape(long) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) keep(hhid) shape(long) lr_years(2)
 
 * Long: should have 4 rows (2 units x 2 years)
 assert _N == 4
@@ -397,7 +397,7 @@ gen tmp_20200102 = cond(hhid == 1, 15, 35)
 gen tmp_20210101 = cond(hhid == 1, -5, 10)
 gen tmp_20210102 = cond(hhid == 1, 45, 20)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) keep(hhid) shape(long) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) tmp_bin(5) tmp_binlo(0) tmp_binhi(30) keep(hhid) shape(long) lr_years(2)
 
 assert _N == 4
 confirm variable year
@@ -425,7 +425,7 @@ gen hhid = 1
 gen tmp_20200101 = 10
 gen tmp_20200102 = 20
 
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) shape(long) lr_years(2)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) shape(long) lr_years(2)
 * Should succeed (rc == 0), just print a note
 _assert_rc _rc 0 "shape(long) without keep() does not error"
 
@@ -440,7 +440,7 @@ gen year = 2020
 gen tmp_20200101 = 10
 gen tmp_20200102 = 20
 
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(50) keep(hhid year) shape(long) lr_years(2)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) keep(hhid year) shape(long) lr_years(2)
 _assert_rc _rc 198 "shape(long) with year in keep() is rejected"
 
 di as result "PASS: Test 21 - shape(long) with year in keep() errors"
@@ -450,7 +450,7 @@ display "--- Test 22: invalid shape value errors ---"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) shape(panel)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) shape(panel)
 _assert_rc _rc 198 "shape(panel) is rejected"
 
 di as result "PASS: Test 22 - invalid shape value errors"
@@ -465,7 +465,7 @@ forvalues d = 1/4 {
 	gen tmp_202001`dd' = cond(hhid == 1, `d' * 100, `d' * 50)
 }
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) temp_data gdd_lo(0) gdd_hi(10000) gdd_bin(500) keep(hhid) shape(long) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10000) gdd_bin(500) keep(hhid) shape(long) lr_years(2)
 
 confirm variable gddcat
 confirm variable year
@@ -485,7 +485,7 @@ gen region = cond(hhid == 1, "north", "south")
 gen tmp_20200101 = cond(hhid == 1, 10, 20)
 gen tmp_20210101 = cond(hhid == 1, 15, 25)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(50) keep(hhid region) shape(long) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(50) keep(hhid region) shape(long) lr_years(2)
 
 assert _N == 4
 * Both hhid values appear in both years

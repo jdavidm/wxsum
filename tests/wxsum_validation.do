@@ -23,7 +23,7 @@ gen hhid = 1
 gen rf_19930501 = 1
 gen rf_19930502 = 100
 gen rf_19930503 = 100
-wxsum rf_, ini_month(05) fin_month(05) ini_day(01) fin_day(02) rain_data
+wxsum rf_, ini_month(05) fin_month(05) ini_day(01) fin_day(02) type(rain)
 assert total_1993 == 101
 
 display "2. dates outside historical hardcoded range"
@@ -33,7 +33,7 @@ gen hhid = 1
 gen rf_20500501 = 2
 gen rf_20500601 = 3
 gen rf_20500602 = 99
-wxsum rf_, ini_month(05) fin_month(06) ini_day(01) fin_day(01) rain_data
+wxsum rf_, ini_month(05) fin_month(06) ini_day(01) fin_day(01) type(rain)
 assert total_2050 == 5
 
 display "3. cross-year season start-year labeling"
@@ -51,7 +51,7 @@ quietly {
 		replace tmp_`y'`m'`day' = 100 if `y' == 1994 & inlist(month(`d'), 1, 2)
 	}
 }
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32)
+wxsum tmp_, ini_month(11) fin_month(02) type(temp) kdd_base(0) gdd_lo(8) gdd_hi(32)
 assert abs(mean_1993 - ((61 * 10 + 32 * 100) / 93)) < .0001
 
 display "4. rainfall total deviations"
@@ -62,7 +62,7 @@ forvalues y = 1993/1995 {
 	gen rf_`y'0501 = `y' - 1990
 	gen rf_`y'0601 = `y' - 1990
 }
-wxsum rf_, ini_month(05) fin_month(06) ini_day(01) fin_day(01) rain_data lr_years(2)
+wxsum rf_, ini_month(05) fin_month(06) ini_day(01) fin_day(01) type(rain) lr_years(2)
 assert total_1995 == 10
 assert abs(dev_total_1995 - 3) < .0001
 capture confirm variable z_total_1995
@@ -75,7 +75,7 @@ gen hhid = 1
 gen rf_20000101 = 0
 gen rf_20000102 = .
 gen rf_20000103 = 2
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(03) rain_data lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(03) type(rain) lr_years(2)
 assert norain_2000 == 1
 assert raindays_2000 == 1
 assert pct_raindays_2000 == .5
@@ -87,7 +87,7 @@ gen hhid = 1
 gen rf_20000101 = 0
 gen rf_20000102 = 0
 gen rf_20000103 = 0
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(03) rain_data lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(03) type(rain) lr_years(2)
 assert dry_2000 == 3
 
 display "7. missing rainfall breaks dry spells"
@@ -100,7 +100,7 @@ gen rf_20000103 = .
 gen rf_20000104 = 0
 gen rf_20000105 = 0
 gen rf_20000106 = 0
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(06) rain_data lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(06) type(rain) lr_years(2)
 assert dry_2000 == 3
 
 display "8. helper cleanup preserves user aux variables"
@@ -109,7 +109,7 @@ set obs 1
 gen aux_user = 42
 gen rf_20000101 = 0
 gen rf_20000102 = 2
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) rain_data lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(rain) lr_years(2)
 confirm variable aux_user
 assert aux_user == 42
 capture ds hist_* ssn_* percentile*
@@ -121,7 +121,7 @@ set obs 1
 gen hhid = 1
 gen tmp_20000101 = 10
 gen tmp_20000102 = 20
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(15) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(15) lr_years(2)
 assert gdd_2000 == 25
 
 display "10. capped GDD and KDD"
@@ -132,7 +132,7 @@ gen tmp_19930501 = 9
 gen tmp_19930502 = 31
 gen tmp_19930503 = 40
 gen tmp_19930504 = 20
-wxsum tmp_, ini_month(05) fin_month(05) ini_day(01) fin_day(04) temp_data gdd_lo(8) gdd_hi(32) kdd_base(30)
+wxsum tmp_, ini_month(05) fin_month(05) ini_day(01) fin_day(04) type(temp) gdd_lo(8) gdd_hi(32) kdd_base(30)
 assert gdd_1993 == 60
 assert kdd_1993 == 11
 
@@ -141,7 +141,7 @@ clear
 set obs 1
 gen tmp_20000101 = 10
 gen tmp_20000102 = 20
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(32) gdd_hi(8) lr_years(2)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(32) gdd_hi(8) lr_years(2)
 _assert_rc _rc 198 "gdd_hi must be greater than gdd_lo"
 
 display "12. GDD categories with gdd_bin()"
@@ -154,7 +154,7 @@ forvalues d = 1/10 {
 	gen tmp_200001`dd' = `d'
 }
 * GDD = sum of min(max(T-0,0),20) = 1+2+3+...+10 = 55
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(10) temp_data gdd_lo(0) gdd_hi(20) gdd_bin(20) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(10) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(20) gdd_bin(20) lr_years(2)
 confirm variable gddcat_2000
 * GDD=55, gdd_bin(20), default lo=0
 * auto hi: ceil(55/20)=3, 0+3*20=60, 55<60 => hi=60
@@ -174,7 +174,7 @@ set obs 1
 gen hhid = 101
 gen tmp_20000101 = 10
 gen tmp_20000102 = 20
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) temp_data gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2)
 confirm variable hhid
 confirm variable gdd_2000
 capture confirm variable kdd_2000
@@ -183,7 +183,7 @@ assert _rc != 0
 display "14. bundled rainfall sample runs and total deviations exist"
 use rain.dta, clear
 tempfile rainout
-wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data save("`rainout'")
+wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) type(rain) save("`rainout'")
 confirm variable dev_total_2003
 confirm variable z_total_2003
 capture ds hist_* ssn_* percentile* aux*
@@ -191,7 +191,7 @@ assert _rc != 0
 
 display "15. bundled temperature sample runs without old bin variables"
 use temp.dta, clear
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) keep(hhid)
+wxsum tmp_, ini_month(11) fin_month(02) type(temp) kdd_base(0) gdd_lo(8) gdd_hi(32) keep(hhid)
 * Old bin variables should not exist
 capture confirm variable tempbin01_1993
 assert _rc != 0
@@ -200,49 +200,49 @@ assert _rc != 0
 * GDD should exist
 confirm variable gdd_1993
 
-display "16. gdd_bin() with rain_data errors"
+display "16. gdd_bin() with type(rain) errors"
 clear
 set obs 1
 gen rf_20200101 = 1
-capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) rain_data gdd_bin(500)
-_assert_rc _rc 198 "gdd_bin with rain_data is rejected"
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) gdd_bin(500)
+_assert_rc _rc 198 "gdd_bin with type(rain) is rejected"
 
 display "17. gdd_binlo() without gdd_bin() errors"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binlo(100)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_binlo(100)
 _assert_rc _rc 198 "gdd_binlo without gdd_bin is rejected"
 
 display "18. gdd_binhi() without gdd_bin() errors"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_binhi(3000)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_binhi(3000)
 _assert_rc _rc 198 "gdd_binhi without gdd_bin is rejected"
 
 display "19. gdd_binhi <= gdd_binlo errors"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(1000) gdd_binhi(500)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(1000) gdd_binhi(500)
 _assert_rc _rc 198 "gdd_binhi <= gdd_binlo is rejected"
 
 display "20. non-divisible (hi-lo)/width errors"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(750) gdd_binhi(3000)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(500) gdd_binlo(750) gdd_binhi(3000)
 _assert_rc _rc 198 "non-divisible hi-lo range is rejected"
 
 display "21. gdd_bin() <= 0 errors"
 clear
 set obs 1
 gen tmp_20200101 = 10
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(0)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(0)
 _assert_rc _rc 198 "gdd_bin(0) is rejected"
 
-capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) temp_data gdd_lo(0) gdd_hi(32) gdd_bin(-100)
+capture noisily wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) gdd_bin(-100)
 _assert_rc _rc 198 "gdd_bin(-100) is rejected"
 
 display as result "All wxsum validation tests passed."

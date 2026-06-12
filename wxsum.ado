@@ -11,6 +11,9 @@
 *  v 4.0  2apr2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.1  9jun2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.2  10jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
@@ -22,6 +25,7 @@ version 15.1
 		,										///
 		ini_month(string)						///
 		fin_month(string)						///
+		type(string)							///
 		[										///
 		ini_day(string)							///
 		fin_day(string)							///
@@ -29,7 +33,7 @@ version 15.1
 		save(string)							///
 		gdd_lo(real -999999999)					///
 		gdd_hi(real -999999999)					///
-		kdd_base(real 0)						///
+		kdd_base(real -999999999)				///
 		gdd_bin(real -999999999)				///
 		gdd_binlo(real -999999999)				///
 		gdd_binhi(real -999999999)				///
@@ -38,20 +42,23 @@ version 15.1
 		tmp_binhi(real -999999999)				///
 		shape(string)							///
 		lr_years(integer 10)					///
-		temp_data								///
-		rain_data								///
 		rain_threshold(real 1)					///
 		]
 
 	local prefix "`anything'"
 
+	local default_fin_day = ("`fin_day'" == "")
 	if "`ini_day'" == "" local ini_day = "01"
-	if "`fin_day'" == "" local fin_day = "01"
 
 	local ini_month_n = real("`ini_month'")
 	local fin_month_n = real("`fin_month'")
 	local ini_day_n = real("`ini_day'")
-	local fin_day_n = real("`fin_day'")
+	if `default_fin_day' {
+		local fin_day_n = 28
+	}
+	else {
+		local fin_day_n = real("`fin_day'")
+	}
 
 	if missing(`ini_month_n') | `ini_month_n' != floor(`ini_month_n') | `ini_month_n' < 1 | `ini_month_n' > 12 {
 		di as error "ini_month() must be an integer between 1 and 12"
@@ -76,20 +83,34 @@ version 15.1
 	local fin_day = `fin_day_n'
 
 	local ini_ref = mdy(`ini_month', `ini_day', 2000)
-	local fin_ref = mdy(`fin_month', `fin_day', 2000)
+	if `default_fin_day' {
+		local fin_ref = dofm(ym(2000, `fin_month') + 1) - 1
+	}
+	else {
+		local fin_ref = mdy(`fin_month', `fin_day', 2000)
+	}
 	if missing(`ini_ref') | month(`ini_ref') != `ini_month' | day(`ini_ref') != `ini_day' {
 		di as error "ini_month()/ini_day() is not a valid date"
 		exit 198
 	}
-	if missing(`fin_ref') | month(`fin_ref') != `fin_month' | day(`fin_ref') != `fin_day' {
-		di as error "fin_month()/fin_day() is not a valid date"
-		exit 198
+	if !`default_fin_day' {
+		if missing(`fin_ref') | month(`fin_ref') != `fin_month' | day(`fin_ref') != `fin_day' {
+			di as error "fin_month()/fin_day() is not a valid date"
+			exit 198
+		}
 	}
 
-	local modes = ("`rain_data'" != "") + ("`temp_data'" != "")
-	if `modes' != 1 {
-		di as error "Specify exactly one of rain_data or temp_data"
+	if "`type'" != "rain" & "`type'" != "temp" {
+		di as error "type() must be either rain or temp"
 		exit 198
+	}
+	if "`type'" == "rain" {
+		local rain_data "rain_data"
+		local temp_data ""
+	}
+	else {
+		local rain_data ""
+		local temp_data "temp_data"
 	}
 
 	if `lr_years' < 2 | `lr_years' > 50 {
@@ -98,8 +119,16 @@ version 15.1
 	}
 
 	if "`temp_data'" != "" {
-		if `gdd_lo' == -999999999 | `gdd_hi' == -999999999 {
-			di as error "Please define gdd_lo() and gdd_hi() for temperature data"
+		if `gdd_lo' == -999999999 {
+			di as error "Please define gdd_lo() for type(temp)"
+			exit 198
+		}
+		if `gdd_hi' == -999999999 {
+			di as error "Please define gdd_hi() for type(temp)"
+			exit 198
+		}
+		if `kdd_base' == -999999999 {
+			di as error "Please define kdd_base() for type(temp)"
 			exit 198
 		}
 		if `gdd_hi' <= `gdd_lo' {
@@ -123,7 +152,7 @@ version 15.1
 	}
 	if `has_gdd_bin' {
 		if "`rain_data'" != "" {
-			di as error "gdd_bin() cannot be used with rain_data"
+			di as error "gdd_bin() cannot be used with type(rain)"
 			exit 198
 		}
 		if `gdd_bin' <= 0 {
@@ -160,7 +189,7 @@ version 15.1
 	}
 	if `has_tmp_bin' {
 		if "`rain_data'" != "" {
-			di as error "tmp_bin() cannot be used with rain_data"
+			di as error "tmp_bin() cannot be used with type(rain)"
 			exit 198
 		}
 		if `tmp_bin' != floor(`tmp_bin') | `tmp_bin' < 1 {
@@ -257,12 +286,19 @@ version 15.1
 
 	forvalues j = `min_year'/`max_year' {
 		local end_year = `j' + `crosses'
+		if `default_fin_day' {
+			local end_date = dofm(ym(`end_year', `fin_month') + 1) - 1
+			local fd = day(`end_date')
+		}
+		else {
+			local fd = `fin_day'
+			local end_date = mdy(`fin_month', `fd', `end_year')
+		}
 		local start_date = mdy(`ini_month', `ini_day', `j')
-		local end_date = mdy(`fin_month', `fin_day', `end_year')
 
 		if missing(`start_date') | missing(`end_date') continue
 		if month(`start_date') != `ini_month' | day(`start_date') != `ini_day' continue
-		if month(`end_date') != `fin_month' | day(`end_date') != `fin_day' continue
+		if month(`end_date') != `fin_month' | day(`end_date') != `fd' continue
 		if `start_date' < `min_date' | `end_date' > `max_date' continue
 
 		local var ""
@@ -299,13 +335,22 @@ version 15.1
 		label var sd_`j' "Std dev of daily `dtype' in `j'"
 		local created_vars "`created_vars' sd_`j'"
 
-		quietly gen skew_`j' = (mean_`j' - median_`j') / sd_`j'
-		label var skew_`j' "Skew of daily `dtype' in `j'"
-		local created_vars "`created_vars' skew_`j'"
-
 		tempvar observed_days
 		quietly egen `observed_days' = rownonmiss(`var')
 
+		tempvar sum3
+		quietly gen double `sum3' = 0
+		quietly gen var_`j' = sd_`j'^2 if `observed_days' >= 2
+		label var var_`j' "Variance of daily `dtype' in `j'"
+		local created_vars "`created_vars' var_`j'"
+
+		foreach f of local var {
+			quietly replace `sum3' = `sum3' + ((`f' - mean_`j') / sd_`j')^3 if !missing(`f') & sd_`j' > 0
+		}
+		quietly gen skew_`j' = (`observed_days' / ((`observed_days' - 1) * (`observed_days' - 2))) * `sum3' if `observed_days' >= 3 & sd_`j' > 0
+		label var skew_`j' "Adj sample skewness of daily `dtype' in `j'"
+		local created_vars "`created_vars' skew_`j'"
+		quietly drop `sum3'
 		if "`temp_data'" != "" {
 			quietly egen max_`j' = rowmax(`var')
 			label var max_`j' "Max daily `dtype' in `j'"
@@ -323,18 +368,16 @@ version 15.1
 			local gdd_vars "`gdd_vars' gdd_`j'"
 			quietly drop `gdd_aux'
 
-			if `kdd_base' > 0 {
-				local kdd_aux ""
-				foreach f of local var {
-					tempvar kd
-					quietly gen double `kd' = max(`f' - `kdd_base', 0) if !missing(`f')
-					local kdd_aux "`kdd_aux' `kd'"
-				}
-				quietly egen kdd_`j' = rowtotal(`kdd_aux')
-				label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
-				local created_vars "`created_vars' kdd_`j'"
-				quietly drop `kdd_aux'
+			local kdd_aux ""
+			foreach f of local var {
+				tempvar kd
+				quietly gen double `kd' = max(`f' - `kdd_base', 0) if !missing(`f')
+				local kdd_aux "`kdd_aux' `kd'"
 			}
+			quietly egen kdd_`j' = rowtotal(`kdd_aux')
+			label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
+			local created_vars "`created_vars' kdd_`j'"
+			quietly drop `kdd_aux'
 
 			* ---- tmp_bin() temperature bin counts ----
 			if `has_tmp_bin' {
@@ -457,27 +500,10 @@ version 15.1
 			}
 
 			if "`monthly_totals'" != "" {
-				quietly egen mean_mo_total_`j' = rowmean(`monthly_totals')
-				label var mean_mo_total_`j' "Mean monthly rain in `j'"
-				local created_vars "`created_vars' mean_mo_total_`j'"
+				quietly egen mean_mo_`j' = rowmean(`monthly_totals')
+				label var mean_mo_`j' "Mean of monthly rainfall totals in `j'"
+				local created_vars "`created_vars' mean_mo_`j'"
 
-				quietly egen median_mo_total_`j' = rowmedian(`monthly_totals')
-				label var median_mo_total_`j' "Median monthly rain in `j'"
-				local created_vars "`created_vars' median_mo_total_`j'"
-
-				local monthly_count : word count `monthly_totals'
-				if `monthly_count' > 1 {
-					quietly egen sd_mo_total_`j' = rowsd(`monthly_totals')
-				}
-				else {
-					quietly gen sd_mo_total_`j' = .
-				}
-				label var sd_mo_total_`j' "Std dev of monthly rain in `j'"
-				local created_vars "`created_vars' sd_mo_total_`j'"
-
-				quietly gen skew_mo_total_`j' = (mean_mo_total_`j' - median_mo_total_`j') / sd_mo_total_`j'
-				label var skew_mo_total_`j' "Skew of monthly rain in `j'"
-				local created_vars "`created_vars' skew_mo_total_`j'"
 				quietly drop `monthly_totals'
 			}
 
@@ -504,25 +530,64 @@ version 15.1
 			local created_vars "`created_vars' pct_raindays_`j'"
 			quietly drop `no_rain_aux' `rain_aux'
 
-			tempvar dry_run
-			quietly gen `dry_run' = 0
-			quietly gen dry_`j' = 0
+			tempvar first_rain_idx last_rain_idx
+			quietly gen int `first_rain_idx' = .
+			quietly gen int `last_rain_idx' = .
+			
+			local d_idx = 1
 			foreach f of local var {
-				quietly replace `dry_run' = cond(missing(`f'), 0, cond(`f' < `rain_threshold', `dry_run' + 1, 0))
-				quietly replace dry_`j' = max(dry_`j', `dry_run')
+				quietly replace `first_rain_idx' = `d_idx' if missing(`first_rain_idx') & !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `last_rain_idx' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
+				local d_idx = `d_idx' + 1
 			}
-			label var dry_`j' "Longest observed dry spell in `j'"
-			local created_vars "`created_vars' dry_`j'"
-			quietly drop `dry_run'
+			
+			quietly gen dry_start_`j' = 0
+			quietly gen dry_end_`j' = 0
+			quietly gen dry_`j' = 0
+			
+			tempvar dstart_flag dend_flag mid_run
+			quietly gen byte `dstart_flag' = 1
+			quietly gen byte `dend_flag' = 1
+			quietly gen int `mid_run' = 0
+			
+			local d_idx = 1
+			foreach f of local var {
+				quietly replace dry_start_`j' = dry_start_`j' + 1 if `dstart_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `dstart_flag' = 0 if `dstart_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+				
+				quietly replace `mid_run' = `mid_run' + 1 if !missing(`first_rain_idx') & !missing(`last_rain_idx') & `d_idx' > `first_rain_idx' & `d_idx' < `last_rain_idx' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `mid_run' = 0 if missing(`f') | (`f' >= `rain_threshold' & !missing(`f'))
+				quietly replace dry_`j' = max(dry_`j', `mid_run')
+				
+				local d_idx = `d_idx' + 1
+			}
+			
+			local rev_var ""
+			foreach f of local var {
+				local rev_var "`f' `rev_var'"
+			}
+			foreach f of local rev_var {
+				quietly replace dry_end_`j' = dry_end_`j' + 1 if `dend_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `dend_flag' = 0 if `dend_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+			}
+			
+			quietly replace dry_start_`j' = . if `observed_days' == 0
+			quietly replace dry_end_`j' = . if `observed_days' == 0
+			quietly replace dry_`j' = . if `observed_days' == 0
+			
+			label var dry_start_`j' "Leading dry spell at start of season in `j'"
+			label var dry_end_`j' "Trailing dry spell at end of season in `j'"
+			label var dry_`j' "Longest mid-season dry spell in `j'"
+			local created_vars "`created_vars' dry_start_`j' dry_end_`j' dry_`j'"
+			quietly drop `first_rain_idx' `last_rain_idx' `dstart_flag' `dend_flag' `mid_run'
 		}
 
 		local deviation ""
 		if "`rain_data'" != "" {
-			local deviation "total raindays norain pct_raindays"
+			local deviation "total raindays norain pct_raindays mean_mo"
 		}
 		if "`temp_data'" != "" {
-			local deviation "gdd"
-			if `kdd_base' > 0 local deviation "`deviation' kdd"
+			local deviation "gdd kdd"
 		}
 
 		foreach v of local deviation {
@@ -682,6 +747,40 @@ version 15.1
 		}
 	}
 
+	* ---- Final Variable Ordering ----
+	local final_order ""
+	foreach j of local season_years {
+		if "`temp_data'" != "" {
+			local try_vars mean_`j' median_`j' var_`j' sd_`j' skew_`j' max_`j' gdd_`j' dev_gdd_`j' z_gdd_`j' gddcat_`j' kdd_`j' dev_kdd_`j' z_kdd_`j'
+			foreach v of local try_vars {
+				capture confirm variable `v'
+				if _rc == 0 local final_order "`final_order' `v'"
+			}
+			if `has_tmp_bin' {
+				forvalues b = 1/`tmp_bin' {
+					local bpad = string(`b', "%02.0f")
+					capture confirm variable tmpbin`bpad'_`j'
+					if _rc == 0 local final_order "`final_order' tmpbin`bpad'_`j'"
+				}
+			}
+		}
+		else {
+			local try_vars mean_`j' median_`j' var_`j' sd_`j' skew_`j' mean_mo_`j' dev_mean_mo_`j' z_mean_mo_`j' total_`j' dev_total_`j' z_total_`j' raindays_`j' dev_raindays_`j' z_raindays_`j' norain_`j' dev_norain_`j' z_norain_`j' pct_raindays_`j' dev_pct_raindays_`j' z_pct_raindays_`j' dry_start_`j' dry_`j' dry_end_`j'
+			foreach v of local try_vars {
+				capture confirm variable `v'
+				if _rc == 0 local final_order "`final_order' `v'"
+			}
+		}
+	}
+
+	local created_vars "`final_order'"
+	if "`keep'" != "" {
+		capture order `keep' `final_order'
+	}
+	else {
+		capture order `final_order'
+	}
+
 	* ---- shape(long) output stacking ----
 	if "`shape'" == "long" {
 		* Build list of unique season years from season_years
@@ -779,12 +878,14 @@ version 15.1
 				quietly append using `_long_tf_`lf''
 			}
 
-			* sort by keep vars and year if possible
+			* sort and order by keep vars and year if possible
 			if "`keep'" != "" {
 				capture sort `keep' year
+				capture order `keep' year *
 			}
 			else {
 				capture sort year
+				capture order year *
 			}
 		}
 	}
