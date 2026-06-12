@@ -27,9 +27,13 @@ wxsum stubname , type(rain|temp) ini_month(month) fin_month(month) [options]
 ```
 
 ### Options
-- `type(rain|temp)`: Specify the data type. Use `rain` for precipitation data or `temp` for temperature data. This option is required.
-- `ini_month(month)`: Initial month of the season (e.g., 05 for May). This option is required.
-- `fin_month(month)`: Final month of the season (e.g., 10 for October). This option is required.
+
+#### Required
+- `type(rain|temp)`: Specify the data type. Use `rain` for precipitation data or `temp` for temperature data.
+- `ini_month(month)`: Initial month of the season (e.g., 05 for May).
+- `fin_month(month)`: Final month of the season (e.g., 10 for October).
+
+#### General
 - `ini_day(day)`: Start day of the season. Default is 01.
 - `fin_day(day)`: End day of the season. If not specified, it dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
 - `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
@@ -102,7 +106,7 @@ Growing degree days are calculated as capped degree accumulation between `gdd_lo
 
 When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [50,150)`, `GDD [150,250)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
 
-When `tmp_bin(number)` is specified, the command creates daily temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, approximating the Schlenker-Roberts temperature-bin idea when only one daily reading is available. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
+When `tmp_bin(number)` is specified, the command creates daily temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, in the spirit of Schlenker-Roberts. When only one daily reading is available, the entire day is assigned to the bin containing that reading. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
 
 ### 3. Long Output
 

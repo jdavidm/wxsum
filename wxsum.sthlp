@@ -17,7 +17,7 @@
 {cmdab:wxsum}
 {it:stubname}
 {cmd:,}
-{opt type({it:rain}|{it:temp})}
+{opt type(rain|temp)}
 {opt ini_month(month)}
 {opt fin_month(month)}
 		[{it:options}]
@@ -25,10 +25,12 @@
 {synoptset 20 tabbed}{...}
 {synopthdr}
 {synoptline}
-{syntab:Options}
-{synopt:{opt type({it:rain}|{it:temp})}}Specify {it:rain} for rainfall data or {it:temp} for temperature data.{p_end}
+{syntab:Required}
+{synopt:{opt type(rain|temp)}}Specify {it:rain} for rainfall data or {it:temp} for temperature data.{p_end}
 {synopt:{opt ini_month(month)}}Initial month of the season (e.g., 05 for May){p_end}
 {synopt:{opt fin_month(month)}}Final month of the season (e.g., 10 for October){p_end}
+
+{syntab:General}
 {synopt:{opt ini_day(day)}}Start day of the season. Default is 01.{p_end}
 {synopt:{opt fin_day(day)}}End day of the season. Defaults to the last day of the final month.{p_end}
 {synopt:{opt lr_years(#)}}Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.{p_end}
@@ -52,17 +54,19 @@
 {title:Description}
 
 {pstd}
-The {cmd:wxsum} command processes remote sensing rainfall and temperature data and outputs useful statistics. 
-The command can be used with either rainfall or temperature data from any source. 
-The data must be wide, where each location is a row and each column is a daily reading. 
-Daily weather variable names must be the user-supplied prefix followed by {it:yyyymmdd}. For example, if the prefix is {it:rf_}, the variable for May 15, 1979 would be {it:rf_19790515}.
-
-{pstd}
-Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding {opt lr_years}.
-{break}If there is not enough historical preceding data to satisfy the user-defined {opt lr_years} constraint, deviations and z-scores are skipped for those initial years, though standard variables are still generated.
+{cmd:wxsum} processes remote sensing rainfall and temperature data and outputs useful seasonal statistics. It can be used with either rainfall or temperature data from any source.
 
 {marker remarks}{...}
 {title:Remarks}
+
+{pstd}
+{ul:Data format requirements}
+
+{pstd}
+The data must be wide, where each location is a row and each column is a daily reading. Daily weather variable names must be the user-supplied prefix followed by {it:yyyymmdd}. For example, if the prefix is {it:rf_}, the variable for May 15, 1979 would be {it:rf_19790515}. 
+
+{pstd}
+{ul:Command syntax}
 
 {pstd}
 The general syntax of the command requires specifying a prefix, a data type, and the season's start and end months.
@@ -81,6 +85,12 @@ The general syntax of the command requires specifying a prefix, a data type, and
 
 {pstd}
 - The {opt save(filename)} option tells the program to save the dataset in a given location with a given name.
+
+{pstd}
+{ul:Long-run averages}
+
+{pstd}
+Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding {opt lr_years}. If there is not enough historical preceding data to satisfy the user-defined {opt lr_years} constraint, deviations and z-scores are skipped for those initial years, though standard variables are still generated.
 
 {marker options}{...}
 {title:Options}
@@ -168,7 +178,7 @@ The general syntax of the command requires specifying a prefix, a data type, and
 {opt tmp_bin(#)} specifies the total number of daily temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires {opt type(temp)} and both {opt tmp_binlo()} and {opt tmp_binhi()}.
 
 {pmore}
-These are daily temperature bin counts based on one observed daily temperature reading per day, not exact Schlenker-Roberts within-day exposure bins. When only one daily reading is available, the entire day is assigned to the bin containing that reading. This approximates the Schlenker-Roberts temperature-bin idea.
+These are daily temperature bin counts based on one observed daily temperature reading per day, in the spirit of Schlenker-Roberts. When only one daily reading is available, the entire day is assigned to the bin containing that reading.
 
 {pmore}
 The command is unit agnostic: the user must supply {opt tmp_binlo()} and {opt tmp_binhi()} in the same units as the daily temperature data.
@@ -195,7 +205,7 @@ Formally:
 Interior bins are lower-closed and upper-open. The lower tail is strictly below lo. The upper tail is at or above hi.
 
 {pmore}
-The usual Schlenker-Roberts-style lower-tail/interior/upper-tail bins are obtained with {opt tmp_bin(3)} or larger. Common fine-bin specifications use values such as {opt tmp_bin(15)} or {opt tmp_bin(42)}.
+Schlenker-Roberts-style lower-tail/interior/upper-tail bins are obtained with {opt tmp_bin(3)} or larger. Common fine-bin specifications use values such as {opt tmp_bin(15)} or {opt tmp_bin(42)}.
 
 {pmore}
 Special cases for small J:
