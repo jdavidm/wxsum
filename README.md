@@ -1,4 +1,4 @@
-# `wxsum`: Stata Weather Command
+# `wxsum`: A command for processing temperature and precipitation data
 
 ## Installation
 
@@ -23,32 +23,29 @@ Z-scores and deviations from long-run averages are computed strictly against the
 ## Syntax
 
 ```stata
-wxsum prefix , ini_month(month) fin_month(month) [options]
+wxsum stubname , type(rain|temp) ini_month(month) fin_month(month) [options]
 ```
 
-### Main
-- `ini_month(month)`: Initial month of the season (e.g., 05 for May)
-- `fin_month(month)`: Final month of the season (e.g., 10 for October)
-
 ### Options
+- `type(rain|temp)`: Specify the data type. Use `rain` for precipitation data or `temp` for temperature data. This option is required.
+- `ini_month(month)`: Initial month of the season (e.g., 05 for May). This option is required.
+- `fin_month(month)`: Final month of the season (e.g., 10 for October). This option is required.
 - `ini_day(day)`: Start day of the season. Default is 01.
-- `fin_day(day)`: End day of the season. Default is 01.
-- `temp_data`: Specify that data is temperature data. Mutually exclusive with rain_data.
-- `rain_data`: Specify that data is rainfall data. Mutually exclusive with temp_data.
-- `gdd_lo(#)`: Lower bound for growing degree days calculation (required if temp_data is used).
-- `gdd_hi(#)`: Upper bound for growing degree days calculation (required if temp_data is used).
-- `kdd_base(#)`: Temperature threshold for calculating Killing Degree Days (KDD).
-- `gdd_bin(#)`: Width of fixed-interval seasonal GDD categories. When specified, creates one integer categorical variable `gddcat_YYYY` for each generated GDD season. Requires `temp_data`.
+- `fin_day(day)`: End day of the season. If not specified, it dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
+- `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
+- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from calculations.
+- `gdd_lo(#)`: Lower bound for growing degree days calculation. Required if `type(temp)` is used.
+- `gdd_hi(#)`: Upper bound for growing degree days calculation. Required if `type(temp)` is used.
+- `kdd_base(#)`: Temperature threshold for calculating Killing Degree Days (KDD). Required if `type(temp)` is used.
+- `gdd_bin(#)`: Width of fixed-interval seasonal GDD bins. When specified, creates one integer categorical variable `gddcat_YYYY` for each generated GDD season. Requires `type(temp)`.
 - `gdd_binlo(#)`: Lower endpoint for regular fixed-width GDD intervals. Default is 0 when `gdd_bin()` is specified. Values below this threshold are assigned to a bottom-coded category. Requires `gdd_bin()`.
 - `gdd_binhi(#)`: Upper endpoint for regular fixed-width GDD intervals. Values at or above this threshold are assigned to a top-coded category. When omitted, the command automatically extends intervals to cover the empirical maximum. Requires `gdd_bin()`.
-- `tmp_bin(#)`: Total number of fixed daily-temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires `temp_data`, `tmp_binlo()`, and `tmp_binhi()`.
+- `tmp_bin(#)`: Total number of daily temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires `type(temp)`, `tmp_binlo()`, and `tmp_binhi()`.
 - `tmp_binlo(#)`: Lower bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be in the same units as the daily temperature data.
 - `tmp_binhi(#)`: Upper bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be greater than `tmp_binlo()`.
 - `shape(wide|long)`: Shape of the final output. Default is `wide`. When `long` is specified, output is stacked with one row per retained unit-year and a variable named `year`. It is strongly recommended to use `keep()` with unit identifiers when `shape(long)` is requested.
-- `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
 - `keep(varlist)`: Variables to keep in the final dataset along with the generated wxsum variables.
 - `save(filename)`: File path to save the resulting dataset.
-- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from rain-day, no-rain-day, percentage, and dry-spell calculations.
 
 ## Generated Variables
 
@@ -56,54 +53,56 @@ Using data sets as defined above, the wxsum command creates useful statistics in
 
 ### 1. Rainfall Variables
 
-When the `rain_data` option is chosen, the command generates the following variables for each season:
+When `type(rain)` is specified, the command generates the following variables for each season:
 
 - mean daily in a season
 - median daily in a season
-- standard deviation of daily in a season
 - variance of daily in a season
+- standard deviation of daily in a season
 - skew of daily in a season
-- mean total monthly in a season
-- median total monthly in a season
-- standard deviation of total monthly in a season
-- skew of total monthly in a season
+- mean of monthly rainfall totals in a season
+- deviation from long run average of mean monthly rainfall in a season
+- z-score of mean monthly rainfall in a season
 - total seasonal
 - deviation from long run average of total seasonal
 - z-score of total seasonal
-- number of rainy days in a season
-- number of days without rain in a season
+- number of observed days with rain in a season
 - deviation from long run average of rainy days in a season
 - z-score of rainy days in a season
+- number of observed days without rain in a season
 - deviation from long run average of days without rain in a season
 - z-score of days without rain in a season
 - percentage of days with rain in a season
 - deviation from the long run average of percentage of days with rain in a season
 - z-score of percentage of days with rain in a season
-- longest intra-seasonal dry spell
+- length of leading dry spell at the start of a season
+- longest mid-season dry spell
+- length of trailing dry spell at the end of a season
 
 ### 2. Temperature Variables
 
-When the `temp_data` option is chosen, the command generates the following variables for each season:
+When `type(temp)` is specified, the command generates the following variables for each season:
 
 - mean daily in a season
 - median daily in a season
-- standard deviation of daily in a season
 - variance of daily in a season
-- skew of temp in a season
+- standard deviation of daily in a season
+- skew of daily in a season
 - max daily in a season
 - gdd in a season
 - deviations from long run average gdd in a season
 - z-score of gdd in a season
+- GDD category variable `gddcat_YYYY` (when `gdd_bin()` is specified)
+- kdd in a season
 - deviations from long run average kdd in a season
 - z-score of kdd in a season
-- GDD category variable `gddcat_YYYY` (when `gdd_bin()` is specified)
-- Fixed daily-temperature bin count variables `tmpbinXX_YYYY` (when `tmp_bin()` is specified)
+- Daily temperature bin count variables `tmpbinXX_YYYY` (when `tmp_bin()` is specified)
 
 Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
 
-When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [0,500)`, `GDD [500,1000)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
+When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [50,150)`, `GDD [150,250)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
 
-When `tmp_bin(number)` is specified, the command creates fixed daily-temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, approximating the Schlenker-Roberts temperature-bin idea when only one daily reading is available. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
+When `tmp_bin(number)` is specified, the command creates daily temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, approximating the Schlenker-Roberts temperature-bin idea when only one daily reading is available. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
 
 ### 3. Long Output
 
@@ -116,45 +115,37 @@ To try the command out on the sample datasets included in this repository:
 **Rainfall Example:**
 ```stata
 use rain.dta, clear
-wxsum rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_data lr_years(10) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)
+wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)
 ```
 
 **Temperature Example:**
 ```stata
 use temp.dta, clear
-wxsum tmp_, ini_month(11) fin_month(02) temp_data gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid) save(temperature_stats.dta)
+wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid)
 ```
 
-**GDD Categories Example (Fahrenheit degree-days):**
+**GDD Categories Example:**
 ```stata
 use temp.dta, clear
-wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(46.4) gdd_hi(89.6) gdd_bin(500)
+wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) gdd_binlo(50) gdd_binhi(950) keep(hhid)
 ```
 
-Note: 500 is in the units of the generated GDD variable (here, Fahrenheit degree-days). For Celsius data, the user should choose a width appropriate for their units.
-
-**GDD Categories with Bottom and Top Coding:**
+**Daily Temperature Bin Counts Example:**
 ```stata
 use temp.dta, clear
-wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) gdd_bin(250) gdd_binlo(0) gdd_binhi(3000)
+wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid)
 ```
 
-**Fixed Daily-Temperature Bin Counts (15 bins, Celsius):**
+**Changing the Long-Run Benchmark:**
 ```stata
-use temp.dta, clear
-wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39)
-```
-
-**Fine 42-Bin Specification:**
-```stata
-use temp.dta, clear
-wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(42) tmp_binlo(1) tmp_binhi(41)
+use rain.dta, clear
+wxsum rf_, type(rain) ini_month(05) fin_month(10) lr_years(20) keep(hhid)
 ```
 
 **Long Output for Panel Workflows:**
 ```stata
-use temp.dta, clear
-wxsum tmp_, ini_month(04) fin_month(09) fin_day(30) temp_data gdd_lo(8) gdd_hi(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid) shape(long)
+use rain.dta, clear
+wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) shape(long)
 ```
 
 ## Reporting Bugs
@@ -164,11 +155,11 @@ If you run into any issues or bugs, please open an issue on the [GitHub reposito
 
 If you use `wxsum` in your research, please cite:
 
-> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 1.
+> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 5.0.
 
 ## Authors
-- Oscar Barriga-Cabanillas
-- Anna Josephson
 - Jeffrey D. Michler
+- Anna Josephson
+- Oscar Barriga-Cabanillas
 - Aleksandr Michuda
 - Jeffrey C. Oliver

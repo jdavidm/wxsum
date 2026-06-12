@@ -1,8 +1,8 @@
-v 4.0
+v 5.0
 d
-d 'wxsum': Stata Weather Command
+d 'wxsum': A command for processing temperature and precipitation data
 d
-d Distribution-Date: 20260504
+d Distribution-Date: 20260613
 d
 d Author: Jeffrey D. Michler
 d Support: jdmichler@arizona.edu

@@ -13,6 +13,7 @@
 *  v 4.2  10jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *********************************************************************************
 
 cap program drop wxsum
