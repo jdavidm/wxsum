@@ -162,8 +162,8 @@ If you use `wxsum` in your research, please cite:
 > Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 5.0.
 
 ## Authors
-- Jeffrey D. Michler
-- Anna Josephson
-- Oscar Barriga-Cabanillas
-- Aleksandr Michuda
-- Jeffrey C. Oliver
+- Jeffrey D. Michler (jdmichler@arizona.edu)
+- Anna Josephson (aljosephson@arizona.edu)
+- Oscar Barriga-Cabanillas (obarriga@worldbank.org)
+- Aleksandr Michuda (amichud1@swarthmore.edu)
+- Jeffrey C. Oliver (jcoliver@arizona.edu)
