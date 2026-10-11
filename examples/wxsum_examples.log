@@ -1,0 +1,642 @@
+----------------------------------------------------------------------------------------------------
+      name:  wxsum_examples
+       log:  C:\Users\aljos\git\wxsum\examples/wxsum_examples.log
+  log type:  text
+ opened on:  11 Oct 2026, 17:57:14
+
+. 
+. set maxvar 20000
+
+
+. 
+. 
+. * =============================================================================
+. * 1. Rainfall summaries (article section 5.1)
+. * =============================================================================
+. use rain.dta, clear
+
+. describe, short
+
+Contains data from rain.dta
+ Observations:            10                  
+    Variables:         7,671                  12 Jun 2026 13:52
+Sorted by: 
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) ///
+>         rain_threshold(1) keep(hhid) save("`ex'rainfall_stats.dta", replace)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 15may-15oct; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 30 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Saved:         examples/rainfall_stats.dta
+  Stored results: type return list
+
+. 
+. * checks after the run: what was created, for which windows, and missing data
+. return list
+
+scalars:
+     r(rain_threshold) =  1
+           r(lr_years) =  10
+            r(ref_min) =  10
+             r(minobs) =  1
+          r(last_year) =  2023
+         r(first_year) =  2003
+          r(n_windows) =  21
+          r(k_created) =  30
+            r(N_units) =  10
+                  r(N) =  210
+
+macros:
+            r(cmdline) : "wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(.."
+               r(stub) : "rf_"
+               r(type) : "rain"
+               r(mode) : "calendar"
+              r(shape) : "long"
+             r(window) : "15may-15oct"
+                r(ref) : "rolling 10"
+            r(varlist) : "nobs mean median var sd skew mean_mo dev_mean_mo z_mean_mo total dev_t.."
+              r(years) : "2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 .."
+
+matrices:
+            r(missing) :  21 x 5
+
+. matrix list r(missing), format(%9.3g)
+
+r(missing)[21,5]
+              days     mean_nobs   any_missing   all_missing  below_minobs
+2003           154           154             0             0             0
+2004           154           154             0             0             0
+2005           154           154             0             0             0
+2006           154           154             0             0             0
+2007           154           154             0             0             0
+2008           154           154             0             0             0
+2009           154           154             0             0             0
+2010           154           154             0             0             0
+2011           154           154             0             0             0
+2012           154           154             0             0             0
+2013           154           154             0             0             0
+2014           154           154             0             0             0
+2015           154           154             0             0             0
+2016           154           154             0             0             0
+2017           154           154             0             0             0
+2018           154           154             0             0             0
+2019           154           154             0             0             0
+2020           154           154             0             0             0
+2021           154           154             0             0             0
+2022           154           154             0             0             0
+2023           154           154             0             0             0
+
+. 
+. * the output has one row per household and season (long is the default)
+. describe, short
+
+Contains data from examples/rainfall_stats.dta
+ Observations:           210                  
+    Variables:            32                  11 Oct 2026 17:57
+Sorted by: 
+
+. list hhid year nobs total raindays dry_start dry dry_end in 1/5, abbreviate(9) noobs
+
+  +-------------------------------------------------------------------+
+  | hhid   year   nobs   total   raindays   dry_start   dry   dry_end |
+  |-------------------------------------------------------------------|
+  |  101   2003    154     899        106          16     4        12 |
+  |  101   2004    154     734        107          13     7         2 |
+  |  101   2005    154     824        112           8     3        21 |
+  |  101   2006    154     987        117           0     5        21 |
+  |  101   2007    154     860        109          14     8        13 |
+  +-------------------------------------------------------------------+
+
+. summarize total z_total pct_raindays
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       total |        210    781.3048    177.3768        288       1103
+     z_total |        110   -.4832626    1.583249  -2.672993   2.497556
+pct_raindays |        210    .6888064    .0807608   .4935065   .8766234
+
+. 
+. 
+. * =============================================================================
+. * 2. Temperature summaries (article section 5.2)
+. *    heat_threshold() sets the heat-day and heat-spell threshold and the KDD
+. *    base; kdd_base() is needed only if the KDD base should be different, as
+. *    here (heat days at 27 degrees, KDD above 28 degrees)
+. * =============================================================================
+. use temp.dta, clear
+
+. wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) ///
+>         heat_threshold(27) kdd_base(28) keep(hhid)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(8) gdd_hi(32) heat_threshold(27) kdd_base(28)
+  Window:        calendar, 01nov-28/29feb; 20 window(s), 2003-2022
+  Output:        long, 200 rows (20 per input observation); 28 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 200 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. summarize gdd kdd heatdays heat_start heat heat_end
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+         gdd |        200    2011.591    67.87522     1880.8     2146.4
+         kdd |        200      1.9465    2.338253          0   7.700003
+    heatdays |        200      10.315    6.508269          0         22
+  heat_start |        200          .1    .4369837          0          2
+        heat |        200       3.905    3.354435          0         12
+-------------+---------------------------------------------------------
+    heat_end |        200        4.03    5.335865          0         20
+
+. 
+. 
+. * =============================================================================
+. * 3. GDD categories, temperature bins, and exposure bands (article section 5.3)
+. * =============================================================================
+. use temp.dta, clear
+
+. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) ///
+>         gdd_lo(18) gdd_hi(30) heat_threshold(30) gdd_bin(100) gdd_binlo(1100) ///
+>         gdd_binhi(1500) keep(hhid)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(18) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01apr-15sep; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 29 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. tabulate gddcat
+
+   GDD category |
+(bin width 100) |      Freq.     Percent        Cum.
+----------------+-----------------------------------
+GDD [1100,1200) |         79       37.62       37.62
+GDD [1200,1300) |         80       38.10       75.71
+GDD [1300,1400) |         41       19.52       95.24
+    GDD >= 1500 |         10        4.76      100.00
+----------------+-----------------------------------
+          Total |        210      100.00
+
+. 
+. * 10 bins: below 20, eight 2-degree bins from 20 to 36, and 36 or above
+. use temp.dta, clear
+
+. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) ///
+>         gdd_lo(18) gdd_hi(30) heat_threshold(30) tmp_bin(10) tmp_binlo(20)   ///
+>         tmp_binhi(36) keep(hhid)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(18) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01apr-15sep; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 38 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. describe tmpbin*
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------
+tmpbin01        byte    %12.0g                Days with temp < 20
+tmpbin02        byte    %12.0g                Days with 20 <= temp < 22
+tmpbin03        byte    %12.0g                Days with 22 <= temp < 24
+tmpbin04        byte    %12.0g                Days with 24 <= temp < 26
+tmpbin05        byte    %12.0g                Days with 26 <= temp < 28
+tmpbin06        byte    %12.0g                Days with 28 <= temp < 30
+tmpbin07        byte    %12.0g                Days with 30 <= temp < 32
+tmpbin08        byte    %12.0g                Days with 32 <= temp < 34
+tmpbin09        byte    %12.0g                Days with 34 <= temp < 36
+tmpbin10        byte    %12.0g                Days with temp >= 36
+
+. summarize tmpbin*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    tmpbin01 |        210    .6142857    .7569681          0          2
+    tmpbin02 |        210    30.51905     15.1655          1         57
+    tmpbin03 |        210    42.88095    13.73189         11         77
+    tmpbin04 |        210    18.94762    10.98508          2         44
+    tmpbin05 |        210    21.72857    10.03857          7         57
+-------------+---------------------------------------------------------
+    tmpbin06 |        210    29.02857    7.777353         10         50
+    tmpbin07 |        210     21.9619    8.115109          5         40
+    tmpbin08 |        210    2.319048    2.899945          0         11
+    tmpbin09 |        210           0           0          0          0
+    tmpbin10 |        210           0           0          0          0
+
+. 
+. * bands with cutpoints chosen by the user: below 25, 25-30, 30-32, 32 and above
+. use temp.dta, clear
+
+. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) ///
+>         gdd_lo(18) gdd_hi(30) heat_threshold(30) cuts(25 30 32) keep(hhid)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(18) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01apr-15sep; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 32 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. describe cut*
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------
+cut01           int     %12.0g                Days with temp < 25
+cut02           int     %12.0g                Days with 25 <= temp < 30
+cut03           byte    %12.0g                Days with 30 <= temp < 32
+cut04           byte    %12.0g                Days with temp >= 32
+
+. summarize cut*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       cut01 |        210        83.3    15.63613         26        103
+       cut02 |        210    60.41905    15.23361         35        108
+       cut03 |        210     21.9619    8.115109          5         40
+       cut04 |        210    2.319048    2.899945          0         11
+
+. 
+. 
+. * =============================================================================
+. * 4. Changing the reference period (article section 5.4)
+. * =============================================================================
+. * rolling: the 20 seasons before each season
+. use rain.dta, clear
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) lr_years(20) keep(hhid)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 01may-31oct; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 30 variables created
+  Reference:     rolling 20 years before each window, ref_min(20); deviations from 2023
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. 
+. * fixed baseline: every season is compared with 2003-2012
+. use rain.dta, clear
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) baseline(2003 2012) keep(hhid)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 01may-31oct; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 30 variables created
+  Reference:     fixed baseline 2003-2012, ref_min(10); deviations from 2003
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. list hhid year total dev_total z_total dev_dry z_dry if hhid == 101 & year >= 2019, noobs
+
+  +------------------------------------------------------------------+
+  | hhid   year   total   dev_to~l     z_total   dev_dry       z_dry |
+  |------------------------------------------------------------------|
+  |  101   2019    1057      236.8    2.194751      -2.7   -.2658812 |
+  |  101   2020     723      -97.2   -.9008861      -6.7   -.6597793 |
+  |  101   2021     504     -316.2    -2.93066       7.3     .718864 |
+  |  101   2022     577     -243.2   -2.254069      14.3    1.408186 |
+  |  101   2023     309     -511.2   -4.737993       3.3    .3249659 |
+  +------------------------------------------------------------------+
+
+. 
+. 
+. * =============================================================================
+. * 5. Wide output (article section 5.5; long is the default in v6)
+. * =============================================================================
+. use rain.dta, clear
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) ///
+>         keep(hhid) shape(wide)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 15may-15oct; 21 window(s), 2003-2023
+  Output:        wide, 10 rows; 470 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. describe *_2013
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------
+nobs_2013       int     %12.0g                Observed days in window, 2013
+mean_2013       float   %9.0g                 Mean daily rain, 2013
+median_2013     byte    %9.0g                 Median daily rain, 2013
+var_2013        float   %9.0g                 Variance of daily rain, 2013
+sd_2013         float   %9.0g                 Std. dev. of daily rain, 2013
+skew_2013       float   %9.0g                 Skewness of daily rain, 2013
+mean_mo_2013    float   %9.0g                 Mean of monthly rain totals, 2013
+dev_mean_m~2013 float   %9.0g                 Deviation of mean_mo from 10-yr rolling mean, 2013
+z_mean_mo_2013  float   %9.0g                 Z-score of mean_mo vs 10-yr rolling mean, 2013
+total_2013      int     %9.0g                 Total rain, 2013
+dev_total_2013  float   %9.0g                 Deviation of total from 10-yr rolling mean, 2013
+z_total_2013    float   %9.0g                 Z-score of total vs 10-yr rolling mean, 2013
+raindays_2013   int     %12.0g                Days with rain >= 1, 2013
+dev_rainda~2013 float   %9.0g                 Deviation of raindays from 10-yr rolling mean, 2013
+z_raindays_2013 float   %9.0g                 Z-score of raindays vs 10-yr rolling mean, 2013
+norain_2013     byte    %12.0g                Days with rain < 1, 2013
+dev_norain_2013 float   %9.0g                 Deviation of norain from 10-yr rolling mean, 2013
+z_norain_2013   float   %9.0g                 Z-score of norain vs 10-yr rolling mean, 2013
+pct_rainda~2013 float   %9.0g                 Share of days with rain >= 1, 2013
+dev_pct_ra~2013 float   %9.0g                 Deviation of pct_raindays from 10-yr rolling mean,
+                                                2013
+z_pct_rain~2013 float   %9.0g                 Z-score of pct_raindays vs 10-yr rolling mean, 2013
+dry_start_2013  byte    %12.0g                Leading dry spell, days (rain < 1), 2013
+dev_dry_st~2013 float   %9.0g                 Deviation of dry_start from 10-yr rolling mean, 2013
+z_dry_star~2013 float   %9.0g                 Z-score of dry_start vs 10-yr rolling mean, 2013
+dry_2013        byte    %12.0g                Longest mid-window dry spell, days (rain < 1), 2013
+dev_dry_2013    float   %9.0g                 Deviation of dry from 10-yr rolling mean, 2013
+z_dry_2013      float   %9.0g                 Z-score of dry vs 10-yr rolling mean, 2013
+dry_end_2013    byte    %12.0g                Trailing dry spell, days (rain < 1), 2013
+dev_dry_en~2013 float   %9.0g                 Deviation of dry_end from 10-yr rolling mean, 2013
+z_dry_end_2013  float   %9.0g                 Z-score of dry_end vs 10-yr rolling mean, 2013
+
+. 
+. 
+. * =============================================================================
+. * 6. Rain and temperature statistics in one dataset with outstub()
+. * =============================================================================
+. use rain.dta, clear
+
+. merge 1:1 hhid using temp.dta, nogenerate
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                10  
+    -----------------------------------------
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) outstub(r_) shape(wide)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 01may-31oct; 21 window(s), 2003-2023
+  Output:        wide, 10 rows; 470 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. wxsum tmp_, type(temp) ini_month(05) fin_month(10) gdd_lo(10) gdd_hi(30) ///
+>         heat_threshold(30) outstub(t_) keep(hhid r_*) shape(wide)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(10) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01may-31oct; 21 window(s), 2003-2023
+  Output:        wide, 10 rows; 448 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. describe r_total_2015 t_gdd_2015 t_heatdays_2015
+
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------
+r_total_2015    int     %9.0g                 Total rain, 2015
+t_gdd_2015      float   %9.0g                 Growing degree days, 10 to 30, 2015
+t_heatdays_2015 byte    %12.0g                Days with temp >= 30, 2015
+
+. 
+. 
+. * =============================================================================
+. * 7. Unit-specific windows
+. * =============================================================================
+. * a growing season that differs by household (illustrative planting dates)
+. use rain.dta, clear
+
+. gen plant = mdy(5, 1, 2020) + 3 * (hhid - 101)
+
+. gen harvest = plant + 120
+
+. format plant harvest %td
+
+. wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid plant harvest)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        unit-specific, start(plant) to end(harvest)
+  Output:        one row per observation, 10 rows; 30 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations for 10 observations
+  Missing data:  0 of 10 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+                 0 unit-windows outside the data; 0 with missing dates
+  Stored results: type return list
+
+. list hhid plant harvest nobs total dry z_total, noobs
+
+  +---------------------------------------------------------------+
+  | hhid       plant     harvest   nobs   total   dry     z_total |
+  |---------------------------------------------------------------|
+  |  101   01may2020   29aug2020    121     586    10   -.6970807 |
+  |  102   04may2020   01sep2020    121     619    10   -.5818668 |
+  |  103   07may2020   04sep2020    121     667     9   -.4896128 |
+  |  104   10may2020   07sep2020    121     672     9   -.6698476 |
+  |  105   13may2020   10sep2020    121     685     9   -.7446507 |
+  |---------------------------------------------------------------|
+  |  106   16may2020   13sep2020    121     706     9   -.6556987 |
+  |  107   19may2020   16sep2020    121     706     9   -.7390653 |
+  |  108   22may2020   19sep2020    121     699     9   -.8275129 |
+  |  109   25may2020   22sep2020    121     696     7   -.7920401 |
+  |  110   28may2020   25sep2020    121     704     7   -.7792296 |
+  +---------------------------------------------------------------+
+
+. 
+. * the 273 days before an event, such as a birth (illustrative dates)
+. use temp.dta, clear
+
+. gen birth = mdy(3, 15, 2021) + 20 * (hhid - 101)
+
+. format birth %td
+
+. wxsum tmp_, type(temp) event_date(birth) days(273) gdd_lo(10) gdd_hi(30) ///
+>         heat_threshold(30) keep(hhid birth)
+
+wxsum summary
+  Data:          temp (stub tmp_), gdd_lo(10) gdd_hi(30) heat_threshold(30)
+  Window:        unit-specific, event_date(birth), days(273), lag(0)
+  Output:        one row per observation, 10 rows; 28 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations for 10 observations
+  Missing data:  0 of 10 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+                 0 unit-windows outside the data; 0 with missing dates
+  Stored results: type return list
+
+. list hhid birth nobs mean max heatdays heat, noobs
+
+  +-------------------------------------------------------------+
+  | hhid       birth   nobs       mean    max   heatdays   heat |
+  |-------------------------------------------------------------|
+  |  101   15mar2021    273   24.33553   30.2          2      0 |
+  |  102   04apr2021    273   24.48755   30.2          4      2 |
+  |  103   24apr2021    273   24.91612   30.9         11      5 |
+  |  104   14may2021    273   25.34212   30.9         11      5 |
+  |  105   03jun2021    273   25.93736   31.8         25      5 |
+  |-------------------------------------------------------------|
+  |  106   23jun2021    273   26.36484   31.8         30     13 |
+  |  107   13jul2021    273   26.52601   31.8         30     13 |
+  |  108   02aug2021    273   26.39634   31.9         31     13 |
+  |  109   22aug2021    273   26.16081   31.8         30     13 |
+  |  110   11sep2021    273   26.00073   31.8         30     13 |
+  +-------------------------------------------------------------+
+
+. 
+. 
+. * =============================================================================
+. * 8. wxprep: from long data to wxsum
+. * =============================================================================
+. use "`ex'rain_long.dta", clear
+(wxsum example data: rain.dta in long form (one row per household-day))
+
+. describe
+
+Contains data from examples/rain_long.dta
+ Observations:        76,700                  wxsum example data: rain.dta in long form (one row
+                                                per household-day)
+    Variables:             3                  11 Oct 2026 17:32
+----------------------------------------------------------------------------------------------------
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+----------------------------------------------------------------------------------------------------
+hhid            int     %8.0g                  hhid
+date            long    %td                   Date
+rain            byte    %9.0g                 Daily rainfall
+----------------------------------------------------------------------------------------------------
+Sorted by: hhid  date
+
+. wxprep towide rain, id(hhid) date(date) stub(rf_)
+wxprep towide: 10 units, 7670 daily variables rf_20030101 to rf_20231231
+
+. wxsum rf_, type(rain) ini_month(05) fin_month(10) keep(hhid)
+
+wxsum summary
+  Data:          rain (stub rf_), rain_threshold(1)
+  Window:        calendar, 01may-31oct; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 30 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. 
+. * daily transformations are easiest in long form: Celsius to Fahrenheit
+. use "`ex'temp_long.dta", clear
+(wxsum example data: temp.dta in long form (one row per household-day))
+
+. gen temp_f = temp * 9 / 5 + 32
+
+. wxprep towide temp_f, id(hhid) date(date) stub(tf_) clear
+wxprep towide: 10 units, 7639 daily variables tf_20030101 to tf_20231130
+
+. wxsum tf_, type(temp) ini_month(04) fin_month(09) gdd_lo(50) gdd_hi(86) ///
+>         heat_threshold(90) keep(hhid)
+
+wxsum summary
+  Data:          temp (stub tf_), gdd_lo(50) gdd_hi(86) heat_threshold(90)
+  Window:        calendar, 01apr-30sep; 21 window(s), 2003-2023
+  Output:        long, 210 rows (21 per input observation); 28 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); deviations from 2013
+  Missing data:  0 of 210 unit-windows have missing days; 0 have no data; 0 below minobs(1)
+  Stored results: type return list
+
+. summarize gdd heatdays
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+         gdd |        210    5021.277    196.8639     4763.7    5666.94
+    heatdays |        210    .9380952    1.373354          0          7
+
+. 
+. 
+. * =============================================================================
+. * 9. Merging with household data and an illustrative regression
+. *    hh_toy.dta holds SIMULATED yields (see make_example_data.do)
+. * =============================================================================
+. use "`ex'rainfall_stats.dta", clear
+
+. merge 1:1 hhid year using "`ex'hh_toy.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               210  (_merge==3)
+    -----------------------------------------
+
+. xtset hhid year
+
+Panel variable: hhid (strongly balanced)
+ Time variable: year, 2003 to 2023
+         Delta: 1 unit
+
+. xtreg yield total raindays, fe vce(cluster hhid)
+
+Fixed-effects (within) regression               Number of obs     =        210
+Group variable: hhid                            Number of groups  =         10
+
+R-squared:                                      Obs per group:
+     Within  = 0.7582                                         min =         21
+     Between = 0.1796                                         avg =       21.0
+     Overall = 0.5949                                         max =         21
+
+                                                F(2, 9)           =     576.90
+corr(u_i, Xb) = -0.0334                         Prob > F          =     0.0000
+
+                                  (Std. err. adjusted for 10 clusters in hhid)
+------------------------------------------------------------------------------
+             |               Robust
+       yield | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+       total |   .0014887   .0000783    19.02   0.000     .0013117    .0016658
+    raindays |   .0004701   .0011894     0.40   0.702    -.0022206    .0031608
+       _cons |   1.067693     .08353    12.78   0.000     .8787348    1.256651
+-------------+----------------------------------------------------------------
+     sigma_u |   .1645343
+     sigma_e |  .15592512
+         rho |  .52684572   (fraction of variance due to u_i)
+------------------------------------------------------------------------------
+
+. regress yield z_total i.hhid if !missing(z_total), vce(cluster hhid)
+
+Linear regression                               Number of obs     =        110
+                                                F(0, 9)           =          .
+                                                Prob > F          =          .
+                                                R-squared         =     0.7900
+                                                Root MSE          =     .19671
+
+                                  (Std. err. adjusted for 10 clusters in hhid)
+------------------------------------------------------------------------------
+             |               Robust
+       yield | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     z_total |   .2004423   .0105683    18.97   0.000     .1765353    .2243494
+             |
+        hhid |
+        102  |   .1677622   .0000221  7582.66   0.000     .1677122    .1678123
+        103  |  -.3338333   .0000104 -3.2e+04   0.000    -.3338568   -.3338098
+        104  |   .1961667   .0000104  1.9e+04   0.000     .1961432    .1961902
+        105  |  -.0879568   .0000361 -2438.75   0.000    -.0880384   -.0878752
+        106  |  -.0534381   .0000105 -5112.13   0.000    -.0534618   -.0534145
+        107  |  -.2124509   .0000334 -6368.39   0.000    -.2125264   -.2123755
+        108  |  -.3651145   .0000659 -5543.89   0.000    -.3652635   -.3649656
+        109  |  -.0254702   8.23e-07 -3.1e+04   0.000     -.025472   -.0254683
+        110  |  -.0557985   .0000298 -1872.65   0.000    -.0558659   -.0557311
+             |
+       _cons |   2.391425   .0051079   468.18   0.000      2.37987     2.40298
+------------------------------------------------------------------------------
+
+. 
+. log close wxsum_examples
+      name:  wxsum_examples
+       log:  C:\Users\aljos\git\wxsum\examples/wxsum_examples.log
+  log type:  text
+ closed on:  11 Oct 2026, 17:57:18
+----------------------------------------------------------------------------------------------------

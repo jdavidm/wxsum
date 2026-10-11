@@ -9,3 +9,7 @@
 *.log
 *.code-workspace
 codex_*.do
+
+# example log is part of the package; the example output dataset is not
+!examples/wxsum_examples.log
+examples/rainfall_stats.dta

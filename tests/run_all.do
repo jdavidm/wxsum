@@ -31,7 +31,9 @@ local suites                              ///
 	wxsum_v6_unit                         ///
 	wxsum_v6_wxprep                       ///
 	wxsum_v6_regression                   ///
-	wxsum_v6_equivalence
+	wxsum_v6_equivalence                  ///
+	wxsum_v6_performance                  ///
+	wxsum_v6_install
 
 local failed ""
 local n_pass = 0
