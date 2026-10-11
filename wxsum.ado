@@ -1,3 +1,4 @@
+*! version 6.0.0-ws1  11oct2026  (v6 reference implementation, egen-based)
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -14,9 +15,10 @@
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 6.0  11oct2026 WS1 reference: missing-data, baseline, spell and option     *
+*         fixes from the v6 implementation plan                                 *
 *********************************************************************************
 
-cap program drop wxsum
 program define wxsum
 
 version 15.1
@@ -29,11 +31,12 @@ version 15.1
 		[										///
 		ini_day(string)							///
 		fin_day(string)							///
-		keep(string)							///
-		save(string)							///
-		gdd_lo(real -999999999)					///
-		gdd_hi(real -999999999)					///
-		kdd_base(real -999999999)				///
+		keep(varlist)							///
+		save(string asis)						///
+		gdd_lo(string)							///
+		gdd_hi(string)							///
+		heat_threshold(string)					///
+		kdd_base(string)						///
 		gdd_bin(real -999999999)				///
 		gdd_binlo(real -999999999)				///
 		gdd_binhi(real -999999999)				///
@@ -42,7 +45,8 @@ version 15.1
 		tmp_binhi(real -999999999)				///
 		shape(string)							///
 		lr_years(integer 10)					///
-		rain_threshold(real 1)					///
+		ref_min(string)							///
+		rain_threshold(string)					///
 		]
 
 	local prefix "`anything'"
@@ -117,24 +121,75 @@ version 15.1
 		di as error "lr_years must be between 2 and 50"
 		exit 198
 	}
+	if "`ref_min'" == "" local ref_min = `lr_years'
+	capture confirm integer number `ref_min'
+	if _rc {
+		di as error "ref_min() must be an integer"
+		exit 198
+	}
+	if `ref_min' < 2 | `ref_min' > `lr_years' {
+		di as error "ref_min() must be between 2 and lr_years() (`lr_years')"
+		exit 198
+	}
 
-	if "`temp_data'" != "" {
-		if `gdd_lo' == -999999999 {
+	* ---- options that apply to only one data type ----
+	if "`rain_data'" != "" {
+		foreach opt in gdd_lo gdd_hi heat_threshold kdd_base {
+			if `"``opt''"' != "" {
+				di as error "`opt'() cannot be used with type(rain)"
+				exit 198
+			}
+		}
+		if "`rain_threshold'" == "" local rain_threshold = 1
+		capture confirm number `rain_threshold'
+		if _rc {
+			di as error "rain_threshold() must be a number"
+			exit 198
+		}
+		if `rain_threshold' < 0 {
+			di as error "rain_threshold() must be nonnegative"
+			exit 198
+		}
+	}
+	else {
+		if "`rain_threshold'" != "" {
+			di as error "rain_threshold() cannot be used with type(temp)"
+			exit 198
+		}
+		if "`heat_threshold'" == "" {
+			if "`kdd_base'" != "" {
+				di as error "heat_threshold() is required for type(temp) in wxsum 6."
+				di as error "In wxsum 5, kdd_base() set the KDD threshold. Use heat_threshold(#), and add"
+				di as error "kdd_base(#) only if the KDD base should differ from heat_threshold()."
+			}
+			else {
+				di as error "Please define heat_threshold() for type(temp)"
+			}
+			exit 198
+		}
+		foreach opt in gdd_lo gdd_hi heat_threshold kdd_base {
+			if "``opt''" != "" {
+				capture confirm number ``opt''
+				if _rc {
+					di as error "`opt'() must be a number"
+					exit 198
+				}
+			}
+		}
+		if "`gdd_lo'" == "" {
 			di as error "Please define gdd_lo() for type(temp)"
 			exit 198
 		}
-		if `gdd_hi' == -999999999 {
+		if "`gdd_hi'" == "" {
 			di as error "Please define gdd_hi() for type(temp)"
-			exit 198
-		}
-		if `kdd_base' == -999999999 {
-			di as error "Please define kdd_base() for type(temp)"
 			exit 198
 		}
 		if `gdd_hi' <= `gdd_lo' {
 			di as error "gdd_hi() must be greater than gdd_lo()"
 			exit 198
 		}
+		* KDD base: kdd_base() if given, otherwise heat_threshold()
+		if "`kdd_base'" == "" local kdd_base = `heat_threshold'
 	}
 
 	* gdd_bin / gdd_binlo / gdd_binhi validation
@@ -210,8 +265,8 @@ version 15.1
 		}
 	}
 
-	* ---- shape() validation ----
-	if "`shape'" == "" local shape "wide"
+	* ---- shape() validation (long is the default in v6) ----
+	if "`shape'" == "" local shape "long"
 	if "`shape'" != "wide" & "`shape'" != "long" {
 		di as error "shape() must be wide or long"
 		exit 198
@@ -235,9 +290,34 @@ version 15.1
 		}
 	}
 
-	if `rain_threshold' < 0 {
-		di as error "rain_threshold() must be nonnegative"
-		exit 198
+	* ---- save(filename [, replace]) ----
+	local save_file ""
+	local save_replace ""
+	if `"`save'"' != "" {
+		local 0 `"`save'"'
+		capture syntax anything(name=save_spec id="filename") [, REPLACE]
+		if _rc {
+			di as error "save() must be save(filename [, replace])"
+			exit 198
+		}
+		gettoken save_file save_rest : save_spec
+		if `"`save_rest'"' != "" {
+			di as error "save() takes a single filename; enclose names with spaces in quotes"
+			exit 198
+		}
+		local save_replace "`replace'"
+		if !regexm(`"`save_file'"', "\.[A-Za-z0-9]+$") local save_file `"`save_file'.dta"'
+		if "`save_replace'" == "" {
+			capture confirm new file `"`save_file'"'
+			if _rc == 602 {
+				di as error `"file `save_file' already exists; specify save(`save_file', replace) to overwrite it"'
+				exit 602
+			}
+			else if _rc {
+				di as error `"cannot write file `save_file'"'
+				exit _rc
+			}
+		}
 	}
 
 	capture unab all_vars : `prefix'*
@@ -301,14 +381,22 @@ version 15.1
 		if month(`end_date') != `fin_month' | day(`end_date') != `fd' continue
 		if `start_date' < `min_date' | `end_date' > `max_date' continue
 
+		* var:  daily variables that exist in the window
+		* days: one token per calendar day in the window; "." marks a day
+		*       without a daily variable, which is treated as a missing day
 		local var ""
+		local days ""
 		forvalues d = `start_date'/`end_date' {
 			local yy = year(`d')
 			local mm = string(month(`d'), "%02.0f")
 			local dd = string(day(`d'), "%02.0f")
 			local candidate "`prefix'`yy'`mm'`dd'"
 			capture confirm numeric variable `candidate'
-			if _rc == 0 local var "`var' `candidate'"
+			if _rc == 0 {
+				local var "`var' `candidate'"
+				local days "`days' `candidate'"
+			}
+			else local days "`days' ."
 		}
 
 		local count_days : word count `var'
@@ -317,6 +405,9 @@ version 15.1
 		if missing(`first_year') local first_year = `j'
 		local last_year = `j'
 		local season_years "`season_years' `j'"
+
+		tempvar observed_days
+		quietly egen `observed_days' = rownonmiss(`var')
 
 		quietly egen mean_`j' = rowmean(`var')
 		label var mean_`j' "Mean daily `dtype' in `j'"
@@ -334,9 +425,6 @@ version 15.1
 		}
 		label var sd_`j' "Std dev of daily `dtype' in `j'"
 		local created_vars "`created_vars' sd_`j'"
-
-		tempvar observed_days
-		quietly egen `observed_days' = rownonmiss(`var')
 
 		tempvar sum3
 		quietly gen double `sum3' = 0
@@ -362,7 +450,7 @@ version 15.1
 				quietly gen double `gd' = min(max(`f' - `gdd_lo', 0), `gdd_hi' - `gdd_lo') if !missing(`f')
 				local gdd_aux "`gdd_aux' `gd'"
 			}
-			quietly egen gdd_`j' = rowtotal(`gdd_aux')
+			quietly egen gdd_`j' = rowtotal(`gdd_aux'), missing
 			label var gdd_`j' "Growing degree days in `j' between `gdd_lo' and `gdd_hi'"
 			local created_vars "`created_vars' gdd_`j'"
 			local gdd_vars "`gdd_vars' gdd_`j'"
@@ -374,7 +462,7 @@ version 15.1
 				quietly gen double `kd' = max(`f' - `kdd_base', 0) if !missing(`f')
 				local kdd_aux "`kdd_aux' `kd'"
 			}
-			quietly egen kdd_`j' = rowtotal(`kdd_aux')
+			quietly egen kdd_`j' = rowtotal(`kdd_aux'), missing
 			label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
 			local created_vars "`created_vars' kdd_`j'"
 			quietly drop `kdd_aux'
@@ -479,24 +567,30 @@ version 15.1
 		}
 
 		if "`rain_data'" != "" {
-			quietly egen total_`j' = rowtotal(`var')
+			quietly egen total_`j' = rowtotal(`var'), missing
 			label var total_`j' "Total `dtype' in `j'"
 			local created_vars "`created_vars' total_`j'"
 
+			* monthly totals by calendar year-month (yyyymm), so a window that
+			* covers the same month in two years keeps the two months apart;
+			* months with no observed day are excluded from the mean
+			local ym_list ""
+			foreach v of local var {
+				local ym = substr("`v'", -8, 6)
+				local ym_seen : list ym in ym_list
+				if !`ym_seen' local ym_list "`ym_list' `ym'"
+			}
 			local monthly_totals ""
-			forvalues m = 1/12 {
-				local m_string = string(`m', "%02.0f")
+			foreach ym of local ym_list {
 				local mvar ""
 				foreach v of local var {
-					if substr("`v'", -4, 2) == "`m_string'" {
+					if substr("`v'", -8, 6) == "`ym'" {
 						local mvar "`mvar' `v'"
 					}
 				}
-				if "`mvar'" != "" {
-					tempvar mo_total
-					quietly egen `mo_total' = rowtotal(`mvar')
-					local monthly_totals "`monthly_totals' `mo_total'"
-				}
+				tempvar mo_total
+				quietly egen `mo_total' = rowtotal(`mvar'), missing
+				local monthly_totals "`monthly_totals' `mo_total'"
 			}
 
 			if "`monthly_totals'" != "" {
@@ -517,11 +611,11 @@ version 15.1
 				local rain_aux "`rain_aux' `rain_day'"
 			}
 
-			quietly egen norain_`j' = rowtotal(`no_rain_aux')
+			quietly egen norain_`j' = rowtotal(`no_rain_aux'), missing
 			label var norain_`j' "Number of observed days without rain in `j'"
 			local created_vars "`created_vars' norain_`j'"
 
-			quietly egen raindays_`j' = rowtotal(`rain_aux')
+			quietly egen raindays_`j' = rowtotal(`rain_aux'), missing
 			label var raindays_`j' "Number of observed days with rain in `j'"
 			local created_vars "`created_vars' raindays_`j'"
 
@@ -530,56 +624,91 @@ version 15.1
 			local created_vars "`created_vars' pct_raindays_`j'"
 			quietly drop `no_rain_aux' `rain_aux'
 
-			tempvar first_rain_idx last_rain_idx
-			quietly gen int `first_rain_idx' = .
-			quietly gen int `last_rain_idx' = .
-			
-			local d_idx = 1
-			foreach f of local var {
-				quietly replace `first_rain_idx' = `d_idx' if missing(`first_rain_idx') & !missing(`f') & `f' >= `rain_threshold'
-				quietly replace `last_rain_idx' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
-				local d_idx = `d_idx' + 1
-			}
-			
+			* ---- dry spells (plan D3/D4) ----
+			* A dry day is an observed day with rain < rain_threshold; a rainy
+			* day is an observed day with rain >= rain_threshold. Missing days
+			* (including calendar days without a daily variable) end runs.
+			tempvar started active nb fb lb runall maxall runmid maxmid
+
+			* leading spell: skip leading missing days, then count dry days
+			* from the first observed day
 			quietly gen dry_start_`j' = 0
+			quietly gen byte `started' = 0
+			quietly gen byte `active' = 0
+			foreach f of local days {
+				if "`f'" == "." {
+					quietly replace `active' = 0 if `started'
+					continue
+				}
+				quietly replace dry_start_`j' = dry_start_`j' + 1 if `started' & `active' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 0 if `started' & `active' & !(!missing(`f') & `f' < `rain_threshold')
+				quietly replace dry_start_`j' = 1 if !`started' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 1 if !`started' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `started' = 1 if !`started' & !missing(`f')
+			}
+
+			* trailing spell: same rule, counting back from the last observed day
+			local rev_days ""
+			foreach f of local days {
+				local rev_days "`f' `rev_days'"
+			}
 			quietly gen dry_end_`j' = 0
-			quietly gen dry_`j' = 0
-			
-			tempvar dstart_flag dend_flag mid_run
-			quietly gen byte `dstart_flag' = 1
-			quietly gen byte `dend_flag' = 1
-			quietly gen int `mid_run' = 0
-			
-			local d_idx = 1
-			foreach f of local var {
-				quietly replace dry_start_`j' = dry_start_`j' + 1 if `dstart_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `dstart_flag' = 0 if `dstart_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
-				
-				quietly replace `mid_run' = `mid_run' + 1 if !missing(`first_rain_idx') & !missing(`last_rain_idx') & `d_idx' > `first_rain_idx' & `d_idx' < `last_rain_idx' & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `mid_run' = 0 if missing(`f') | (`f' >= `rain_threshold' & !missing(`f'))
-				quietly replace dry_`j' = max(dry_`j', `mid_run')
-				
-				local d_idx = `d_idx' + 1
+			quietly replace `started' = 0
+			quietly replace `active' = 0
+			foreach f of local rev_days {
+				if "`f'" == "." {
+					quietly replace `active' = 0 if `started'
+					continue
+				}
+				quietly replace dry_end_`j' = dry_end_`j' + 1 if `started' & `active' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 0 if `started' & `active' & !(!missing(`f') & `f' < `rain_threshold')
+				quietly replace dry_end_`j' = 1 if !`started' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 1 if !`started' & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `started' = 1 if !`started' & !missing(`f')
 			}
-			
-			local rev_var ""
-			foreach f of local var {
-				local rev_var "`f' `rev_var'"
+
+			* mid-window spell: with >= 2 rainy days, the longest dry run
+			* strictly between the first and last rainy day; with 0-1 rainy
+			* days, the longest dry run anywhere in the window
+			quietly gen int `nb' = 0
+			quietly gen int `fb' = .
+			quietly gen int `lb' = .
+			local d_idx = 0
+			foreach f of local days {
+				local ++d_idx
+				if "`f'" == "." continue
+				quietly replace `fb' = `d_idx' if missing(`fb') & !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `lb' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `nb' = `nb' + 1 if !missing(`f') & `f' >= `rain_threshold'
 			}
-			foreach f of local rev_var {
-				quietly replace dry_end_`j' = dry_end_`j' + 1 if `dend_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `dend_flag' = 0 if `dend_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+			quietly gen int `runall' = 0
+			quietly gen int `maxall' = 0
+			quietly gen int `runmid' = 0
+			quietly gen int `maxmid' = 0
+			local d_idx = 0
+			foreach f of local days {
+				local ++d_idx
+				if "`f'" == "." {
+					quietly replace `runall' = 0
+					quietly replace `runmid' = 0
+					continue
+				}
+				quietly replace `runall' = cond(!missing(`f') & `f' < `rain_threshold', `runall' + 1, 0)
+				quietly replace `maxall' = max(`maxall', `runall')
+				quietly replace `runmid' = cond(!missing(`f') & `f' < `rain_threshold' & `d_idx' > `fb' & `d_idx' < `lb', `runmid' + 1, 0)
+				quietly replace `maxmid' = max(`maxmid', `runmid')
 			}
-			
+			quietly gen dry_`j' = cond(`nb' >= 2, `maxmid', `maxall')
+
 			quietly replace dry_start_`j' = . if `observed_days' == 0
 			quietly replace dry_end_`j' = . if `observed_days' == 0
 			quietly replace dry_`j' = . if `observed_days' == 0
-			
+
 			label var dry_start_`j' "Leading dry spell at start of season in `j'"
 			label var dry_end_`j' "Trailing dry spell at end of season in `j'"
 			label var dry_`j' "Longest mid-season dry spell in `j'"
 			local created_vars "`created_vars' dry_start_`j' dry_end_`j' dry_`j'"
-			quietly drop `first_rain_idx' `last_rain_idx' `dstart_flag' `dend_flag' `mid_run'
+			quietly drop `started' `active' `nb' `fb' `lb' `runall' `maxall' `runmid' `maxmid'
 		}
 
 		local deviation ""
@@ -601,19 +730,23 @@ version 15.1
 					if _rc == 0 local pvars "`pvars' `v'_`y'"
 				}
 
+				* the window needs at least ref_min() reference seasons in the
+				* data, and each unit needs at least ref_min() nonmissing values
 				local wordcount : word count `pvars'
-				if `wordcount' == `lr_years' {
-					tempvar aux_mean aux_sd
+				if `wordcount' >= `ref_min' {
+					tempvar aux_mean aux_sd aux_n
+					quietly egen `aux_n' = rownonmiss(`pvars')
 					quietly egen `aux_mean' = rowmean(`pvars')
 					quietly egen `aux_sd' = rowsd(`pvars')
 
-					quietly gen dev_`v'_`j' = `v'_`j' - `aux_mean'
+					quietly gen dev_`v'_`j' = `v'_`j' - `aux_mean' if `aux_n' >= `ref_min'
 					label var dev_`v'_`j' "Deviation in `v' from `lr_years' yr avg"
 					local created_vars "`created_vars' dev_`v'_`j'"
 
-					quietly gen z_`v'_`j' = (`v'_`j' - `aux_mean') / `aux_sd'
+					quietly gen z_`v'_`j' = (`v'_`j' - `aux_mean') / `aux_sd' if `aux_n' >= `ref_min'
 					label var z_`v'_`j' "Z-score of `v' from `lr_years' yr avg"
 					local created_vars "`created_vars' z_`v'_`j'"
+					quietly drop `aux_mean' `aux_sd' `aux_n'
 				}
 			}
 		}
@@ -680,9 +813,6 @@ version 15.1
 				di as error "Consider a wider gdd_bin(), a lower gdd_binhi(), or different endpoints"
 				exit 198
 			}
-
-			* --- helper: format a number cleanly for labels ---
-			* Uses %12.0g for general formatting, then strips spaces
 
 			* build the value label
 			capture label drop _gddcat_lbl
@@ -783,10 +913,6 @@ version 15.1
 
 	* ---- shape(long) output stacking ----
 	if "`shape'" == "long" {
-		* Build list of unique season years from season_years
-		* For each year, identify created vars with _YYYY suffix,
-		* rename them by stripping the suffix, add year variable, and save to tempfile
-
 		* collect the set of unique years
 		local long_years ""
 		foreach cy of local season_years {
@@ -795,26 +921,6 @@ version 15.1
 				if `cy' == `ly' local already = 1
 			}
 			if !`already' local long_years "`long_years' `cy'"
-		}
-
-		* also check created_vars for gddcat years (they may have years
-		* from the gdd_vars list, extracted from the suffix)
-		foreach cv of local created_vars {
-			* extract trailing _YYYY pattern using string operations
-			local cv_len = strlen("`cv'")
-			if `cv_len' >= 5 {
-				local cv_sfx = substr("`cv'", `cv_len' - 4, .)
-				local cv_sfx1 = substr("`cv_sfx'", 1, 1)
-				local cv_yr_str = substr("`cv_sfx'", 2, .)
-				if "`cv_sfx1'" == "_" & real("`cv_yr_str'") != . & strlen("`cv_yr_str'") == 4 {
-					local cv_yr_n = real("`cv_yr_str'")
-					local already = 0
-					foreach ly of local long_years {
-						if `cv_yr_n' == `ly' local already = 1
-					}
-					if !`already' local long_years "`long_years' `cv_yr_n'"
-				}
-			}
 		}
 
 		local long_tempfiles ""
@@ -896,9 +1002,9 @@ version 15.1
 		}
 	}
 
-	if "`save'" != "" {
-		di as result "Saving data set as `save'"
-		save "`save'", replace
+	if `"`save_file'"' != "" {
+		di as result `"Saving data set as `save_file'"'
+		save `"`save_file'"', `save_replace'
 	}
 end
 

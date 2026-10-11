@@ -25,7 +25,8 @@ local suites                              ///
 	wxsum_validation                      ///
 	wxsum_gddcat_validation               ///
 	wxsum_release_synthetic_validation    ///
-	wxsum_tmpbin_shape_validation
+	wxsum_tmpbin_shape_validation         ///
+	wxsum_v6_core
 
 local failed ""
 local n_pass = 0
