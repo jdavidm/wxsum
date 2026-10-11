@@ -29,6 +29,7 @@ local suites                              ///
 	wxsum_v6_core                         ///
 	wxsum_v6_features                     ///
 	wxsum_v6_unit                         ///
+	wxsum_v6_wxprep                       ///
 	wxsum_v6_regression                   ///
 	wxsum_v6_equivalence
 
