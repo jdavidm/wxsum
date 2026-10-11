@@ -27,6 +27,7 @@ local suites                              ///
 	wxsum_release_synthetic_validation    ///
 	wxsum_tmpbin_shape_validation         ///
 	wxsum_v6_core                         ///
+	wxsum_v6_features                     ///
 	wxsum_v6_regression                   ///
 	wxsum_v6_equivalence
 
