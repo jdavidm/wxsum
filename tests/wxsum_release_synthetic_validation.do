@@ -1,3 +1,8 @@
+* wxsum_release_synthetic_validation.do
+* Repaired for v6: heat_threshold() is required for type(temp), wide-name
+* assertions request shape(wide), KDD is always computed (#5), and calendar
+* days with no daily variable are missing days that end dry spells (#1).
+* Run from the repository root.
 clear all
 set more off
 capture set maxvar 90000
@@ -31,14 +36,20 @@ gen rf_20200102 = cond(hhid == 1, 2, 0)
 gen rf_20200201 = cond(hhid == 1, ., 0)
 gen rf_20200202 = cond(hhid == 1, .5, 4)
 
-wxsum rf_, ini_month(01) fin_month(02) ini_day(01) fin_day(02) type(rain) rain_threshold(1) lr_years(2)
+wxsum rf_, ini_month(01) fin_month(02) ini_day(01) fin_day(02) type(rain) rain_threshold(1) lr_years(2) shape(wide)
 
 assert abs(total_2020 - cond(hhid == 1, 2.5, 7)) < 1e-6
 assert abs(mean_2020 - cond(hhid == 1, 2.5 / 3, 7 / 4)) < 1e-6
 assert norain_2020 == cond(hhid == 1, 2, 2)
 assert raindays_2020 == cond(hhid == 1, 1, 2)
 assert abs(pct_raindays_2020 - cond(hhid == 1, 1 / 3, .5)) < 1e-6
-assert dry_2020 == cond(hhid == 1, 1, 2)
+* hhid 1: 0, 2, ., 0.5 -> one rainy day, so dry = longest dry run anywhere = 1
+* hhid 2: 3, 0, [no variables for 3-31 Jan], 0, 4 -> the days without variables
+*         are missing days, so they end the run: dry = 1 (v5 joined the two
+*         columns into a 2-day spell)
+assert dry_2020 == 1
+assert dry_start_2020 == cond(hhid == 1, 1, 0)
+assert dry_end_2020 == cond(hhid == 1, 1, 0)
 assert abs(mean_mo_2020 - cond(hhid == 1, 1.25, 3.5)) < 1e-6
 
 display "2. rainfall rolling deviations and z-scores use exactly preceding lr_years"
@@ -55,7 +66,7 @@ replace rf_20200101 = 5 if hhid == 2
 replace rf_20210101 = 5 if hhid == 2
 replace rf_20220101 = 5 if hhid == 2
 
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) lr_years(2) shape(wide)
 
 assert total_2022 == cond(hhid == 1, 50, 5)
 assert abs(dev_total_2022 - cond(hhid == 1, 35, 0)) < 1e-6
@@ -78,7 +89,7 @@ forvalues d = `=td(30nov2021)'/`=td(02jan2022)' {
 	}
 }
 
-wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) type(temp) gdd_lo(8) gdd_hi(32) kdd_base(18) lr_years(2)
+wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) type(temp) gdd_lo(8) gdd_hi(32) heat_threshold(18) lr_years(2) shape(wide)
 
 confirm variable mean_2021
 capture confirm variable mean_2022
@@ -94,7 +105,7 @@ gen hhid = _n
 * Create two seasons with hand-calculable GDD totals
 * Season 2020: 4 days, temps such that gdd_lo=0, gdd_hi=100
 * Location 1: temps = 10, 20, 30, 40 => GDD = 10+20+30+40 = 100
-* Location 2: temps = 50, 60, 70, 80 => GDD = capped at 100 each = 400
+* Location 2: temps = 50, 60, 70, 80 => GDD = 50+60+70+80 = 260 (all below the cap)
 * Location 3: temps = 5, 5, 5, 5 => GDD = 20
 forvalues d = 1/4 {
 	local day = string(`d', "%02.0f")
@@ -136,13 +147,13 @@ replace tmp_20210103 = 0 if hhid == 3
 replace tmp_20210104 = 0 if hhid == 3
 
 * gdd_lo=0 gdd_hi=100 => GDD capped at 100 per day
-* 2020: loc1 GDD=100, loc2 GDD=400, loc3 GDD=20
-* 2021: loc1 GDD=100, loc2 GDD=400, loc3 GDD=0
-* Pool max=400, pool min=0. gdd_bin(100), default lo=0
-* auto hi: ceil(400/100)=4, 0+4*100=400, but 400>=400 so push to 5*100=500
-* Categories: 1=[0,100), 2=[100,200), 3=[200,300), 4=[300,400), 5=[400,500)
+* 2020: loc1 GDD=100, loc2 GDD=260, loc3 GDD=20
+* 2021: loc1 GDD=100, loc2 GDD=200, loc3 GDD=0
+* Pool max=260, pool min=0. gdd_bin(100), default lo=0
+* auto hi: ceil(260/100)=3, 0+3*100=300, 260<300 => hi=300
+* Categories: 1=[0,100), 2=[100,200), 3=[200,300)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(100) gdd_bin(100) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) heat_threshold(0) gdd_lo(0) gdd_hi(100) gdd_bin(100) lr_years(2) shape(wide)
 
 confirm variable gddcat_2020
 confirm variable gddcat_2021
@@ -150,8 +161,9 @@ confirm variable gddcat_2021
 assert gddcat_2020 == 1 if hhid == 3
 * Location 1, 2020: GDD=100 => [100,200) => cat 2
 assert gddcat_2020 == 2 if hhid == 1
-* Location 2, 2020: GDD=400 => [400,500) => cat 5
-assert gddcat_2020 == 5 if hhid == 2
+* Location 2, 2020: GDD=260 => [200,300) => cat 3
+assert gdd_2020 == 260 if hhid == 2
+assert gddcat_2020 == 3 if hhid == 2
 * Location 3, 2021: GDD=0 => [0,100) => cat 1
 assert gddcat_2021 == 1 if hhid == 3
 * Location 1, 2021: GDD=100 => [100,200) => cat 2
@@ -173,26 +185,27 @@ gen source_note = 999
 gen tmp_20300101 = 12
 gen tmp_20300102 = 18
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) heat_threshold(0) gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2) shape(wide)
 
 confirm variable hhid
 confirm variable gdd_2030
 capture confirm variable source_note
 assert _rc != 0
-capture confirm variable kdd_2030
-assert _rc != 0
+* KDD is a core statistic in v6 (base = heat_threshold(0)): 12 + 18 = 30
+confirm variable kdd_2030
+assert kdd_2030 == 30
 
 display "6. invalid option combinations fail before generating outputs"
 clear
 set obs 1
 gen rf_20200101 = 1
-capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10)
-_assert_rc _rc 198 "type(rain) and type(temp) kdd_base(0) cannot be used together"
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) type(temp) heat_threshold(0) gdd_lo(0) gdd_hi(10)
+_assert_rc _rc 198 "type(rain) and type(temp) cannot be used together"
 
 clear
 set obs 1
 gen tmp_20200101 = 1
-capture noisily wxsum tmp_, ini_month(02) fin_month(02) ini_day(30) fin_day(30) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10)
+capture noisily wxsum tmp_, ini_month(02) fin_month(02) ini_day(30) fin_day(30) type(temp) heat_threshold(0) gdd_lo(0) gdd_hi(10)
 _assert_rc _rc 198 "invalid calendar day is rejected"
 
 display as result "All synthetic release validation checks passed."
