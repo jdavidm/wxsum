@@ -1,11 +1,17 @@
-v 5.0
+v 6.0.0
 d
-d 'wxsum': A command for processing temperature and precipitation data
+d 'wxsum': Fast processing of remote-sensing weather data into seasonal and exposure-window statistics
 d
-d Distribution-Date: 20260613
+d Distribution-Date: 20261013
 d
-d Author: Jeffrey D. Michler
-d Support: jdmichler@arizona.edu
+d Authors: Jeffrey D. Michler, Anna Josephson, Oscar Barriga-Cabanillas, Aleksandr Michuda, Jeffrey C. Oliver
+d Support: jdmichler@arizona.edu, aljosephson@arizona.edu
 d
 f wxsum.ado
 f wxsum.sthlp
+f wxprep.ado
+f wxprep.sthlp
+f rain.dta
+f temp.dta
+f rain_long.dta
+f temp_long.dta

@@ -14,7 +14,7 @@ forvalues d = 14610/14700 {
 * Mean will just be 10, but observed_days should be 29. Wait, wxsum doesn't return observed_days directly, but we can verify it doesn't crash and returns 10.
 * Let's test a case where we sum. GDD with bounds 0 and 20 will give 10 GDD per day.
 * Total GDD for Feb 2000 should be 290.
-wxsum tmp_, ini_month(02) fin_month(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(20)
+wxsum tmp_, ini_month(02) fin_month(02) type(temp) heat_threshold(30) kdd_base(0) gdd_lo(0) gdd_hi(20) shape(wide)
 
 * Check that the GDD is exactly 290
 assert gdd_2000 == 290
@@ -27,7 +27,7 @@ forvalues d = 14976/15065 { /* Jan to Mar 2001 */
     local date_str = string(year(`d'), "%04.0f") + string(month(`d'), "%02.0f") + string(day(`d'), "%02.0f")
     gen tmp_`date_str' = 10
 }
-wxsum tmp_, ini_month(02) fin_month(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(20)
+wxsum tmp_, ini_month(02) fin_month(02) type(temp) heat_threshold(30) kdd_base(0) gdd_lo(0) gdd_hi(20) shape(wide)
 
 * Check that GDD is 280 (28 days)
 assert gdd_2001 == 280

@@ -1,169 +1,159 @@
-# `wxsum`: A command for processing temperature and precipitation data
+# `wxsum`: Processing Temperature and Precipitation Data (Version 6.0)
+
+[![Stata 15+](https://img.shields.io/badge/Stata-15%2B-blue.svg)](https://www.stata.com)
+[![Version 6.0](https://img.shields.io/badge/version-6.0.0-green.svg)](https://github.com/jdavidm/wxsum)
+
+`wxsum` is a high-performance Stata command that processes daily remote-sensing weather data into comprehensive seasonal statistics, agricultural degree days, extreme heat and dry spell durations, and historical weather-shock measures.
+
+Version 6.0 includes a completely redesigned, inline-compiled **Mata analytical engine** for order-of-magnitude speedups, support for **unit-specific exposure windows** (such as household-level planting dates), an official data-preparation companion command **`wxprep`**, and refined handling of missing data and extreme heat physiology.
+
+---
 
 ## Installation
 
-You can install the latest version of `wxsum` directly from this GitHub repository using Stata's `net install` command:
+Install the package directly into Stata from GitHub:
 
 ```stata
 net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/") replace
 ```
 
-## Requirements
+This installs:
+- `wxsum.ado` and `wxsum.sthlp`: Core calculation command and documentation.
+- `wxprep.ado` and `wxprep.sthlp`: Companion data reshaping and preparation utility.
+- Bundled sample datasets: `rain.dta`, `temp.dta`, `rain_long.dta`, and `temp_long.dta`.
 
-The command requires Stata 15 or later. Users working with long time series in Stata/IC may need to split the data into shorter panels due to variable limits.
+---
 
-## Description
+## Core Capabilities in Version 6.0
 
-The `wxsum` command processes remote sensing rainfall and temperature data and outputs useful statistics. The command can be used with either rainfall or temperature data from any source.
+1. **High-Speed Mata Engine:**
+   Processes millions of cell-days across multi-year panels in seconds with zero dataset modification on errors.
 
-The data must be wide, where each location is a row and each column is a daily reading. Daily weather variable names must be the user-supplied prefix followed by `yyyymmdd`. For example, if the prefix is `rf_`, the variable for May 15, 1979 would be `rf_19790515`.
+2. **Dual Window Modes:**
+   - **Calendar Window Mode:** Fixed seasonal exposure windows (e.g., May–October or cross-year November–February).
+   - **Unit-Specific Exposure Windows:** Individual exposure periods anchored to household-level planting dates, survey recall windows, or health events (`start(var) end(var)` or `event_date(var) days(#) [lag(#)]`).
 
-Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding `lr_years`. If there is not enough preceding data to satisfy the requested window, deviations and z-scores are skipped for those initial years, though standard variables still generate.
+3. **Long Output by Default:**
+   Produces panel-ready long-format output with one row per unit-year (`shape(long)`), ready for immediate econometric estimation.
 
-## Syntax
+4. **Extreme Heat & Temperature Physiology:**
+   Captures non-linear thermal damage using `heat_threshold(#)`: computes `heatdays`, `pct_heatdays`, leading/longest/trailing heat spells (`heat_start`, `heat`, `heat_end`), and Killing Degree Days (`kdd`).
+
+5. **Historical Anomaly Benchmarks:**
+   Computes deviations (`dev_`) and standardized z-scores (`z_`) for all core totals, monthly means, rainy days, and spell metrics using rolling historical windows (`lr_years(#)`) or fixed reference periods (`baseline(y1 y2)`).
+
+6. **Quality & Coverage Diagnostics:**
+   Exports a complete data-quality matrix `r(missing)` reporting observed-day counts, missing rates, and boundary diagnostics. Windows with fewer than `minobs(#)` observed days return missing for all metrics rather than false zeros.
+
+7. **Companion Command `wxprep`:**
+   Streamlines long-to-wide reshaping (`wxprep towide`), variable standardization (`wxprep rename`), and wide-to-long panel conversion (`wxprep tolong`) with exact round-trip fidelity.
+
+---
+
+## Syntax Overview
+
+### 1. `wxsum` (Calendar Window Mode)
 
 ```stata
-wxsum stubname , type(rain|temp) ini_month(month) fin_month(month) [options]
+wxsum stubname, type(rain|temp) ini_month(month) fin_month(month) [options]
 ```
 
-### Options
+### 2. `wxsum` (Unit-Specific Window Mode)
 
-#### Required
-- `type(rain|temp)`: Specify the data type. Use `rain` for precipitation data or `temp` for temperature data.
-- `ini_month(month)`: Initial month of the season (e.g., 05 for May).
-- `fin_month(month)`: Final month of the season (e.g., 10 for October).
-
-#### General
-- `ini_day(day)`: Start day of the season. Default is 01.
-- `fin_day(day)`: End day of the season. If not specified, it dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
-- `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
-- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from calculations.
-- `gdd_lo(#)`: Lower bound for growing degree days calculation. Required if `type(temp)` is used.
-- `gdd_hi(#)`: Upper bound for growing degree days calculation. Required if `type(temp)` is used.
-- `kdd_base(#)`: Temperature threshold for calculating Killing Degree Days (KDD). Required if `type(temp)` is used.
-- `gdd_bin(#)`: Width of fixed-interval seasonal GDD bins. When specified, creates one integer categorical variable `gddcat_YYYY` for each generated GDD season. Requires `type(temp)`.
-- `gdd_binlo(#)`: Lower endpoint for regular fixed-width GDD intervals. Default is 0 when `gdd_bin()` is specified. Values below this threshold are assigned to a bottom-coded category. Requires `gdd_bin()`.
-- `gdd_binhi(#)`: Upper endpoint for regular fixed-width GDD intervals. Values at or above this threshold are assigned to a top-coded category. When omitted, the command automatically extends intervals to cover the empirical maximum. Requires `gdd_bin()`.
-- `tmp_bin(#)`: Total number of daily temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires `type(temp)`, `tmp_binlo()`, and `tmp_binhi()`.
-- `tmp_binlo(#)`: Lower bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be in the same units as the daily temperature data.
-- `tmp_binhi(#)`: Upper bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be greater than `tmp_binlo()`.
-- `shape(wide|long)`: Shape of the final output. Default is `wide`. When `long` is specified, output is stacked with one row per retained unit-year and a variable named `year`. It is strongly recommended to use `keep()` with unit identifiers when `shape(long)` is requested.
-- `keep(varlist)`: Variables to keep in the final dataset along with the generated wxsum variables.
-- `save(filename)`: File path to save the resulting dataset.
-
-## Generated Variables
-
-Using data sets as defined above, the wxsum command creates useful statistics in the same fashion for all detected season years. The command handles seasons that span calendar years, such as November to February, and labels the output with the year the season starts.
-
-### 1. Rainfall Variables
-
-When `type(rain)` is specified, the command generates the following variables for each season:
-
-- mean daily in a season
-- median daily in a season
-- variance of daily in a season
-- standard deviation of daily in a season
-- skew of daily in a season
-- mean of monthly rainfall totals in a season
-- deviation from long run average of mean monthly rainfall in a season
-- z-score of mean monthly rainfall in a season
-- total seasonal
-- deviation from long run average of total seasonal
-- z-score of total seasonal
-- number of observed days with rain in a season
-- deviation from long run average of rainy days in a season
-- z-score of rainy days in a season
-- number of observed days without rain in a season
-- deviation from long run average of days without rain in a season
-- z-score of days without rain in a season
-- percentage of days with rain in a season
-- deviation from the long run average of percentage of days with rain in a season
-- z-score of percentage of days with rain in a season
-- length of leading dry spell at the start of a season
-- longest mid-season dry spell
-- length of trailing dry spell at the end of a season
-
-### 2. Temperature Variables
-
-When `type(temp)` is specified, the command generates the following variables for each season:
-
-- mean daily in a season
-- median daily in a season
-- variance of daily in a season
-- standard deviation of daily in a season
-- skew of daily in a season
-- max daily in a season
-- gdd in a season
-- deviations from long run average gdd in a season
-- z-score of gdd in a season
-- GDD category variable `gddcat_YYYY` (when `gdd_bin()` is specified)
-- kdd in a season
-- deviations from long run average kdd in a season
-- z-score of kdd in a season
-- Daily temperature bin count variables `tmpbinXX_YYYY` (when `tmp_bin()` is specified)
-
-Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
-
-When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [50,150)`, `GDD [150,250)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
-
-When `tmp_bin(number)` is specified, the command creates daily temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, in the spirit of Schlenker-Roberts. When only one daily reading is available, the entire day is assigned to the bin containing that reading. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
-
-### 3. Long Output
-
-When `shape(long)` is specified, the final output is stacked long with one row per retained unit-year. Generated variables have their `_YYYY` suffixes stripped and a variable `year` identifies the season. This is a final-output stacking operation; the wide input requirement is unchanged. It can make panel workflows easier and reduce the final number of variables, although it does not yet reduce the peak number of variables created internally.
-
-## Examples
-
-To try the command out on the sample datasets included in this repository:
-
-**Rainfall Example:**
 ```stata
+* Explicit start and end date variables (%td format)
+wxsum stubname, type(rain|temp) start(varname) end(varname) [options]
+
+* Shortcut anchor date with fixed duration in days
+wxsum stubname, type(rain|temp) event_date(varname) days(#) [lag(#) options]
+```
+
+### 3. `wxprep` (Data Preparation Companion)
+
+```stata
+* Reshape long weather series into wide daily columns:
+wxprep towide varname [if] [in], id(varlist) date(varname) stub(string) ///
+    [daily(mean|sum|min|max) dateformat(string) nofill clear save(filename [, replace])]
+
+* Standardize existing wide variable names to stub_YYYYMMDD:
+wxprep rename varlist, stub(string) firstdate(string)
+wxprep rename varlist, stub(string) from(oldstub) dateformat(string)
+
+* Reshape wide daily weather data back to long panel:
+wxprep tolong stub, id(varlist) [generate(varname) date(varname) clear]
+```
+
+---
+
+## Key Options
+
+| Option | Description |
+| :--- | :--- |
+| `type(rain\|temp)` | Weather measure: `rain` for precipitation, `temp` for temperature (Required). |
+| `ini_month(#) fin_month(#)` | Start and end months for calendar seasons. Cross-year seasons (e.g., 11 to 02) supported. |
+| `start(var) end(var)` | Unit-specific %td date variables defining exposure windows. |
+| `event_date(var) days(#)` | Anchor %td date and window length for unit-specific exposure. |
+| `heat_threshold(#)` | Extreme heat threshold for heat days, heat spells, and KDD base (Required for `type(temp)`). |
+| `kdd_base(#)` | Degree-day base for Killing Degree Days (defaults to `heat_threshold()`). |
+| `gdd_lo(#) gdd_hi(#)` | Temperature bounds for Growing Degree Days (Required for `type(temp)`). |
+| `rain_threshold(#)` | Precipitation threshold defining a rainy day (defaults to 1). |
+| `minobs(#)` | Minimum non-missing observed days required in window (defaults to 1). |
+| `lr_years(#)` | Number of strictly preceding years for rolling deviations/z-scores (defaults to 10). |
+| `baseline(y1 y2)` | Fixed reference period (e.g., `baseline(1981 2010)`) instead of rolling window. |
+| `cuts(numlist)` | Custom threshold cuts generating $K+1$ daily count bins. |
+| `gdd_bin(#)` | Deschênes & Greenstone fixed-width seasonal GDD categories. |
+| `tmp_bin(#)` | Schlenker & Roberts daily temperature bin counts (1 to 42 bins). |
+| `shape(long\|wide)` | Output dataset layout (Default is `long`). |
+| `keep(varlist)` | Variables to retain in output (e.g., location or household identifiers). |
+| `partial` | Allow unit windows that extend beyond the calendar range of wide data. |
+
+---
+
+## Replication & Examples
+
+Run the complete example suite included with the package:
+
+```stata
+do examples/wxsum_examples.do
+```
+
+### Quick Code Examples
+
+```stata
+* 1. Seasonal rainfall summaries (long format)
 use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)
-```
+wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) keep(hhid)
 
-**Temperature Example:**
-```stata
+* 2. Temperature degree days and heat spells (November to February season)
 use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid)
-```
+wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) heat_threshold(32) keep(hhid)
 
-**GDD Categories Example:**
-```stata
-use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) gdd_binlo(50) gdd_binhi(950) keep(hhid)
-```
-
-**Daily Temperature Bin Counts Example:**
-```stata
-use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid)
-```
-
-**Changing the Long-Run Benchmark:**
-```stata
+* 3. Unit-specific 90-day exposure following household planting date
 use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) lr_years(20) keep(hhid)
+gen long plant_date = td(15may2015) + _n * 2
+format plant_date %td
+wxsum rf_, type(rain) event_date(plant_date) days(90) lr_years(5) keep(hhid plant_date)
+
+* 4. Prepare raw long weather data using wxprep
+use rain_long.dta, clear
+wxprep towide rain, id(hhid) date(date) stub(rf_) clear
+wxsum rf_, type(rain) ini_month(05) fin_month(10) keep(hhid)
 ```
 
-**Long Output for Panel Workflows:**
-```stata
-use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) shape(long)
-```
+---
 
-## Reporting Bugs
-If you run into any issues or bugs, please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues). Be sure to include your exact Stata version, the command you ran, and a sample of your data (or ideally, reproduce the bug using `rain.dta` or `temp.dta`).
+## Authors
+
+- **Jeffrey D. Michler** (<jdmichler@arizona.edu>), University of Arizona
+- **Anna Josephson** (<aljosephson@arizona.edu>), University of Arizona
+- **Oscar Barriga-Cabanillas** (<obarriga@worldbank.org>), World Bank
+- **Aleksandr Michuda** (<amichud1@swarthmore.edu>), Swarthmore College
+- **Jeffrey C. Oliver** (<jcoliver@arizona.edu>), University of Arizona
+
+---
 
 ## Citation
 
-If you use `wxsum` in your research, please cite:
+If you use `wxsum` in published work, please cite:
 
-> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 5.0.
-
-## Authors
-- Jeffrey D. Michler (jdmichler@arizona.edu)
-- Anna Josephson (aljosephson@arizona.edu)
-- Oscar Barriga-Cabanillas (obarriga@worldbank.org)
-- Aleksandr Michuda (amichud1@swarthmore.edu)
-- Jeffrey C. Oliver (jcoliver@arizona.edu)
+> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. (2026). "wxsum: A command for processing temperature and precipitation data." *The Stata Journal*, forthcoming.

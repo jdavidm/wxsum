@@ -1,3 +1,3 @@
-v 5.0
-d Jeffrey D. Michler, jdmichler@arizona.edu
-p wxsum A command for processing temperature and precipitation data
+v 6.0.0
+d Jeffrey D. Michler, Anna Josephson, Oscar Barriga-Cabanillas, Aleksandr Michuda, Jeffrey C. Oliver
+p wxsum Fast processing of remote-sensing weather data into seasonal and exposure-window statistics

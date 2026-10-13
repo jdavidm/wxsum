@@ -1,3 +1,4 @@
+*! version 6.0.0-ref  13oct2026  WS1 reference implementation
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -14,10 +15,10 @@
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 6.0  WS1 reference: P1 P2 P3 P6 D3 D4 D6 fixes on the v5 egen code         *
 *********************************************************************************
 
-cap program drop wxsum
-program define wxsum
+program define wxsum_ref
 
 version 15.1
 
@@ -29,10 +30,11 @@ version 15.1
 		[										///
 		ini_day(string)							///
 		fin_day(string)							///
-		keep(string)							///
-		save(string)							///
+		keep(varlist)							///
+		save(string asis)						///
 		gdd_lo(real -999999999)					///
 		gdd_hi(real -999999999)					///
+		heat_threshold(real -999999999)			///
 		kdd_base(real -999999999)				///
 		gdd_bin(real -999999999)				///
 		gdd_binlo(real -999999999)				///
@@ -41,9 +43,73 @@ version 15.1
 		tmp_binlo(real -999999999)				///
 		tmp_binhi(real -999999999)				///
 		shape(string)							///
-		lr_years(integer 10)					///
-		rain_threshold(real 1)					///
+		lr_years(integer -999999999)			///
+		ref_min(integer -999999999)				///
+		rain_threshold(real -999999999)			///
 		]
+
+	local NA = -999999999
+
+	* ---- save(filename [, replace]) ----
+	local save_replace ""
+	if `"`save'"' != "" {
+		local keep_save_args `"`save'"'
+		local 0 `"`save'"'
+		capture syntax anything(name=savefile id="filename") [, replace]
+		if _rc {
+			di as error "save() must be save(filename [, replace])"
+			exit 198
+		}
+		local save_replace "`replace'"
+		local save `"`savefile'"'
+		if "`save_replace'" == "" {
+			capture confirm new file `save'
+			if _rc {
+				di as error `"file `save' already exists; use save(filename, replace)"'
+				exit 602
+			}
+		}
+	}
+
+	* ---- type-specific options ----
+	if "`type'" != "rain" & "`type'" != "temp" {
+		di as error "type() must be either rain or temp"
+		exit 198
+	}
+	if "`type'" == "rain" {
+		foreach o in gdd_lo gdd_hi heat_threshold kdd_base gdd_bin gdd_binlo gdd_binhi tmp_bin tmp_binlo tmp_binhi {
+			if ``o'' != `NA' {
+				di as error "`o'() is not allowed with type(rain)"
+				exit 198
+			}
+		}
+		if `rain_threshold' == `NA' local rain_threshold = 1
+	}
+	else {
+		if `rain_threshold' != `NA' {
+			di as error "rain_threshold() is not allowed with type(temp)"
+			exit 198
+		}
+		if `heat_threshold' == `NA' {
+			if `kdd_base' != `NA' {
+				di as error "heat_threshold() is required in wxsum 6; in v5, kdd_base() set the KDD threshold."
+				di as error "Use heat_threshold(#), and add kdd_base(#) only if the KDD base should differ."
+			}
+			else {
+				di as error "heat_threshold() is required for type(temp)"
+			}
+			exit 198
+		}
+		if `kdd_base' == `NA' local kdd_base = `heat_threshold'
+	}
+
+	* ---- reference period ----
+	if `lr_years' == `NA' local lr_years = 10
+	if `ref_min' == `NA' local ref_min = `lr_years'
+	if `ref_min' < 1 | `ref_min' > `lr_years' {
+		di as error "ref_min() must be between 1 and lr_years()"
+		exit 198
+	}
 
 	local prefix "`anything'"
 
@@ -127,10 +193,6 @@ version 15.1
 			di as error "Please define gdd_hi() for type(temp)"
 			exit 198
 		}
-		if `kdd_base' == -999999999 {
-			di as error "Please define kdd_base() for type(temp)"
-			exit 198
-		}
 		if `gdd_hi' <= `gdd_lo' {
 			di as error "gdd_hi() must be greater than gdd_lo()"
 			exit 198
@@ -211,7 +273,7 @@ version 15.1
 	}
 
 	* ---- shape() validation ----
-	if "`shape'" == "" local shape "wide"
+	if "`shape'" == "" local shape "long"
 	if "`shape'" != "wide" & "`shape'" != "long" {
 		di as error "shape() must be wide or long"
 		exit 198
@@ -235,9 +297,11 @@ version 15.1
 		}
 	}
 
-	if `rain_threshold' < 0 {
-		di as error "rain_threshold() must be nonnegative"
-		exit 198
+	if "`rain_data'" != "" {
+		if `rain_threshold' < 0 {
+			di as error "rain_threshold() must be nonnegative"
+			exit 198
+		}
 	}
 
 	capture unab all_vars : `prefix'*
@@ -363,6 +427,7 @@ version 15.1
 				local gdd_aux "`gdd_aux' `gd'"
 			}
 			quietly egen gdd_`j' = rowtotal(`gdd_aux')
+			quietly replace gdd_`j' = . if `observed_days' == 0
 			label var gdd_`j' "Growing degree days in `j' between `gdd_lo' and `gdd_hi'"
 			local created_vars "`created_vars' gdd_`j'"
 			local gdd_vars "`gdd_vars' gdd_`j'"
@@ -375,7 +440,8 @@ version 15.1
 				local kdd_aux "`kdd_aux' `kd'"
 			}
 			quietly egen kdd_`j' = rowtotal(`kdd_aux')
-			label var kdd_`j' "Killing degree days in `j' above `kdd_base'"
+			quietly replace kdd_`j' = . if `observed_days' == 0
+			label var kdd_`j' "Killing (extreme-heat) degree days above `kdd_base' in `j'"
 			local created_vars "`created_vars' kdd_`j'"
 			quietly drop `kdd_aux'
 
@@ -479,33 +545,37 @@ version 15.1
 		}
 
 		if "`rain_data'" != "" {
+			* P1: windows with no observed days get missing, not 0
 			quietly egen total_`j' = rowtotal(`var')
+			quietly replace total_`j' = . if `observed_days' == 0
 			label var total_`j' "Total `dtype' in `j'"
 			local created_vars "`created_vars' total_`j'"
 
+			* P3: monthly totals keyed by year-month (yyyymm), not month only.
+			* A year-month with no observed days has a missing total and is
+			* excluded from the mean of monthly totals.
+			local ym_list ""
+			foreach v of local var {
+				local ym = substr("`v'", -8, 6)
+				if !`: list ym in ym_list' local ym_list "`ym_list' `ym'"
+			}
 			local monthly_totals ""
-			forvalues m = 1/12 {
-				local m_string = string(`m', "%02.0f")
+			foreach ym of local ym_list {
 				local mvar ""
 				foreach v of local var {
-					if substr("`v'", -4, 2) == "`m_string'" {
-						local mvar "`mvar' `v'"
-					}
+					if substr("`v'", -8, 6) == "`ym'" local mvar "`mvar' `v'"
 				}
-				if "`mvar'" != "" {
-					tempvar mo_total
-					quietly egen `mo_total' = rowtotal(`mvar')
-					local monthly_totals "`monthly_totals' `mo_total'"
-				}
+				tempvar mo_total mo_n
+				quietly egen double `mo_total' = rowtotal(`mvar')
+				quietly egen `mo_n' = rownonmiss(`mvar')
+				quietly replace `mo_total' = . if `mo_n' == 0
+				quietly drop `mo_n'
+				local monthly_totals "`monthly_totals' `mo_total'"
 			}
-
-			if "`monthly_totals'" != "" {
-				quietly egen mean_mo_`j' = rowmean(`monthly_totals')
-				label var mean_mo_`j' "Mean of monthly rainfall totals in `j'"
-				local created_vars "`created_vars' mean_mo_`j'"
-
-				quietly drop `monthly_totals'
-			}
+			quietly egen mean_mo_`j' = rowmean(`monthly_totals')
+			label var mean_mo_`j' "Mean of monthly rainfall totals in `j'"
+			local created_vars "`created_vars' mean_mo_`j'"
+			quietly drop `monthly_totals'
 
 			local no_rain_aux ""
 			local rain_aux ""
@@ -518,10 +588,12 @@ version 15.1
 			}
 
 			quietly egen norain_`j' = rowtotal(`no_rain_aux')
+			quietly replace norain_`j' = . if `observed_days' == 0
 			label var norain_`j' "Number of observed days without rain in `j'"
 			local created_vars "`created_vars' norain_`j'"
 
 			quietly egen raindays_`j' = rowtotal(`rain_aux')
+			quietly replace raindays_`j' = . if `observed_days' == 0
 			label var raindays_`j' "Number of observed days with rain in `j'"
 			local created_vars "`created_vars' raindays_`j'"
 
@@ -530,56 +602,65 @@ version 15.1
 			local created_vars "`created_vars' pct_raindays_`j'"
 			quietly drop `no_rain_aux' `rain_aux'
 
-			tempvar first_rain_idx last_rain_idx
-			quietly gen int `first_rain_idx' = .
-			quietly gen int `last_rain_idx' = .
-			
+			* ---- dry spells (D3/D4) ----
+			* spell day: R < c; break day: R >= c; missing days end runs.
+			* D3: leading/trailing spells count from the first/last OBSERVED day.
+			* D4: with >= 2 break days, mid spell = longest run strictly between
+			*     the first and last break day; with 0-1 break days, longest run
+			*     of observed spell days anywhere in the window.
+			tempvar nbreak first_b last_b started active run
+			quietly gen int `nbreak' = 0
+			quietly gen int `first_b' = .
+			quietly gen int `last_b' = .
 			local d_idx = 1
 			foreach f of local var {
-				quietly replace `first_rain_idx' = `d_idx' if missing(`first_rain_idx') & !missing(`f') & `f' >= `rain_threshold'
-				quietly replace `last_rain_idx' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `nbreak' = `nbreak' + 1 if !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `first_b' = `d_idx' if missing(`first_b') & !missing(`f') & `f' >= `rain_threshold'
+				quietly replace `last_b' = `d_idx' if !missing(`f') & `f' >= `rain_threshold'
 				local d_idx = `d_idx' + 1
 			}
-			
+
 			quietly gen dry_start_`j' = 0
 			quietly gen dry_end_`j' = 0
 			quietly gen dry_`j' = 0
-			
-			tempvar dstart_flag dend_flag mid_run
-			quietly gen byte `dstart_flag' = 1
-			quietly gen byte `dend_flag' = 1
-			quietly gen int `mid_run' = 0
-			
+
+			* leading spell + mid spell, forward pass
+			quietly gen byte `started' = 0
+			quietly gen byte `active' = 1
+			quietly gen int `run' = 0
 			local d_idx = 1
 			foreach f of local var {
-				quietly replace dry_start_`j' = dry_start_`j' + 1 if `dstart_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `dstart_flag' = 0 if `dstart_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
-				
-				quietly replace `mid_run' = `mid_run' + 1 if !missing(`first_rain_idx') & !missing(`last_rain_idx') & `d_idx' > `first_rain_idx' & `d_idx' < `last_rain_idx' & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `mid_run' = 0 if missing(`f') | (`f' >= `rain_threshold' & !missing(`f'))
-				quietly replace dry_`j' = max(dry_`j', `mid_run')
-				
+				quietly replace dry_start_`j' = dry_start_`j' + 1 if `active' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 0 if `active' == 1 & ((`started' == 1 & missing(`f')) | (!missing(`f') & `f' >= `rain_threshold'))
+				quietly replace `started' = 1 if !missing(`f')
+
+				quietly replace `run' = cond(!missing(`f') & `f' < `rain_threshold' & (`nbreak' < 2 | (`d_idx' > `first_b' & `d_idx' < `last_b')), `run' + 1, 0)
+				quietly replace dry_`j' = max(dry_`j', `run')
 				local d_idx = `d_idx' + 1
 			}
-			
+
+			* trailing spell, backward pass
+			quietly replace `started' = 0
+			quietly replace `active' = 1
 			local rev_var ""
 			foreach f of local var {
 				local rev_var "`f' `rev_var'"
 			}
 			foreach f of local rev_var {
-				quietly replace dry_end_`j' = dry_end_`j' + 1 if `dend_flag' == 1 & !missing(`f') & `f' < `rain_threshold'
-				quietly replace `dend_flag' = 0 if `dend_flag' == 1 & (missing(`f') | `f' >= `rain_threshold')
+				quietly replace dry_end_`j' = dry_end_`j' + 1 if `active' == 1 & !missing(`f') & `f' < `rain_threshold'
+				quietly replace `active' = 0 if `active' == 1 & ((`started' == 1 & missing(`f')) | (!missing(`f') & `f' >= `rain_threshold'))
+				quietly replace `started' = 1 if !missing(`f')
 			}
-			
+
 			quietly replace dry_start_`j' = . if `observed_days' == 0
 			quietly replace dry_end_`j' = . if `observed_days' == 0
 			quietly replace dry_`j' = . if `observed_days' == 0
-			
-			label var dry_start_`j' "Leading dry spell at start of season in `j'"
-			label var dry_end_`j' "Trailing dry spell at end of season in `j'"
-			label var dry_`j' "Longest mid-season dry spell in `j'"
+
+			label var dry_start_`j' "Leading dry spell at start of window in `j'"
+			label var dry_end_`j' "Trailing dry spell at end of window in `j'"
+			label var dry_`j' "Longest mid-window dry spell in `j'"
 			local created_vars "`created_vars' dry_start_`j' dry_end_`j' dry_`j'"
-			quietly drop `first_rain_idx' `last_rain_idx' `dstart_flag' `dend_flag' `mid_run'
+			quietly drop `nbreak' `first_b' `last_b' `started' `active' `run'
 		}
 
 		local deviation ""
@@ -590,6 +671,10 @@ version 15.1
 			local deviation "gdd kdd"
 		}
 
+		* P2: rolling baseline over the strictly earlier windows t-L ... t-1.
+		* dev_/z_ exist when at least ref_min() earlier windows exist; for each
+		* unit they are missing unless >= ref_min() of those windows are
+		* nonmissing (default ref_min = lr_years: all L windows required).
 		foreach v of local deviation {
 			capture confirm numeric variable `v'_`j'
 			if _rc == 0 {
@@ -602,18 +687,20 @@ version 15.1
 				}
 
 				local wordcount : word count `pvars'
-				if `wordcount' == `lr_years' {
-					tempvar aux_mean aux_sd
-					quietly egen `aux_mean' = rowmean(`pvars')
-					quietly egen `aux_sd' = rowsd(`pvars')
+				if `wordcount' >= `ref_min' {
+					tempvar aux_mean aux_sd aux_n
+					quietly egen double `aux_mean' = rowmean(`pvars')
+					quietly egen double `aux_sd' = rowsd(`pvars')
+					quietly egen `aux_n' = rownonmiss(`pvars')
 
-					quietly gen dev_`v'_`j' = `v'_`j' - `aux_mean'
+					quietly gen dev_`v'_`j' = `v'_`j' - `aux_mean' if `aux_n' >= `ref_min'
 					label var dev_`v'_`j' "Deviation in `v' from `lr_years' yr avg"
 					local created_vars "`created_vars' dev_`v'_`j'"
 
-					quietly gen z_`v'_`j' = (`v'_`j' - `aux_mean') / `aux_sd'
+					quietly gen z_`v'_`j' = (`v'_`j' - `aux_mean') / `aux_sd' if `aux_n' >= `ref_min' & `aux_sd' > 0
 					label var z_`v'_`j' "Z-score of `v' from `lr_years' yr avg"
 					local created_vars "`created_vars' z_`v'_`j'"
+					quietly drop `aux_mean' `aux_sd' `aux_n'
 				}
 			}
 		}

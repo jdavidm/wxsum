@@ -31,7 +31,7 @@ gen rf_20200102 = cond(hhid == 1, 2, 0)
 gen rf_20200201 = cond(hhid == 1, ., 0)
 gen rf_20200202 = cond(hhid == 1, .5, 4)
 
-wxsum rf_, ini_month(01) fin_month(02) ini_day(01) fin_day(02) type(rain) rain_threshold(1) lr_years(2)
+wxsum rf_, ini_month(01) fin_month(02) ini_day(01) fin_day(02) type(rain) rain_threshold(1) lr_years(2) shape(wide)
 
 assert abs(total_2020 - cond(hhid == 1, 2.5, 7)) < 1e-6
 assert abs(mean_2020 - cond(hhid == 1, 2.5 / 3, 7 / 4)) < 1e-6
@@ -55,7 +55,7 @@ replace rf_20200101 = 5 if hhid == 2
 replace rf_20210101 = 5 if hhid == 2
 replace rf_20220101 = 5 if hhid == 2
 
-wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) lr_years(2)
+wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) lr_years(2) shape(wide)
 
 assert total_2022 == cond(hhid == 1, 50, 5)
 assert abs(dev_total_2022 - cond(hhid == 1, 35, 0)) < 1e-6
@@ -78,7 +78,7 @@ forvalues d = `=td(30nov2021)'/`=td(02jan2022)' {
 	}
 }
 
-wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) type(temp) gdd_lo(8) gdd_hi(32) kdd_base(18) lr_years(2)
+wxsum tmp_, ini_month(11) fin_month(01) ini_day(30) fin_day(02) type(temp) gdd_lo(8) gdd_hi(32) heat_threshold(18) lr_years(2) shape(wide)
 
 confirm variable mean_2021
 capture confirm variable mean_2022
@@ -105,10 +105,10 @@ replace tmp_20200102 = 20 if hhid == 1
 replace tmp_20200103 = 30 if hhid == 1
 replace tmp_20200104 = 40 if hhid == 1
 
-replace tmp_20200101 = 50 if hhid == 2
-replace tmp_20200102 = 60 if hhid == 2
-replace tmp_20200103 = 70 if hhid == 2
-replace tmp_20200104 = 80 if hhid == 2
+replace tmp_20200101 = 150 if hhid == 2
+replace tmp_20200102 = 160 if hhid == 2
+replace tmp_20200103 = 170 if hhid == 2
+replace tmp_20200104 = 180 if hhid == 2
 
 replace tmp_20200101 = 5 if hhid == 3
 replace tmp_20200102 = 5 if hhid == 3
@@ -125,10 +125,10 @@ replace tmp_20210102 = 25 if hhid == 1
 replace tmp_20210103 = 25 if hhid == 1
 replace tmp_20210104 = 25 if hhid == 1
 
-replace tmp_20210101 = 50 if hhid == 2
-replace tmp_20210102 = 50 if hhid == 2
-replace tmp_20210103 = 50 if hhid == 2
-replace tmp_20210104 = 50 if hhid == 2
+replace tmp_20210101 = 100 if hhid == 2
+replace tmp_20210102 = 100 if hhid == 2
+replace tmp_20210103 = 100 if hhid == 2
+replace tmp_20210104 = 100 if hhid == 2
 
 replace tmp_20210101 = 0 if hhid == 3
 replace tmp_20210102 = 0 if hhid == 3
@@ -142,7 +142,7 @@ replace tmp_20210104 = 0 if hhid == 3
 * auto hi: ceil(400/100)=4, 0+4*100=400, but 400>=400 so push to 5*100=500
 * Categories: 1=[0,100), 2=[100,200), 3=[200,300), 4=[300,400), 5=[400,500)
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(100) gdd_bin(100) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(04) type(temp) heat_threshold(30) kdd_base(0) gdd_lo(0) gdd_hi(100) gdd_bin(100) lr_years(2) shape(wide)
 
 confirm variable gddcat_2020
 confirm variable gddcat_2021
@@ -173,27 +173,25 @@ gen source_note = 999
 gen tmp_20300101 = 12
 gen tmp_20300102 = 18
 
-wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2)
+wxsum tmp_, ini_month(01) fin_month(01) ini_day(01) fin_day(02) type(temp) heat_threshold(32) kdd_base(0) gdd_lo(0) gdd_hi(32) keep(hhid) lr_years(2) shape(wide)
 
 confirm variable hhid
 confirm variable gdd_2030
 capture confirm variable source_note
 assert _rc != 0
-capture confirm variable kdd_2030
-assert _rc != 0
+confirm variable kdd_2030
 
 display "6. invalid option combinations fail before generating outputs"
 clear
 set obs 1
 gen rf_20200101 = 1
-capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10)
+capture noisily wxsum rf_, ini_month(01) fin_month(01) ini_day(01) fin_day(01) type(rain) type(temp) heat_threshold(30) kdd_base(0) gdd_lo(0) gdd_hi(10)
 _assert_rc _rc 198 "type(rain) and type(temp) kdd_base(0) cannot be used together"
 
 clear
 set obs 1
 gen tmp_20200101 = 1
-capture noisily wxsum tmp_, ini_month(02) fin_month(02) ini_day(30) fin_day(30) type(temp) kdd_base(0) gdd_lo(0) gdd_hi(10)
+capture noisily wxsum tmp_, ini_month(02) fin_month(02) ini_day(30) fin_day(30) type(temp) heat_threshold(30) kdd_base(0) gdd_lo(0) gdd_hi(10)
 _assert_rc _rc 198 "invalid calendar day is rejected"
 
 display as result "All synthetic release validation checks passed."
-exit, clear

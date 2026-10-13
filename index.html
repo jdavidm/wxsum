@@ -4,125 +4,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>wxsum - A command for processing temperature and precipitation data</title>
+    <title>wxsum 6.0 - Processing Temperature and Precipitation Data in Stata</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 800px;
+            color: #24292e;
+            max-width: 860px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 30px 20px;
         }
 
-        h1,
-        h2,
-        h3 {
-            color: #24292e;
+        h1, h2, h3 {
+            color: #1a1f2c;
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 8px;
+        }
+
+        h1 {
+            border-bottom: 2px solid #0366d6;
         }
 
         code {
             background-color: #f6f8fa;
             padding: 0.2em 0.4em;
-            border-radius: 3px;
+            border-radius: 4px;
             font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 85%;
+            font-size: 88%;
+            color: #d73a49;
         }
 
         pre {
             background-color: #f6f8fa;
+            border: 1px solid #e1e4e8;
             padding: 16px;
-            overflow: auto;
-            border-radius: 3px;
+            overflow-x: auto;
+            border-radius: 6px;
+            line-height: 1.45;
         }
 
         pre code {
             background-color: transparent;
             padding: 0;
+            color: #24292e;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #0366d6;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 80%;
+            font-weight: 600;
+            margin-right: 6px;
         }
 
         .header {
-            border-bottom: 1px solid #eaecef;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        ul {
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-left: 4px solid #0366d6;
+            padding: 12px 18px;
+            margin: 18px 0;
+            border-radius: 0 4px 4px 0;
         }
     </style>
 </head>
 
 <body>
     <div class="header">
-        <h1>wxsum</h1>
-        <p>A command for processing temperature and precipitation data.</p>
+        <h1>wxsum <span class="badge">v6.0</span></h1>
+        <p>A fast, Mata-powered Stata command for transforming remote-sensing weather data into seasonal and exposure-window statistics.</p>
     </div>
 
-    <h2>Overview</h2>
-    <p>The <code>wxsum</code> package processes remote sensing rainfall and temperature data, generating summary
-        statistics across user-defined seasons. Seasons may fall within one calendar year or span two calendar years;
-        cross-year output is labeled with the year the season starts.</p>
+    <div class="card">
+        <strong>New in Version 6.0:</strong> Inline compiled Mata engine for 10x–100x performance gains, unit-specific exposure windows (e.g., household-level planting dates), panel-ready long format by default, extreme heat metrics, and the official data-preparation companion command <code>wxprep</code>.
+    </div>
 
-    <h2>Data Requirements</h2>
-    <p>The command can be used with either rainfall or temperature data from any source. The only requirements are that:
-    </p>
-    <ol>
-        <li>The data is "wide," meaning each location is a row and each column is a rainfall or temperature reading from
-            a different day.</li>
-        <li>The data is measured daily.</li>
-        <li>The variable names for each daily column use the supplied prefix followed by <code>yyyymmdd</code>, such as
-            <code>rf_19790515</code>.
-        </li>
-    </ol>
+    <h2>Installation</h2>
+    <p>Install directly from GitHub into Stata:</p>
+    <pre><code>net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/") replace</code></pre>
 
-    <h2>Syntax</h2>
-    <pre><code>wxsum stubname, type(rain|temp) ini_month(month) fin_month(month) [options]</code></pre>
-
-    <h3>Options</h3>
+    <h2>Overview & Capabilities</h2>
+    <p><code>wxsum</code> processes daily precipitation and temperature series to compute agricultural degree days, heat and dry spell durations, threshold counts, and rolling historical anomalies:</p>
     <ul>
-        <li><code>type(rain|temp)</code> - Specify that the data is either rainfall or temperature data.</li>
-        <li><code>ini_month(month)</code> - Initial month of the season.</li>
-        <li><code>fin_month(month)</code> - Final month of the season.</li>
-        <li><code>ini_day(day)</code> / <code>fin_day(day)</code> - Start and end day of the season.</li>
-        <li><code>lr_years(#)</code> - Number of preceding years for rolling deviations and z-scores. Default is 10.
-        </li>
-        <li><code>rain_threshold(#)</code> - Rainfall threshold for rainy-day and dry-spell calculations. Default is 1.
-        </li>
-        <li><code>gdd_lo(#)</code> / <code>gdd_hi(#)</code> - Bounds for capped growing degree day accumulation.</li>
-        <li><code>kdd_base(#)</code> - Temperature threshold for killing degree days.</li>
-        <li><code>gdd_bin(#)</code> - Width of fixed-interval seasonal GDD categories. Creates <code>gddcat_YEAR</code>
-            variables.</li>
-        <li><code>gdd_binlo(#)</code> - Lower endpoint for regular GDD intervals. Default 0.</li>
-        <li><code>gdd_binhi(#)</code> - Upper endpoint for regular GDD intervals; values at or above are top-coded.</li>
-        <li><code>tmp_bin(#)</code> - Total number of daily temperature bin count variables to create per season.
-            Creates <code>tmpbinXX_YEAR</code> variables.</li>
-        <li><code>tmp_binlo(#)</code> / <code>tmp_binhi(#)</code> - Lower and upper bounds for temperature bin
-            construction.</li>
-        <li><code>shape(wide|long)</code> - Shape of the final output. Default is wide.</li>
-        <li><code>keep(varlist)</code> - Keep created variables and specified existing variables.</li>
-        <li><code>save(filename)</code> - Save dataset as filename.</li>
+        <li><strong>Dual Analytical Modes:</strong> Calendar Window Mode for standard cropping seasons and Unit-Specific Window Mode for individual-level exposure periods.</li>
+        <li><strong>Long Format Output by Default:</strong> Automatically outputs one observation per unit-year (<code>shape(long)</code>) ready for panel regressions.</li>
+        <li><strong>Extreme Heat Physiology:</strong> Captures extreme heat using <code>heat_threshold(#)</code>, calculating <code>heatdays</code>, <code>pct_heatdays</code>, leading/mid/trailing heat spells, and Killing Degree Days (<code>kdd</code>).</li>
+        <li><strong>Historical Anomalies:</strong> Generates deviations (<code>dev_</code>) and standardized z-scores (<code>z_</code>) against rolling windows (<code>lr_years(#)</code>) or fixed reference baselines (<code>baseline(y1 y2)</code>).</li>
+        <li><strong>Companion Prep Command:</strong> Use <code>wxprep</code> for reshaping long weather data to wide (<code>towide</code>), standardizing variables (<code>rename</code>), and extracting long panels (<code>tolong</code>).</li>
     </ul>
 
-    <h2>Examples</h2>
+    <h2>Syntax</h2>
+    <h3>Calendar Window Mode</h3>
+    <pre><code>wxsum stub, type(rain|temp) ini_month(month) fin_month(month) [options]</code></pre>
 
-    <h3>Rainfall Example</h3>
-    <p>Process rainfall data in the bundled sample dataset:</p>
-    <pre><code>use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)</code></pre>
+    <h3>Unit-Specific Exposure Window Mode</h3>
+    <pre><code>wxsum stub, type(rain|temp) start(varname) end(varname) [options]
+wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) options]</code></pre>
 
-    <h3>Temperature Example</h3>
-    <p>Process temperature data for a season that crosses a calendar year (November to February):</p>
-    <pre><code>use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid)</code></pre>
+    <h3>Companion Prep Command (wxprep)</h3>
+    <pre><code>wxprep towide varname, id(varlist) date(varname) stub(string) [options]
+wxprep rename varlist, stub(string) firstdate(string)
+wxprep tolong stub, id(varlist) [generate(varname) date(varname) clear]</code></pre>
 
-    <h3>GDD Categories Example</h3>
-    <p>Create seasonal GDD categories:</p>
-    <pre><code>use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) gdd_binlo(50) gdd_binhi(950) keep(hhid)</code></pre>
+    <h2>Quick Examples</h2>
+    <pre><code>* 1. Seasonal rainfall summary (long output)
+use rain.dta, clear
+wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) keep(hhid)
 
-    <h3>Daily Temperature Bin Counts Example</h3>
-    <pre><code>use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid)</code></pre>
+* 2. Cross-year temperature degree days and heat spells
+use temp.dta, clear
+wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) heat_threshold(32) keep(hhid)
+
+* 3. Household-specific planting date window (90 days)
+wxsum rf_, type(rain) event_date(plant_date) days(90) lr_years(5) keep(hhid plant_date)</code></pre>
 
     <h2>Authors</h2>
-    <p>Jeffrey D. Michler, Anna Josepshon, Oscar Barriga Cabanillas, Aleksandr Michuda, Jeffrey C. Oliver
+    <p>
+        Jeffrey D. Michler (University of Arizona)<br>
+        Anna Josephson (University of Arizona)<br>
+        Oscar Barriga-Cabanillas (World Bank)<br>
+        Aleksandr Michuda (Swarthmore College)<br>
+        Jeffrey C. Oliver (University of Arizona)
     </p>
 </body>
 
