@@ -49,7 +49,8 @@ forvalues i = 1/`n_cfg' {
 	if `t`i'_1' > 2 local ++n_slow
 }
 
-* wxprep on the long sample (76,700 observations)
+* wxprep on the long sample (76,700 observations): towide, tolong, and
+* rename of all 7,670 daily variables
 use examples/rain_long.dta, clear
 timer clear 2
 timer on 2
@@ -57,6 +58,27 @@ quietly wxprep towide rain, id(hhid) date(date) stub(rf_)
 timer off 2
 quietly timer list 2
 local tp = r(t2)
+timer clear 3
+timer on 3
+quietly wxprep tolong rf_, id(hhid) generate(rain) clear
+timer off 3
+quietly timer list 3
+local tl = r(t3)
+use rain.dta, clear
+quietly ds rf_*
+local old `r(varlist)'
+local k : word count `old'
+local new ""
+forvalues i = 1/`k' {
+	local new "`new' d`i'"
+}
+rename (`old') (`new')
+timer clear 4
+timer on 4
+quietly wxprep rename d1-d`k', stub(rf_) firstdate(01jan2003)
+timer off 4
+quietly timer list 4
+local tr = r(t4)
 
 di as text _n "{hline 78}" _n "wxsum run times in seconds (Stata " c(stata_version) ", " c(processors) " processor(s))" _n "{hline 78}"
 di as text %-62s "configuration" %8s "10 obs" %8s "1,000" %8s "10,000"
@@ -65,6 +87,8 @@ forvalues i = 1/`n_cfg' {
 	di as text %-62s `"`lab'"' as result %8.2f `t`i'_1' %8.2f `t`i'_100' %8.2f `t`i'_1000'
 }
 di as text %-62s "wxprep towide, 76,700 daily observations" as result %8.2f `tp'
+di as text %-62s "wxprep tolong, 10 x 7,670 daily variables" as result %8.2f `tl'
+di as text %-62s "wxprep rename, 7,670 daily variables" as result %8.2f `tr'
 di as text "{hline 78}"
 if `n_slow' {
 	di as error "`n_slow' bundled example(s) took more than 2 seconds"

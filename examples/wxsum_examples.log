@@ -2,7 +2,7 @@
       name:  wxsum_examples
        log:  C:\Users\aljos\git\wxsum\examples/wxsum_examples.log
   log type:  text
- opened on:  11 Oct 2026, 17:57:14
+ opened on:  14 Oct 2026, 10:26:49
 
 . 
 . set maxvar 20000
@@ -96,7 +96,7 @@ r(missing)[21,5]
 
 Contains data from examples/rainfall_stats.dta
  Observations:           210                  
-    Variables:            32                  11 Oct 2026 17:57
+    Variables:            32                  14 Oct 2026 10:26
 Sorted by: 
 
 . list hhid year nobs total raindays dry_start dry dry_end in 1/5, abbreviate(9) noobs
@@ -431,7 +431,7 @@ wxsum summary
   Output:        one row per observation, 10 rows; 30 variables created
   Reference:     rolling 10 years before each window, ref_min(10); deviations for 10 observations
   Missing data:  0 of 10 unit-windows have missing days; 0 have no data; 0 below minobs(1)
-                 0 unit-windows outside the data; 0 with missing dates
+                 0 unit-windows run past the data; 0 with missing dates
   Stored results: type return list
 
 . list hhid plant harvest nobs total dry z_total, noobs
@@ -469,7 +469,7 @@ wxsum summary
   Output:        one row per observation, 10 rows; 28 variables created
   Reference:     rolling 10 years before each window, ref_min(10); deviations for 10 observations
   Missing data:  0 of 10 unit-windows have missing days; 0 have no data; 0 below minobs(1)
-                 0 unit-windows outside the data; 0 with missing dates
+                 0 unit-windows run past the data; 0 with missing dates
   Stored results: type return list
 
 . list hhid birth nobs mean max heatdays heat, noobs
@@ -604,33 +604,31 @@ corr(u_i, Xb) = -0.0334                         Prob > F          =     0.0000
          rho |  .52684572   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
-. regress yield z_total i.hhid if !missing(z_total), vce(cluster hhid)
+. * the rainfall z-score (seasons with 10 earlier seasons, 2013-2023)
+. xtreg yield z_total, fe vce(cluster hhid)
 
-Linear regression                               Number of obs     =        110
-                                                F(0, 9)           =          .
-                                                Prob > F          =          .
-                                                R-squared         =     0.7900
-                                                Root MSE          =     .19671
+Fixed-effects (within) regression               Number of obs     =        110
+Group variable: hhid                            Number of groups  =         10
+
+R-squared:                                      Obs per group:
+     Within  = 0.7413                                         min =         11
+     Between = 0.1364                                         avg =       11.0
+     Overall = 0.6022                                         max =         11
+
+                                                F(1, 9)           =     392.43
+corr(u_i, Xb) = 0.0006                          Prob > F          =     0.0000
 
                                   (Std. err. adjusted for 10 clusters in hhid)
 ------------------------------------------------------------------------------
              |               Robust
        yield | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
 -------------+----------------------------------------------------------------
-     z_total |   .2004423   .0105683    18.97   0.000     .1765353    .2243494
-             |
-        hhid |
-        102  |   .1677622   .0000221  7582.66   0.000     .1677122    .1678123
-        103  |  -.3338333   .0000104 -3.2e+04   0.000    -.3338568   -.3338098
-        104  |   .1961667   .0000104  1.9e+04   0.000     .1961432    .1961902
-        105  |  -.0879568   .0000361 -2438.75   0.000    -.0880384   -.0878752
-        106  |  -.0534381   .0000105 -5112.13   0.000    -.0534618   -.0534145
-        107  |  -.2124509   .0000334 -6368.39   0.000    -.2125264   -.2123755
-        108  |  -.3651145   .0000659 -5543.89   0.000    -.3652635   -.3649656
-        109  |  -.0254702   8.23e-07 -3.1e+04   0.000     -.025472   -.0254683
-        110  |  -.0557985   .0000298 -1872.65   0.000    -.0558659   -.0557311
-             |
-       _cons |   2.391425   .0051079   468.18   0.000      2.37987     2.40298
+     z_total |   .2004423   .0101183    19.81   0.000     .1775531    .2233316
+       _cons |   2.314412   .0048898   473.31   0.000      2.30335    2.325473
+-------------+----------------------------------------------------------------
+     sigma_u |  .18605791
+     sigma_e |  .19670871
+         rho |  .47219569   (fraction of variance due to u_i)
 ------------------------------------------------------------------------------
 
 . 
@@ -638,5 +636,5 @@ Linear regression                               Number of obs     =        110
       name:  wxsum_examples
        log:  C:\Users\aljos\git\wxsum\examples/wxsum_examples.log
   log type:  text
- closed on:  11 Oct 2026, 17:57:18
+ closed on:  14 Oct 2026, 10:26:51
 ----------------------------------------------------------------------------------------------------

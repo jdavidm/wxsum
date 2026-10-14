@@ -7,6 +7,9 @@
 *   D6  heat_threshold() is required for type(temp); kdd_base() overrides KDD
 *   D1  long output is the default
 *   save(filename [, replace]) does not overwrite without replace
+* and the calendar rules: days without a daily variable are missing days,
+* a season with no daily variable is a window with no observed day, and
+* 29 February in ini_day()/fin_day() is 28 February in common years.
 * Run from the repository root.
 clear all
 set more off
@@ -194,5 +197,71 @@ wxsum rf_, type(rain) ini_month(1) fin_month(1) fin_day(1) keep(id) save("`out'"
 use "`out'", clear
 confirm variable total
 di as result "PASS: 11"
+
+display "12. calendar days without a daily variable are missing days"
+* rain on 1 and 10 Jan, dry otherwise; there is no variable for 5 Jan
+clear
+set obs 1
+gen id = 1
+forvalues d = 1/10 {
+	gen rf_202001`=string(`d', "%02.0f")' = cond(inlist(`d', 1, 10), 5, 0)
+}
+drop rf_20200105
+tempfile gap
+quietly save `gap'
+wxsum rf_, type(rain) ini_month(1) fin_month(1) fin_day(10) keep(id)
+* the missing day ends the dry run: runs of 3 (2-4 Jan) and 4 (6-9 Jan)
+assert nobs == 9 & dry == 4
+matrix M = r(missing)
+assert M[1, colnumb(M, "days")] == 10 & M[1, colnumb(M, "any_missing")] == 1
+* the same with a unit-specific window
+use `gap', clear
+gen s = td(01jan2020)
+gen e = td(10jan2020)
+wxsum rf_, type(rain) start(s) end(e) keep(id)
+assert nobs == 9 & dry == 4
+di as result "PASS: 12"
+
+display "13. a season without any daily variable is a window with no observed day"
+clear
+set obs 2
+gen id = _n
+foreach y in 2017 2018 2019 2021 2022 {
+	forvalues d = 1/3 {
+		gen rf_`y'010`d' = id * (`y' - 2015)
+	}
+}
+* no variables for 2020: it is a window with nobs = 0, not a missing window
+wxsum rf_, type(rain) ini_month(1) fin_month(1) fin_day(3) lr_years(3) ref_min(2) keep(id)
+assert r(n_windows) == 6
+assert "`r(years)'" == "2017 2018 2019 2020 2021 2022"
+assert nobs == 0 & missing(total) & missing(mean) & missing(dry) if year == 2020
+matrix M = r(missing)
+assert M[4, colnumb(M, "mean_nobs")] == 0 & M[4, colnumb(M, "all_missing")] == 1
+* 2021 is compared with 2018 and 2019 only: id 1 totals 9 and 12
+assert abs(dev_total - (18 - 10.5)) < 1e-6 if year == 2021 & id == 1
+di as result "PASS: 13"
+
+display "14. 29 February in ini_day() or fin_day() is 28 February in common years"
+clear
+set obs 1
+gen id = 1
+foreach y in 2019 2020 2021 {
+	forvalues d = `=mdy(2, 25, `y')'/`=mdy(3, 2, `y')' {
+		gen rf_`y'`=string(month(`d'), "%02.0f")'`=string(day(`d'), "%02.0f")' = 1
+	}
+}
+tempfile feb
+quietly save `feb'
+wxsum rf_, type(rain) ini_month(2) ini_day(27) fin_month(2) fin_day(29) keep(id)
+* every year has a window: 27-28 Feb in 2019 and 2021, 27-29 Feb in 2020
+assert r(n_windows) == 3
+assert nobs == cond(year == 2020, 3, 2)
+use `feb', clear
+wxsum rf_, type(rain) ini_month(2) ini_day(29) fin_month(3) fin_day(2) keep(id)
+* 29 Feb - 2 Mar in 2020, 28 Feb - 2 Mar in common years
+assert r(n_windows) == 3
+assert nobs == 3
+di as result "PASS: 14"
 
 display as result "All wxsum v6 core checks passed."

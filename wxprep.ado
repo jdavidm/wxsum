@@ -1,4 +1,4 @@
-*! version 1.0.0  11oct2026
+*! version 1.0.0  14oct2026
 *********************************************************************************
 *  wxprep: prepares daily weather data for wxsum                               *
 *    wxprep towide  long data (one row per unit-day) -> wide wxsum layout      *
@@ -69,15 +69,12 @@ program define _wxprep_towide, rclass
 	}
 	quietly keep `id' `date' `value'
 
-	* missing identifiers are not allowed
+	* missing identifiers (numeric missing or empty strings) are not allowed
 	foreach v of local id {
-		capture confirm string variable `v'
-		if _rc {
-			quietly count if missing(`v')
-			if r(N) {
-				di as error "id() variable `v' is missing in `r(N)' observations"
-				exit 416
-			}
+		quietly count if missing(`v')
+		if r(N) {
+			di as error "id() variable `v' is missing in `r(N)' observations"
+			exit 416
 		}
 	}
 
@@ -164,8 +161,12 @@ program define _wxprep_towide, rclass
 		di as error "reload the data, and run wxprep again, or convert fewer days at a time with if or in."
 		exit 900
 	}
+	* the daily variables get the narrowest storage type that holds every
+	* value exactly, chosen in Mata (much faster than -compress- on thousands
+	* of variables); non-integer values keep float, or double if the input is
+	* double or long
 	local vtype : type `value'
-	local vtype = cond("`vtype'" == "double", "double", "float")
+	local vsrc = cond(inlist("`vtype'", "double", "long"), "double", "float")
 
 	* read the values into Mata, keep one row per unit, then write the
 	* daily variables
@@ -173,9 +174,8 @@ program define _wxprep_towide, rclass
 	quietly bysort `g': keep if _n == 1
 	quietly keep `id' `g'
 	sort `g'
-	mata: _wxprep_write("`stub'", `dmin', `dmax' - `dmin' + 1, ("`nofill'" == ""), "`vtype'")
+	mata: _wxprep_write("`stub'", `dmin', `dmax' - `dmin' + 1, ("`nofill'" == ""), "`vsrc'")
 	drop `g'
-	quietly compress `newvars'
 	restore, not
 
 	if `"`save_file'"' != "" quietly save `"`save_file'"', `save_replace'
@@ -301,7 +301,6 @@ program define _wxprep_tolong, rclass
 	format `date' %td
 	label variable `date' "Date"
 	sort `id' `date'
-	quietly compress `generate'
 	restore, not
 
 	di as text "wxprep tolong: " as result `n_units' as text " units x " as result `n_days' ///
@@ -357,6 +356,30 @@ end
 version 15.1
 mata:
 
+// The narrowest storage type that holds every value of X exactly: byte, int,
+// or long for integers in range, otherwise src (float or double).
+string scalar _wxprep_type(real matrix X, string scalar src)
+{
+	real scalar    j, lo, hi, any
+	real colvector v
+
+	lo = hi = .
+	any = 0
+	for (j = 1; j <= cols(X); j++) {
+		v = select(X[., j], X[., j] :< .)
+		if (rows(v) == 0) continue
+		any = 1
+		if (!all(v :== floor(v))) return(src)
+		lo = min((lo, min(v)))
+		hi = max((hi, max(v)))
+	}
+	if (!any) return("byte")
+	if (lo >= -127 & hi <= 100) return("byte")
+	if (lo >= -32767 & hi <= 32740) return("int")
+	if (lo >= -2147483647 & hi <= 2147483620) return("long")
+	return(src)
+}
+
 // towide, step 1: unit index g, day index t and value x, kept in Mata
 void _wxprep_read(string scalar gv, string scalar tv, string scalar xv)
 {
@@ -369,8 +392,9 @@ void _wxprep_read(string scalar gv, string scalar tv, string scalar xv)
 }
 
 // towide, step 2: one daily variable per date, written in blocks of days
+//   src: storage type for non-integer values (float or double)
 void _wxprep_write(string scalar stub, real scalar dmin, real scalar D,
-	real scalar fill, string scalar vtype)
+	real scalar fill, string scalar src)
 {
 	real matrix      A, W
 	real colvector   g, t, x, cp, o, v, sel
@@ -395,7 +419,7 @@ void _wxprep_write(string scalar stub, real scalar dmin, real scalar D,
 	for (k = 1; k <= nc; k++) {
 		names[k] = stub + strofreal(year(dts[k])) + strofreal(month(dts[k]), "%02.0f") + strofreal(day(dts[k]), "%02.0f")
 	}
-	(void) st_addvar(vtype, names)
+	(void) st_addvar(_wxprep_type(x, src), names)
 	// observations sorted by output column, so that each block is contiguous
 	cp = colpos[t]'
 	o = order(cp, 1)
@@ -418,7 +442,6 @@ void _wxprep_write(string scalar stub, real scalar dmin, real scalar D,
 		st_store(., names[|c0 \ c1|], W)
 		r0 = r1 + 1
 	}
-	st_local("newvars", invtokens(names))
 	st_local("first_var", names[1])
 	st_local("last_var", names[nc])
 }
@@ -512,8 +535,10 @@ void _wxprep_tolong_read(string scalar stub)
 	o = order(dates', 1)'
 	idx = idx[o]
 	dates = dates[o]
+	// non-integer values are stored as double if any daily variable is double
+	// or long (float cannot hold every long exactly), otherwise as float
 	dbl = 0
-	for (k = 1; k <= cols(idx); k++) dbl = dbl | (st_vartype(idx[k]) == "double")
+	for (k = 1; k <= cols(idx); k++) dbl = dbl | anyof(("double", "long"), st_vartype(idx[k]))
 	X = st_data(., idx)
 	p = findexternal("_wxprep_X")
 	if (p == NULL) p = crexternal("_wxprep_X")
@@ -526,8 +551,9 @@ void _wxprep_tolong_read(string scalar stub)
 }
 
 // tolong, step 2: one row per unit-day after -expand-
+//   src: storage type for non-integer values (float or double)
 void _wxprep_tolong_write(string scalar rowid, string scalar j, string scalar datev,
-	string scalar valv, string scalar vtype)
+	string scalar valv, string scalar src)
 {
 	real matrix    A, X
 	real rowvector dates
@@ -540,7 +566,7 @@ void _wxprep_tolong_write(string scalar rowid, string scalar j, string scalar da
 	ri = st_data(., rowid)
 	ji = st_data(., j)
 	(void) st_addvar("long", datev)
-	(void) st_addvar(vtype, valv)
+	(void) st_addvar(_wxprep_type(X, src), valv)
 	st_store(., datev, dates[ji]')
 	Xv = vec(X)
 	lin = (ji :- 1) :* rows(X) :+ ri

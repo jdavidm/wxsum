@@ -1,4 +1,4 @@
-*! version 6.0.0  11oct2026
+*! version 6.0.0  14oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -15,7 +15,7 @@
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
-*  v 6.0  11oct2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
+*  v 6.0  14oct2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *         Mata engine; long output by default; heat days and spells;           *
 *         unit-specific windows; fixed baselines; cuts(); r() results         *
 *********************************************************************************
@@ -411,7 +411,24 @@ program define wxsum, rclass
 		}
 	}
 
-	* number of distinct units identified by keep()
+	* ------------------------------------------------------------------
+	* Find the daily variables and windows, check every output name,
+	* and compute all statistics in Mata. The data are not changed here.
+	* ------------------------------------------------------------------
+	* window description stored in the characteristics
+	local window_char "`window_desc'"
+	if "`mode'" == "unit" & "`partial'" != "" local window_char "`window_desc', partial"
+
+	tempname missmat
+	mata: _wxsum_setup()
+	mata: _wxsum_compute()
+
+	* ------------------------------------------------------------------
+	* Write the output. Everything after -preserve- is undone if
+	* anything fails, so the data in memory change only on success.
+	* ------------------------------------------------------------------
+	preserve
+	* number of distinct units identified by keep() (the row order is kept)
 	local N_units = .
 	if "`keep'" != "" {
 		tempvar obsno unit_tag
@@ -422,20 +439,6 @@ program define wxsum, rclass
 		sort `obsno'
 		drop `obsno' `unit_tag'
 	}
-
-	* ------------------------------------------------------------------
-	* Find the daily variables and windows, check every output name,
-	* and compute all statistics in Mata. The data are not changed here.
-	* ------------------------------------------------------------------
-	tempname missmat
-	mata: _wxsum_setup()
-	mata: _wxsum_compute()
-
-	* ------------------------------------------------------------------
-	* Write the output. Everything after -preserve- is undone if
-	* anything fails, so the data in memory change only on success.
-	* ------------------------------------------------------------------
-	preserve
 	if "`mode'" == "calendar" & "`shape'" == "long" {
 		tempvar rowid wid
 		quietly gen long `rowid' = _n
@@ -458,8 +461,16 @@ program define wxsum, rclass
 		order `keep' `created'
 	}
 	quietly compress `created'
+	* metadata that survive -save- (each variable also has [wxsum_stat] and
+	* [wxsum_window])
 	char _dta[wxsum_cmdline] `"`cmdline'"'
 	char _dta[wxsum_version] "6.0.0"
+	char _dta[wxsum_type] "`type'"
+	char _dta[wxsum_shape] "`=cond("`mode'" == "unit", "unit", "`shape'")'"
+	char _dta[wxsum_window] "`window_char'"
+	char _dta[wxsum_ref] "`ref_desc', ref_min(`ref_min')"
+	char _dta[wxsum_thresholds] "`thr_desc'"
+	char _dta[wxsum_minobs] "`minobs'"
 	restore, not
 
 	if `"`save_file'"' != "" {
@@ -503,7 +514,9 @@ program define wxsum, rclass
 		as text " unit-windows have missing days; " as result "`n_allmiss'" as text " have no data; " ///
 		as result "`n_below'" as text " below minobs(`minobs')"
 	if "`mode'" == "unit" {
-		di as text "                 " as result "`n_outside'" as text " unit-windows outside the data; " ///
+		local how ""
+		if `n_outside' local how = cond("`partial'" != "", " (computed from the days inside the data)", " (statistics missing; see partial)")
+		di as text "                 " as result "`n_outside'" as text " unit-windows run past the data`how'; " ///
 			as result "`n_missdate'" as text " with missing dates"
 	}
 	if `"`save_file'"' != "" di as text `"  Saved:         `save_file'"'
@@ -588,7 +601,7 @@ struct _wx_state {
 	real matrix      GC
 	real colvector   gcvals
 	string colvector gctexts
-	string scalar    vlname, refdesc, vname
+	string scalar    vlname, refdesc, vname, wdesc
 	real scalar      has_dev
 	// output variables
 	string rowvector onames, otypes, olabels, ostems, owins
@@ -669,6 +682,7 @@ void _wxsum_setup()
 	S.gbhi     = strtoreal(st_local("gdd_binhi"))
 	S.vlname   = S.outstub + "gddcat"
 	S.unitkind = st_local("unit_kind")
+	S.wdesc    = st_local("window_char")
 
 	_wx_discover(S)
 	if (S.mode == "calendar") _wx_calwindows(S)
@@ -743,15 +757,17 @@ void _wx_calwindows(struct _wx_state scalar S)
 	y2 = year(S.d2)
 	for (y = y1; y <= y2; y++) {
 		ey = y + S.crosses
+		// 29 February in ini_day()/fin_day() is 28 February in common years
+		// (max() ignores the missing date)
 		if (S.deffin) {
 			if (S.fin_m == 12) ed = mdy(12, 31, ey)
 			else ed = mdy(S.fin_m + 1, 1, ey) - 1
 		}
-		else ed = mdy(S.fin_m, S.fin_d, ey)
-		sd = mdy(S.ini_m, S.ini_d, y)
-		if (sd >= . | ed >= .) continue
+		else ed = max((mdy(S.fin_m, S.fin_d, ey), mdy(S.fin_m, S.fin_d - 1, ey)))
+		sd = max((mdy(S.ini_m, S.ini_d, y), mdy(S.ini_m, S.ini_d - 1, y)))
+		// windows inside the dates of the data; days without a daily variable
+		// are missing days, so a window may have no observed day at all
 		if (sd < S.d1 | ed > S.d2) continue
-		if (sum(S.dmap[|sd - S.d1 + 1 \ ed - S.d1 + 1|] :> 0) == 0) continue
 		wy = wy \ y
 		ws = ws \ sd
 		we = we \ ed
@@ -860,14 +876,26 @@ void _wx_bins(struct _wx_state scalar S)
 }
 
 // Reference windows for each calendar window: qualifies if at least
-// ref_min() reference windows exist in the data.
+// ref_min() reference windows exist in the data. A baseline() that covers
+// fewer than ref_min() windows (calendar) or years (unit-specific) of the data
+// is an error.
 void _wx_reftable(struct _wx_state scalar S)
 {
-	real scalar w, nref
+	real scalar    w, nref
 	real colvector idx
+	real rowvector yrs
 
 	if (S.mode != "calendar") {
 		S.wqual = 1
+		if (S.refbase) {
+			yrs = (S.b1..S.b2)
+			nref = sum((yrs :>= year(S.d1)) :& (yrs :<= year(S.d2)))
+			if (nref < S.refmin) {
+				errprintf("baseline(%f %f) covers %f year(s) of the data, but ref_min() requires %f\n",
+					S.b1, S.b2, nref, S.refmin)
+				exit(198)
+			}
+		}
 		return
 	}
 	S.wqual = J(S.W, 1, 0)
@@ -992,19 +1020,20 @@ void _wx_names(struct _wx_state scalar S, real scalar superset)
 	K = cols(S.stems)
 	wide = (S.mode == "calendar" & S.shape == "wide")
 	if (S.mode == "calendar" & S.shape == "long") {
-		_wx_addout(S, "year", "int", "Window (season) start year", "year", "all", 5, 0, 0)
+		_wx_addout(S, "year", "int", "Window (season) start year", "year", S.wdesc, 5, 0, 0)
 	}
 	nw = (wide ? S.W : 1)
 	for (w = 1; w <= nw; w++) {
+		// ys: the window stored in [wxsum_window], with the year in wide output
 		if (wide) {
-			ys = strofreal(S.wyear[w])
-			sfx = "_" + ys
-			lsfx = ", " + ys
+			sfx = "_" + strofreal(S.wyear[w])
+			lsfx = ", " + strofreal(S.wyear[w])
+			ys = S.wdesc + " " + strofreal(S.wyear[w])
 		}
 		else {
-			ys = (S.mode == "calendar" ? "all" : "unit")
 			sfx = ""
 			lsfx = ""
+			ys = S.wdesc
 		}
 		for (k = 1; k <= K; k++) {
 			st = S.stems[k]
@@ -1104,7 +1133,7 @@ void _wxsum_compute()
 				r1 = min((N, r0 + chunk - 1))
 				nr = r1 - r0 + 1
 				X = J(nr, D, .)
-				X[., pres] = V[(r0::r1), cl[pres]]
+				if (cols(pres) > 0) X[., pres] = V[(r0::r1), cl[pres]]
 				R = _wx_core(X, J(nr, 1, S.wstart[w]), J(nr, 1, D), S)
 				for (k = 1; k <= K; k++) (*S.RP[k])[|r0, w \ r1, w|] = R[., k]
 			}
@@ -1387,7 +1416,8 @@ void _wx_unitcompute(struct _wx_state scalar S, real matrix V)
 		MISS[5] = sum(n[idx] :< S.minobs)
 	}
 	else MISS[(1..4)] = J(1, 4, .)
-	MISS[6] = sum((S.ustat :== 2) :& (n :>= .))
+	// windows that run past the data (with partial they use the days inside)
+	MISS[6] = sum(S.ustat :== 2)
 	MISS[7] = sum(S.ustat :== 0)
 	st_local("n_unitwin", strofreal(rows(idx)))
 	st_local("n_anymiss", strofreal(rows(idx) > 0 ? sum(n[idx] :< wl[idx]) : 0))

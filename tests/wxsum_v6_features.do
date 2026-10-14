@@ -155,6 +155,9 @@ assert abs(dev_total_2001 + 10) < 1e-6 if id == 1
 assert dev_total_2006 == 0 & missing(z_total_2006) if id == 2
 assert r(baseline_first) == 2001 & r(baseline_last) == 2003
 assert "`r(ref)'" == "baseline 2001-2003"
+* wide output: the window characteristic includes the year
+assert "`: char total_2006[wxsum_window]'" == "01jan-01jan 2006"
+assert "`: char _dta[wxsum_ref]'" == "baseline 2001-2003, ref_min(3)"
 local lab : variable label dev_total_2006
 assert "`lab'" == "Deviation of total from 2001-2003 baseline, 2006"
 di as result "PASS: 5"
@@ -228,12 +231,28 @@ assert year == 2012 & total == 3 if id == 1 & year == 2012
 * the first two windows have no reference years: deviations missing
 assert missing(dev_total) if year <= 2011
 assert !missing(dev_total) if year >= 2012
+* plan D14: no deviations or z-scores for the mean (exact: dev_mean would
+* otherwise abbreviate dev_mean_mo)
+capture confirm variable dev_mean, exact
+assert _rc != 0
+capture confirm variable z_mean, exact
+assert _rc != 0
 * storage types: counts are stored as integers
 local t : type nobs
 assert inlist("`t'", "byte", "int", "long")
-* characteristics
+* characteristics: each variable's statistic and window, and the settings of
+* the run on the dataset
 assert "`: char total[wxsum_stat]'" == "total"
+assert "`: char total[wxsum_window]'" == "01jun-02jun"
+assert "`: char year[wxsum_window]'" == "01jun-02jun"
 assert strpos(`"`: char _dta[wxsum_cmdline]'"', "wxsum rf_,") == 1
+assert "`: char _dta[wxsum_version]'" == "6.0.0"
+assert "`: char _dta[wxsum_type]'" == "rain"
+assert "`: char _dta[wxsum_shape]'" == "long"
+assert "`: char _dta[wxsum_window]'" == "01jun-02jun"
+assert "`: char _dta[wxsum_ref]'" == "rolling 2, ref_min(2)"
+assert "`: char _dta[wxsum_thresholds]'" == "rain_threshold(1)"
+assert "`: char _dta[wxsum_minobs]'" == "1"
 di as result "PASS: 8"
 
 display "9. continuous statistics use the default storage type (set type)"
@@ -329,6 +348,22 @@ gen tmp_20200101 = 20
 label define gddcat 1 "mine"
 capture noisily wxsum tmp_, type(temp) ini_month(1) fin_month(1) fin_day(1) gdd_lo(0) gdd_hi(30) heat_threshold(30) gdd_bin(5)
 _assert_rc _rc 110 "existing gddcat value label is rejected"
+* (e) with keep(), wxsum counts the distinct units; a failure afterwards still
+* leaves the values, the sort order, and the sort marker unchanged
+clear
+set obs 2
+gen id = 3 - _n
+_days rf_ 1 1 2 3
+_days rf_ 2 0 0 5
+gen mean = 1
+sort id
+quietly datasignature
+local sig1 "`r(datasignature)'"
+capture noisily wxsum rf_, type(rain) ini_month(1) fin_month(1) fin_day(3) keep(id mean)
+_assert_rc _rc 110 "a keep() variable with the name of an output is rejected"
+quietly datasignature
+assert "`r(datasignature)'" == "`sig1'"
+assert "`: sortedby'" == "id"
 di as result "PASS: 11"
 
 * ---------------------------------------------------------------------------
@@ -348,5 +383,68 @@ assert "`t1'" == "GDD [1000,1500)"
 assert g_gddcat == 3 if id == 1
 assert g_gddcat == 2 if id == 2
 di as result "PASS: 12"
+
+* ---------------------------------------------------------------------------
+display "13. the stored results match the help file, both ways"
+* names documented in wxsum.sthlp as {cmd:r(name)}
+local doc ""
+tempname fh
+file open `fh' using "wxsum.sthlp", read text
+file read `fh' line
+while r(eof) == 0 {
+	while regexm(`"`macval(line)'"', "[{]cmd:r[(]([A-Za-z_0-9]+)[)][}]") {
+		local nm = regexs(1)
+		local doc : list doc | nm
+		local line : subinstr local line "{cmd:r(`nm')}" "", all
+	}
+	file read `fh' line
+}
+file close `fh'
+* names returned by three runs that together use every kind of option
+local got ""
+clear
+set obs 2
+gen id = _n
+_days rf_ 1 1 2 3
+_days rf_ 2 0 0 5
+gen rf_20190101 = 1
+gen rf_20190102 = 0
+gen rf_20190103 = 2
+quietly wxsum rf_, type(rain) ini_month(1) fin_month(1) fin_day(3) lr_years(2) keep(id) outstub(o_)
+foreach t in scalars macros matrices {
+	local n : r(`t')
+	local got : list got | n
+}
+clear
+set obs 1
+gen id = 1
+forvalues y = 2018/2020 {
+	gen tmp_`y'0101 = 20 + `y' - 2018
+}
+quietly wxsum tmp_, type(temp) ini_month(1) fin_month(1) fin_day(1) gdd_lo(10) gdd_hi(30) heat_threshold(21) baseline(2018 2019) keep(id)
+foreach t in scalars macros matrices {
+	local n : r(`t')
+	local got : list got | n
+}
+clear
+set obs 1
+gen id = 1
+forvalues y = 2018/2020 {
+	gen rf_`y'0101 = `y' - 2017
+}
+gen s = td(01jan2020)
+gen e = td(01jan2020)
+quietly wxsum rf_, type(rain) start(s) end(e) lr_years(2) keep(id)
+foreach t in scalars macros matrices {
+	local n : r(`t')
+	local got : list got | n
+}
+local undocumented : list got - doc
+local notreturned : list doc - got
+di as text "documented: `doc'"
+di as text "returned:   `got'"
+assert "`undocumented'" == ""
+assert "`notreturned'" == ""
+di as result "PASS: 13"
 
 display as result "All wxsum v6 feature checks passed."

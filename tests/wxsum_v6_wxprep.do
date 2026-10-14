@@ -277,4 +277,96 @@ foreach v of varlist L_* {
 }
 di as result "PASS: 11"
 
+* ---------------------------------------------------------------------------
+display "12. tolong: ids not sorted and daily variables not in date order"
+clear
+set obs 3
+gen hhid = 4 - _n
+gen float rf_20200103 = 100 * hhid + 3
+gen float rf_20200101 = 100 * hhid + 1
+gen float rf_20200102 = 100 * hhid + 2
+wxprep tolong rf_, id(hhid) generate(rain) date(d) clear
+assert _N == 9
+assert rain == 100 * hhid + day(d)
+di as result "PASS: 12"
+
+display "13. exact round trips for double and long values; storage types"
+foreach t in double long {
+	clear
+	set obs 3
+	gen hhid = _n
+	if "`t'" == "double" {
+		gen double rf_20200101 = hhid / 3
+		gen double rf_20200102 = 2 / 3 + hhid
+	}
+	else {
+		* integers above 2^24, which a float cannot hold
+		gen long rf_20200101 = 20000001 + hhid
+		gen long rf_20200102 = 30000003
+	}
+	tempfile orig
+	quietly save `orig'
+	wxprep tolong rf_, id(hhid) generate(v) date(d) clear
+	assert "`: type v'" == "`t'"
+	wxprep towide v, id(hhid) date(d) stub(rf_) nofill clear
+	cf _all using `orig'
+	assert "`: type rf_20200101'" == "`t'"
+}
+* the daily variables get the narrowest type that holds every value exactly
+clear
+set obs 4
+gen id = 1 + (_n > 2)
+gen date = td(01jan2020) + mod(_n - 1, 2)
+format date %td
+gen float rain = cond(_n == 4, 300, _n)
+wxprep towide rain, id(id) date(date) stub(rf_) clear
+assert "`: type rf_20200101'" == "int" & "`: type rf_20200102'" == "int"
+assert rf_20200102 == 300 if id == 2
+clear
+set obs 2
+gen id = _n
+gen date = td(01jan2020)
+format date %td
+gen float rain = _n / 2
+wxprep towide rain, id(id) date(date) stub(rf_) clear
+assert "`: type rf_20200101'" == "float"
+assert rf_20200101 == 0.5 if id == 1
+di as result "PASS: 13"
+
+display "14. a failed towide leaves the data unchanged"
+* several readings on a day without daily(), after if
+clear
+input id date rain
+1 21915 1
+1 21915 2
+2 21915 3
+end
+format date %td
+quietly datasignature
+local sig "`r(datasignature)'"
+capture noisily wxprep towide rain if id == 1, id(id) date(date) stub(rf_) clear
+_assert_rc _rc 459 "two readings on one day need daily()"
+quietly datasignature
+assert "`r(datasignature)'" == "`sig'"
+* a stub that would make names longer than 32 characters
+capture noisily wxprep towide rain, id(id) date(date) stub(this_is_a_very_long_stub_x_) clear
+_assert_rc _rc 198 "a stub longer than 24 characters is rejected"
+quietly datasignature
+assert "`r(datasignature)'" == "`sig'"
+* an empty string id
+clear
+input str5 site date rain
+"a" 21915 1
+""  21915 99
+"b" 21915 3
+end
+format date %td
+quietly datasignature
+local sig "`r(datasignature)'"
+capture noisily wxprep towide rain, id(site) date(date) stub(rf_) clear
+_assert_rc _rc 416 "an empty string id() is rejected"
+quietly datasignature
+assert "`r(datasignature)'" == "`sig'"
+di as result "PASS: 14"
+
 display as result "All wxprep checks passed."

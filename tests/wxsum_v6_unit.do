@@ -89,6 +89,8 @@ set type double
 wxsum rf_, type(rain) start(s) end(e) lr_years(2) keep(id s e) outstub(u_)
 assert _N == 4
 assert "`r(mode)'" == "unit" & "`r(shape)'" == "unit"
+assert "`: char u_total[wxsum_window]'" == "start(s) to end(e)"
+assert "`: char _dta[wxsum_shape]'" == "unit"
 tempfile uout
 quietly save `uout'
 * id 1: 01mar-10mar 2021; id 2: 15jun-14jul 2021; id 4: 01jan-01jan 2021
@@ -137,6 +139,17 @@ use `udata', clear
 quietly wxsum rf_, type(rain) ini_month(3) ini_day(1) fin_month(3) fin_day(10) baseline(2018 2020) keep(id) shape(wide)
 quietly merge 1:1 id using `uout', nogenerate keepusing(u_*)
 _cmp_unit 1 2021 "`rstems' `rdev'"
+* a baseline outside the years of the data is an error, as with calendar
+* windows (the data cover 2017-2021)
+use `udata', clear
+capture noisily wxsum rf_, type(rain) start(s) end(e) baseline(1990 1999) keep(id)
+_assert_rc _rc 198 "baseline() outside the data is rejected"
+use `udata', clear
+capture noisily wxsum rf_, type(rain) start(s) end(e) baseline(2014 2018) keep(id)
+_assert_rc _rc 198 "baseline() with fewer than ref_min() years in the data is rejected"
+use `udata', clear
+quietly wxsum rf_, type(rain) start(s) end(e) baseline(2014 2018) ref_min(2) keep(id)
+assert r(ref_min) == 2
 di as result "PASS: 4"
 
 display "5. event_date()/days()/lag() is a shortcut for start()/end()"
@@ -181,6 +194,9 @@ use `udata', clear
 replace s = td(20dec2016) if id == 1
 replace e = td(10jan2017) if id == 1
 wxsum rf_, type(rain) start(s) end(e) keep(id) partial outstub(p_)
+* the window that runs past the data is still counted as outside
+matrix M = r(missing)
+assert M[1, colnumb(M, "outside")] == 1
 quietly save `uout', replace
 use `udata', clear
 quietly wxsum rf_, type(rain) ini_month(1) ini_day(1) fin_month(1) fin_day(10) keep(id) shape(wide)

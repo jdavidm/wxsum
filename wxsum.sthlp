@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.0.0 11oct2026}{...}
+{* *! version 6.0.0 14oct2026}{...}
 {vieweralsosee "wxprep" "help wxprep"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -140,8 +140,11 @@ is labeled with the year in which it starts.
 {phang}
 {opt ini_day(#)} and {opt fin_day(#)} give the first and last day. By default
 the window starts on the first day of {opt ini_month()} and ends on the last day
-of {opt fin_month()}, including 29 February in leap years. A window is computed
-for every start year whose window lies completely inside the dates of the data.
+of {opt fin_month()}, including 29 February in leap years. If {opt ini_day()}
+or {opt fin_day()} is 29 February, common years use 28 February. A window is
+computed for every start year whose window lies completely inside the dates of
+the data, even if some or all of its days have no daily variable (such days
+count as missing).
 
 {dlgtab:Unit-specific window}
 
@@ -235,7 +238,9 @@ part of its own reference.
 {opt baseline(# #)} compares every window with a fixed set of years, such as a
 climate normal: {cmd:baseline(1981 2010)} uses the windows that start in
 1981-2010. Windows inside the baseline are compared with a baseline that
-includes them. Cannot be combined with {opt lr_years()}.
+includes them. The baseline must cover at least {opt ref_min()} windows of
+the data (years of the data with unit-specific windows). Cannot be combined
+with {opt lr_years()}.
 
 {phang}
 {opt ref_min(#)} is the number of nonmissing reference values an observation
@@ -329,7 +334,12 @@ and deviations ({cmd:dev_}) and z-scores ({cmd:z_}) for {cmd:mean_mo},
 {cmd:heatdays}, {cmd:pct_heatdays}, {cmd:heat_start}, {cmd:heat}, and
 {cmd:heat_end} (temp). Every variable has a label that states its threshold;
 the characteristics {cmd:[wxsum_stat]} and {cmd:[wxsum_window]} record the
-statistic and window, and {cmd:_dta[wxsum_cmdline]} records the command.
+statistic and the window (with the year in wide output). The dataset
+characteristics {cmd:_dta[wxsum_cmdline]}, {cmd:_dta[wxsum_type]},
+{cmd:_dta[wxsum_shape]}, {cmd:_dta[wxsum_window]}, {cmd:_dta[wxsum_ref]},
+{cmd:_dta[wxsum_thresholds]}, and {cmd:_dta[wxsum_minobs]} record the last
+{cmd:wxsum} command and its settings, so they survive {cmd:save}; type
+{cmd:char list} to see them.
 
 {pstd}
 {ul:Spells}
@@ -400,6 +410,10 @@ so rolling deviations differ where version 5 used those zeros.{p_end}
 {phang2}o  Dry spells skip missing days at the edges of the window, and a
 window with 0 or 1 rainy days reports its longest dry run.{p_end}
 {phang2}o  Monthly totals are grouped by calendar year and month.{p_end}
+{phang2}o  A season inside the data with no daily variables is a window with no
+observed day ({cmd:nobs} = 0) instead of being left out, and 29 February in
+{opt ini_day()} or {opt fin_day()} is 28 February in common years instead of
+skipping those years.{p_end}
 {phang2}o  New: heat days and spells, {opt cuts()}, {opt baseline()},
 {opt ref_min()}, {opt minobs()}, {cmd:nobs}, unit-specific windows,
 deviations for spells, {opt outstub()}, stored results, and {helpb wxprep}.{p_end}
@@ -493,8 +507,9 @@ article, including a merge with household data; get it with
 ({cmd:days}), mean observed days ({cmd:mean_nobs}), share of observations with
 any missing day ({cmd:any_missing}) and with no data ({cmd:all_missing}), and
 the number below {opt minobs()} ({cmd:below_minobs}); with unit-specific
-windows, one row that also gives the number of windows outside the data
-({cmd:outside}) and with missing dates ({cmd:missing_dates}){p_end}
+windows, one row that also gives the number of windows that run past the first
+or last date of the data ({cmd:outside}; their statistics are missing unless
+{opt partial} is specified) and with missing dates ({cmd:missing_dates}){p_end}
 {p2colreset}{...}
 
 

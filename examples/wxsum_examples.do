@@ -162,6 +162,7 @@ use "`ex'rainfall_stats.dta", clear
 merge 1:1 hhid year using "`ex'hh_toy.dta"
 xtset hhid year
 xtreg yield total raindays, fe vce(cluster hhid)
-regress yield z_total i.hhid if !missing(z_total), vce(cluster hhid)
+* the rainfall z-score (seasons with 10 earlier seasons, 2013-2023)
+xtreg yield z_total, fe vce(cluster hhid)
 
 log close wxsum_examples

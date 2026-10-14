@@ -23,7 +23,7 @@ adopath ++ "tests/reference"
 set type double
 
 * ---------------------------------------------------------------------------
-* Random daily data, 2000-2015 (16 years, 5,844 days), 150 units
+* Random daily data, 2000-2024 (25 years, 9,132 days), 200 units (plan §7)
 * ---------------------------------------------------------------------------
 mata:
 void _equiv_data(string scalar kind)
@@ -34,7 +34,7 @@ void _equiv_data(string scalar kind)
 	real matrix    X
 
 	d1 = mdy(1, 1, 2000)
-	d2 = mdy(12, 31, 2015)
+	d2 = mdy(12, 31, 2024)
 	dts = d1..d2
 	D = cols(dts)
 	names = J(1, D, "")
@@ -68,7 +68,7 @@ program define _make_data
 	args kind
 	clear
 	set seed 20261011
-	quietly set obs 150
+	quietly set obs 200
 	gen long id = _n
 	mata: _equiv_data("`kind'")
 end

@@ -47,7 +47,7 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 |---|---|
 | `type(rain\|temp)` | Required. Other daily series (humidity, wind, wet-bulb temperature) use `temp`. |
 | `ini_month(#) fin_month(#)` | First and last month of a calendar window. A window that crosses the end of the year is labeled with its start year. |
-| `ini_day(#) fin_day(#)` | First and last day; by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). |
+| `ini_day(#) fin_day(#)` | First and last day; by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). 29 February given here is 28 February in common years. |
 | `start(varname) end(varname)` | Each observation's first and last day (`%td` dates). |
 | `event_date(varname) days(#) [lag(#)]` | Window of `#` days ending the day before an event; `lag()` moves it earlier. |
 | `partial` | Use the available days when a unit-specific window runs past the data. |
@@ -59,7 +59,7 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 | `tmp_bin(#) tmp_binlo(#) tmp_binhi(#)` | Equal-width daily temperature bins. |
 | `cuts(numlist)` | Bins at your own cutpoints (rain or temp). |
 | `lr_years(#)` | Rolling reference period: the `#` preceding years (default 10). |
-| `baseline(# #)` | Fixed reference period, e.g. `baseline(1981 2010)`. |
+| `baseline(# #)` | Fixed reference period, e.g. `baseline(1981 2010)`; it must cover at least `ref_min()` windows of the data. |
 | `ref_min(#)` | Nonmissing reference years needed for a deviation; default all. |
 | `minobs(#)` | Observed days needed for a window's statistics; default 1. |
 | `shape(long\|wide)` | Shape of a calendar-window result; default `long`. |
@@ -84,7 +84,7 @@ Definitions:
 - Growing degree days are the sum over observed days of `min(max(T - gdd_lo, 0), gdd_hi - gdd_lo)`; killing (extreme-heat) degree days are the sum of `max(T - k, 0)`, where `k` is `kdd_base()` or `heat_threshold()`.
 - Leading and trailing spells (`dry_start`/`dry_end`, `heat_start`/`heat_end`) count from the first and last observed day of the window; missing days at the edges are skipped, and a missing day ends a run. The mid-window spell (`dry`, `heat`) is the longest run strictly between the first and last break day (rainy day, or cooler day) when there are at least two; with none or one, it is the longest run anywhere in the window.
 - Windows with no observed day have missing statistics (and `nobs = 0`) and do not enter any reference period. A deviation or z-score needs `ref_min()` nonmissing reference values; a z-score is missing when the reference values do not vary.
-- Every variable has a label that states its threshold; characteristics record the statistic, the window, and the command.
+- Every variable has a label that states its threshold; characteristics record the statistic and window of each variable, and the command and its settings (`char list _dta[]`).
 
 `wxsum` is r-class: `return list` shows the number of rows, units, windows, and variables created, the window and reference period, the thresholds, and a matrix `r(missing)` that summarizes missing data by window. If anything fails, the data in memory are left unchanged.
 
@@ -139,6 +139,7 @@ wxsum rf_, type(rain) ini_month(5) fin_month(10) keep(hhid)
 - Windows with no observed day give missing statistics instead of 0, so rolling deviations differ where version 5 used those zeros.
 - Dry spells skip missing days at the edges of a window, and a window with 0 or 1 rainy days reports its longest dry run.
 - Monthly totals are grouped by calendar year and month.
+- A season inside the data with no daily variables is a window with no observed day (`nobs` = 0) instead of being left out, and 29 February in `ini_day()`/`fin_day()` is 28 February in common years instead of skipping those years.
 - New: heat days and spells, `cuts()`, `baseline()`, `ref_min()`, `minobs()`, `nobs`, unit-specific windows, deviations for spells, `outstub()`, stored results, `wxprep`, and a Mata engine that is much faster (0.04-0.2 seconds for each bundled example, against 7-52 seconds in version 5).
 
 ## Testing
