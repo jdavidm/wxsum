@@ -92,31 +92,19 @@ program define wxsum, rclass
 			exit 198
 		}
 		local default_fin_day = ("`fin_day'" == "")
-		if "`ini_day'" == "" local ini_day "01"
-		local ini_month_n = real("`ini_month'")
-		local fin_month_n = real("`fin_month'")
-		local ini_day_n = real("`ini_day'")
-		local fin_day_n = cond(`default_fin_day', 28, real("`fin_day'"))
-		if missing(`ini_month_n') | `ini_month_n' != floor(`ini_month_n') | `ini_month_n' < 1 | `ini_month_n' > 12 {
-			di as error "ini_month() must be an integer between 1 and 12"
-			exit 198
-		}
-		if missing(`fin_month_n') | `fin_month_n' != floor(`fin_month_n') | `fin_month_n' < 1 | `fin_month_n' > 12 {
-			di as error "fin_month() must be an integer between 1 and 12"
-			exit 198
-		}
-		if missing(`ini_day_n') | `ini_day_n' != floor(`ini_day_n') | `ini_day_n' < 1 | `ini_day_n' > 31 {
-			di as error "ini_day() must be an integer between 1 and 31"
-			exit 198
-		}
-		if missing(`fin_day_n') | `fin_day_n' != floor(`fin_day_n') | `fin_day_n' < 1 | `fin_day_n' > 31 {
-			di as error "fin_day() must be an integer between 1 and 31"
-			exit 198
-		}
-		local ini_month = `ini_month_n'
-		local fin_month = `fin_month_n'
-		local ini_day = `ini_day_n'
-		local fin_day = `fin_day_n'
+		if "`ini_day'" == "" local ini_day 1
+		* without fin_day() the window ends on the last day of fin_month();
+		* 28 only stands in for the checks below
+		if `default_fin_day' local fin_day 28
+		_wxsum_checknum `"`ini_month'"' ini_month integer 1 12
+		_wxsum_checknum `"`fin_month'"' fin_month integer 1 12
+		_wxsum_checknum `"`ini_day'"' ini_day integer 1 31
+		_wxsum_checknum `"`fin_day'"' fin_day integer 1 31
+		* as plain numbers (05 becomes 5)
+		local ini_month = `ini_month'
+		local fin_month = `fin_month'
+		local ini_day = `ini_day'
+		local fin_day = `fin_day'
 		* validate against leap year 2000 so that 29 Feb is allowed
 		local ini_ref = mdy(`ini_month', `ini_day', 2000)
 		if `default_fin_day' local fin_ref = dofm(ym(2000, `fin_month') + 1) - 1
@@ -222,25 +210,20 @@ program define wxsum, rclass
 	foreach opt in gdd_bin gdd_binlo gdd_binhi {
 		if `"``opt''"' != "" _wxsum_checknum `"``opt''"' `opt' number
 	}
-	local has_gdd_bin   = ("`gdd_bin'" != "")
-	local has_gdd_binlo = ("`gdd_binlo'" != "")
-	local has_gdd_binhi = ("`gdd_binhi'" != "")
-	if `has_gdd_binlo' & !`has_gdd_bin' {
-		di as error "gdd_binlo() requires gdd_bin()"
-		exit 198
+	foreach opt in gdd_binlo gdd_binhi {
+		if "``opt''" != "" & "`gdd_bin'" == "" {
+			di as error "`opt'() requires gdd_bin()"
+			exit 198
+		}
 	}
-	if `has_gdd_binhi' & !`has_gdd_bin' {
-		di as error "gdd_binhi() requires gdd_bin()"
-		exit 198
-	}
-	if `has_gdd_bin' {
+	if "`gdd_bin'" != "" {
 		if `gdd_bin' <= 0 {
 			di as error "gdd_bin() must be positive"
 			exit 198
 		}
-		if `has_gdd_binlo' local gb_lo = `gdd_binlo'
-		else local gb_lo = 0
-		if `has_gdd_binhi' {
+		local gb_lo = 0
+		if "`gdd_binlo'" != "" local gb_lo = `gdd_binlo'
+		if "`gdd_binhi'" != "" {
 			if `gdd_binhi' <= `gb_lo' {
 				di as error "gdd_binhi() must be greater than gdd_binlo()"
 				exit 198
@@ -558,14 +541,18 @@ program define wxsum, rclass
 	return matrix missing = `missmat'
 end
 
-* Checks that an option value is a number (or an integer).
+* Checks that an option value is a number (or an integer), optionally
+* between lo and hi.
 program define _wxsum_checknum
-	args value opt kind
+	args value opt kind lo hi
 	if "`kind'" == "integer" capture confirm integer number `value'
 	else capture confirm number `value'
-	if _rc {
-		if "`kind'" == "integer" di as error "`opt'() must be an integer"
-		else di as error "`opt'() must be a number"
+	local bad = _rc
+	if !`bad' & "`lo'" != "" local bad = (`value' < `lo' | `value' > `hi')
+	if `bad' {
+		local what = cond("`kind'" == "integer", "an integer", "a number")
+		if "`lo'" != "" di as error "`opt'() must be `what' between `lo' and `hi'"
+		else di as error "`opt'() must be `what'"
 		exit 198
 	}
 end
@@ -581,7 +568,7 @@ struct _wx_state {
 	string scalar    stub, type, mode, shape, outstub, unitkind, vtype
 	real scalar      israin, thr, glo, ghi, hthr, kbase, minobs, partial
 	real scalar      refbase, L, b1, b2, refmin
-	real scalar      has_gbin, gbin, gblo, gbhi, has_gblo, has_gbhi
+	real scalar      gbin, gblo, gbhi         // gbin, gbhi missing when not given
 	real matrix      bins                 // nb x 2: lower and upper bin edges
 	string colvector bindesc              // nb: label text for each bin
 	string scalar    binstem
@@ -674,11 +661,8 @@ void _wxsum_setup()
 	S.refmin   = strtoreal(st_local("ref_min"))
 	S.refdesc  = (S.refbase ? st_local("b1") + "-" + st_local("b2") + " baseline" :
 		st_local("lr_years") + "-yr rolling mean")
-	S.has_gbin = (st_local("has_gdd_bin") == "1")
-	S.has_gblo = (st_local("has_gdd_binlo") == "1")
-	S.has_gbhi = (st_local("has_gdd_binhi") == "1")
 	S.gbin     = strtoreal(st_local("gdd_bin"))
-	S.gblo     = (S.has_gblo ? strtoreal(st_local("gdd_binlo")) : 0)
+	S.gblo     = editmissing(strtoreal(st_local("gdd_binlo")), 0)
 	S.gbhi     = strtoreal(st_local("gdd_binhi"))
 	S.vlname   = S.outstub + "gddcat"
 	S.unitkind = st_local("unit_kind")
@@ -1051,7 +1035,7 @@ void _wx_names(struct _wx_state scalar S, real scalar superset)
 						"Z-score of " + st + " vs " + S.refdesc + lsfx, "z_" + st, ys, 3, j, w)
 				}
 			}
-			if (st == "gdd" & S.has_gbin) {
+			if (st == "gdd" & S.gbin < .) {
 				if (superset | rows(S.GC) > 0) {
 					_wx_addout(S, o + "gddcat" + sfx, "long", _wx_label(S, "gddcat") + lsfx, "gddcat", ys, 4, 0, w)
 				}
@@ -1089,7 +1073,7 @@ void _wx_checks(struct _wx_state scalar S)
 			exit(110)
 		}
 	}
-	if (S.has_gbin & st_vlexists(S.vlname)) {
+	if (S.gbin < . & st_vlexists(S.vlname)) {
 		errprintf("value label %s already defined; use outstub() or drop the label first\n", S.vlname)
 		exit(110)
 	}
@@ -1353,7 +1337,7 @@ void _wx_unitcompute(struct _wx_state scalar S, real matrix V)
 {
 	real matrix    R, MISS
 	real scalar    K, k, nd, j, nref, r, N
-	real colvector n, ys, ye, valid, idx, s, e, cnt, mu, sdv, ok, dv, wl
+	real colvector n, ys, ye, valid, idx, s, e, cnt, mu, sdv, ok, wl
 	pointer(real matrix) rowvector REF
 	real matrix    Rr, Rc
 
@@ -1391,12 +1375,11 @@ void _wx_unitcompute(struct _wx_state scalar S, real matrix V)
 		Rc = (editmissing(Rr, 0) :- editmissing(mu, 0)) :* (Rr :< .)
 		sdv = sqrt(rowsum(Rc :^ 2) :/ (cnt :- 1))
 		ok = (cnt :>= S.refmin)
-		dv = ((*S.RP[S.devk[j]]) - mu) :/ ok
-		// each pointer needs its own copy: &dv would point every stem at
-		// the same variable, which is overwritten in the next iteration
-		S.DP[j] = &(J(N, 1, .))
-		*S.DP[j] = dv
-		S.ZP[j] = &(dv :/ sdv)
+		// &(expression) points to a new matrix; a pointer to a local variable
+		// (&dv) would point every stem at the same matrix, which the next
+		// iteration overwrites
+		S.DP[j] = &(((*S.RP[S.devk[j]]) - mu) :/ ok)
+		S.ZP[j] = &((*S.DP[j]) :/ sdv)
 	}
 	S.has_dev = (sum((*S.DP[1]) :< .) > 0)
 	st_local("has_dev", strofreal(S.has_dev))
@@ -1488,7 +1471,7 @@ void _wx_gddcat(struct _wx_state scalar S)
 	real matrix    sel
 
 	S.GC = J(0, 0, .)
-	if (!S.has_gbin) return
+	if (S.gbin >= .) return
 	G = *S.RP[8]
 	v = select(vec(G), vec(G) :< .)
 	if (rows(v) == 0) return
@@ -1496,7 +1479,7 @@ void _wx_gddcat(struct _wx_state scalar S)
 	pmax = max(v)
 	lo = S.gblo
 	w = S.gbin
-	if (S.has_gbhi) {
+	if (S.gbhi < .) {
 		hi = S.gbhi
 		top = 1
 	}

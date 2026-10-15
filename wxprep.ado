@@ -147,12 +147,11 @@ program define _wxprep_towide, rclass
 	quietly summarize `d', meanonly
 	local dmin = r(min)
 	local dmax = r(max)
-	tempvar g t dfirst
+	tempvar g t
 	quietly egen long `g' = group(`id')
 	quietly gen long `t' = `d' - `dmin' + 1
-	quietly bysort `t': gen byte `dfirst' = (_n == 1)
-	quietly count if `dfirst'
-	local n_present = r(N)
+	* n_present: dates with data, counted in Mata without sorting
+	mata: _wxprep_ndates("`t'", `dmax' - `dmin' + 1)
 	local n_days = cond("`nofill'" != "", `n_present', `dmax' - `dmin' + 1)
 	local nid : word count `id'
 	if `nid' + `n_days' + 2 > c(maxvar) {
@@ -378,6 +377,18 @@ string scalar _wxprep_type(real matrix X, string scalar src)
 	if (lo >= -32767 & hi <= 32740) return("int")
 	if (lo >= -2147483647 & hi <= 2147483620) return("long")
 	return(src)
+}
+
+// towide: number of distinct dates with data (t is 1..D), without sorting
+void _wxprep_ndates(string scalar tv, real scalar D)
+{
+	real matrix    t
+	real colvector seen
+	st_view(t, ., tv)
+	seen = J(D, 1, 0)
+	// [t, 1], not [t]: a 1 x 1 seen (a single date) would act as a row vector
+	seen[t, 1] = J(rows(t), 1, 1)
+	st_local("n_present", strofreal(sum(seen)))
 }
 
 // towide, step 1: unit index g, day index t and value x, kept in Mata

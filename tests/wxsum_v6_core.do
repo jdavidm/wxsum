@@ -264,4 +264,24 @@ assert r(n_windows) == 3
 assert nobs == 3
 di as result "PASS: 14"
 
+display "15. calendar options must be whole months and days in range"
+clear
+set obs 1
+gen id = 1
+forvalues d = 1/31 {
+	gen rf_202001`=string(`d', "%02.0f")' = 1
+}
+foreach opt in "ini_month(13) fin_month(1)" "ini_month(1) fin_month(0)" ///
+	"ini_month(abc) fin_month(1)" "ini_month(1.5) fin_month(1)" ///
+	"ini_month(1) fin_month(1) ini_day(32)" "ini_month(1) fin_month(1) fin_day(0)" ///
+	"ini_month(1) fin_month(1) ini_day(x)" {
+	capture noisily wxsum rf_, type(rain) `opt'
+	_assert_rc _rc 198 "`opt' is rejected"
+}
+* leading zeros are fine, and fin_day() defaults to the end of the month
+wxsum rf_, type(rain) ini_month(01) fin_month(01) ini_day(01) keep(id)
+assert "`r(window)'" == "01jan-31jan"
+assert nobs == 31
+di as result "PASS: 15"
+
 display as result "All wxsum v6 core checks passed."
