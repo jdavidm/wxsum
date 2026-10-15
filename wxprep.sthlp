@@ -16,7 +16,7 @@
 {title:Syntax}
 
 {pstd}
-Long to wide: one row per unit-day to one variable per day
+Long to wide: one row per unit-day to one row per unit and one variable per day
 
 {p 8 16 2}
 {cmd:wxprep towide} {varname} {ifin}{cmd:,} {opth id(varlist)} {opth date(varname)}
@@ -33,11 +33,11 @@ Wide to wide: rename daily variables to {it:stub}{it:yyyymmdd}
 {cmd:wxprep rename} {varlist}{cmd:,} {opt stub(string)} {opt from(string)} {opt dateformat(string)}
 
 {pstd}
-Wide to long: one variable per day to one row per unit-day
+Wide to long: one row per unit and one variable per day to one row per unit-day
 
 {p 8 16 2}
 {cmd:wxprep tolong} {it:stub}{cmd:,} {opth id(varlist)} [{opth gen:erate(newvar)}
-{opth date(newvar)} {opt clear}]
+{opth date(newvar)} {opt clear} {cmd:save(}{it:{help filename}} [{cmd:, replace}]{cmd:)}]
 
 
 {marker description}{...}
@@ -66,12 +66,11 @@ temperature and humidity, are easiest in long form: convert with
 
 {pstd}
 {cmd:towide} and {cmd:tolong} replace the data in memory. If the data in memory
-have changed since they were last saved, specify {opt clear}. If anything
-fails, the data are left unchanged. The new weather variables get the
-narrowest storage type that holds every value exactly ({cmd:byte}, {cmd:int},
-or {cmd:long} for whole numbers; otherwise {cmd:float}, or {cmd:double} when
-the input is {cmd:double} or {cmd:long}), so a {cmd:tolong} - {cmd:towide}
-round trip reproduces the data.
+have changed since they were last saved, specify {opt clear}. The new weather 
+variables get the narrowest storage type that holds every value exactly 
+({cmd:byte}, {cmd:int}, or {cmd:long} for whole numbers; otherwise {cmd:float}, 
+or {cmd:double} when the input is {cmd:double} or {cmd:long}), so a 
+{cmd:tolong} - {cmd:towide} round trip reproduces the data.
 
 
 {marker options}{...}
@@ -96,8 +95,8 @@ typed: {cmd:stub(rf_)} gives {cmd:rf_19930515}. At most 24 characters.
 {opt daily(mean|sum|min|max)} combines several readings on the same day, for
 example hourly data: {cmd:daily(mean)} for mean temperature, {cmd:daily(sum)}
 for rainfall, {cmd:daily(max)} for daily maximum temperature. Missing readings
-are ignored; a day whose readings are all missing stays missing. Without
-{opt daily()}, two readings with the same unit and date are an error.
+are ignored. Without {opt daily()}, two readings with the same unit and date 
+are an error.
 
 {phang}
 {opt dateformat(string)} gives the order of day, month, and year in a string
@@ -115,7 +114,7 @@ to the last date and leaves days without data missing, so that
 since they were last saved.
 
 {phang}
-{cmd:save(}{it:filename} [{cmd:, replace}]{cmd:)} also saves the wide data.
+{cmd:save(}{it:filename} [{cmd:, replace}]{cmd:)} saves the wide data.
 
 
 {title:Options for wxprep rename}
@@ -158,6 +157,9 @@ without a trailing underscore: {cmd:rf_} gives {cmd:rf}.
 {phang}
 {opt clear} allows {cmd:tolong} to replace data in memory that have changed
 since they were last saved.
+
+{phang}
+{cmd:save(}{it:filename} [{cmd:, replace}]{cmd:)} saves the long data.
 
 
 {marker examples}{...}
@@ -213,9 +215,6 @@ since they were last saved.
 
 {pstd}Jeffrey D. Michler (jdmichler@arizona.edu){p_end}
 {pstd}Anna Josephson (aljosephson@arizona.edu){p_end}
-{pstd}Oscar Barriga-Cabanillas (obarriga@worldbank.org){p_end}
-{pstd}Aleksandr Michuda (amichud1@swarthmore.edu){p_end}
-{pstd}Jeffrey C. Oliver (jcoliver@arizona.edu){p_end}
 
 
 {title:Also see}

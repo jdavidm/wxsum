@@ -249,10 +249,10 @@ program define _wxprep_rename, rclass
 end
 
 * ---------------------------------------------------------------------------
-* wxprep tolong stub, id(varlist) [generate(name) date(name) clear]
+* wxprep tolong stub, id(varlist) [generate(name) date(name) clear save(filename [, replace])]
 * ---------------------------------------------------------------------------
 program define _wxprep_tolong, rclass
-	syntax anything(name=stub id="stub"), id(varlist) [GENerate(name) date(name) clear]
+	syntax anything(name=stub id="stub"), id(varlist) [GENerate(name) date(name) clear save(string asis)]
 	if `: word count `stub'' != 1 {
 		di as error "specify one stub, the common prefix of the daily variables (e.g., rf_)"
 		exit 198
@@ -261,6 +261,13 @@ program define _wxprep_tolong, rclass
 		di as error "no; data in memory would be lost"
 		di as error "wxprep tolong replaces the data in memory; save them first or specify clear"
 		exit 4
+	}
+	local save_file ""
+	local save_replace ""
+	if `"`save'"' != "" {
+		_wxprep_saveopt `save'
+		local save_file `"`r(file)'"'
+		local save_replace "`r(replace)'"
 	}
 	if "`generate'" == "" {
 		local generate = cond(substr("`stub'", -1, 1) == "_", substr("`stub'", 1, strlen("`stub'") - 1), "`stub'")
@@ -302,9 +309,13 @@ program define _wxprep_tolong, rclass
 	sort `id' `date'
 	restore, not
 
+	if `"`save_file'"' != "" quietly save `"`save_file'"', `save_replace'
+
 	di as text "wxprep tolong: " as result `n_units' as text " units x " as result `n_days' ///
 		as text " days = " as result _N as text " observations; variables " as result "`date'" ///
 		as text " and " as result "`generate'"
+	if `"`save_file'"' != "" di as text `"  saved as `save_file'"'
+
 	return scalar N = _N
 	return scalar n_units = `n_units'
 	return scalar n_days = `n_days'
