@@ -30,6 +30,11 @@ wxprep rename rain1-rain365, stub(rf_) firstdate(01jan2020)  // other names -> r
 wxprep tolong rf_, id(hhid)                                  // wide -> long
 ```
 
+- `towide` combines several readings per day with `daily(mean|sum|min|max)` (without it, duplicate unit-days are an error), reads string dates with `dateformat()` (e.g. `dateformat(YMD)`), and accepts `%td` dates, `%tc` datetimes, and YYYYMMDD integers. By default it creates a variable for every calendar day from the first to the last date, so days without data become missing days in `wxsum`; `nofill` creates variables only for dates in the data. `if`/`in` convert part of the data, and `save()` saves the result.
+- `rename` takes `firstdate()` for consecutive days, or `from()` and `dateformat()` to read the dates from the old names.
+- `tolong` names the value and date variables with `generate()` (default: the stub without a trailing `_`) and `date()` (default `date`); `id()` must identify the observations.
+- `towide` and `tolong` replace the data in memory: they need `clear` if the data have changed since the last save, and they leave the data unchanged if they fail. The daily values get the narrowest storage type that holds them exactly (`byte`, `int`, or `long` for whole numbers; otherwise `float`, or `double` if the input is `double` or `long`).
+
 ## Syntax
 
 ```stata
@@ -46,26 +51,26 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 | Option | Meaning |
 |---|---|
 | `type(rain\|temp)` | Required. Other daily series (humidity, wind, wet-bulb temperature) use `temp`. |
-| `ini_month(#) fin_month(#)` | First and last month of a calendar window. A window that crosses the end of the year is labeled with its start year. |
-| `ini_day(#) fin_day(#)` | First and last day; by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). 29 February given here is 28 February in common years. |
-| `start(varname) end(varname)` | Each observation's first and last day (`%td` dates). |
-| `event_date(varname) days(#) [lag(#)]` | Window of `#` days ending the day before an event; `lag()` moves it earlier. |
-| `partial` | Use the available days when a unit-specific window runs past the data. |
-| `rain_threshold(#)` | Rainy day if rain >= `#`; default 1. Rain only. |
-| `gdd_lo(#) gdd_hi(#)` | Bounds for growing degree days. Required for `temp`. |
+| `ini_month(#) fin_month(#)` | First and last month of a calendar window, whole numbers from 1 to 12 (`05` is read as 5). A window that crosses the end of the year is labeled with its start year. Only windows that lie entirely within the dates of the daily variables are summarized. |
+| `ini_day(#) fin_day(#)` | First and last day (1-31, and a valid date with its month); by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). 29 February given here is 28 February in common years. |
+| `start(varname) end(varname)` | Each observation's first and last day (`%td` dates; `%tc` datetimes are rejected). A window that ends before it starts is an error; a missing date gives missing statistics. |
+| `event_date(varname) days(#) [lag(#)]` | Window of `#` days ending the day before an event, i.e. from `event_date - days - lag` to `event_date - 1 - lag`; `lag()` (default 0) moves it `#` days earlier. |
+| `partial` | Use the days inside the data when a unit-specific window runs past the first or last daily variable; without it, such windows have missing statistics. |
+| `rain_threshold(#)` | Rainy day if rain >= `#` (nonnegative); default 1. Rain only. |
+| `gdd_lo(#) gdd_hi(#)` | Bounds for growing degree days (`gdd_hi()` > `gdd_lo()`). Required for `temp`. |
 | `heat_threshold(#)` | Heat day if temp >= `#`; also the base for killing degree days. Required for `temp`. |
 | `kdd_base(#)` | KDD base, only if it should differ from `heat_threshold()`. |
-| `gdd_bin(#) gdd_binlo(#) gdd_binhi(#)` | Fixed-width categories of the seasonal GDD total (`gddcat`). |
-| `tmp_bin(#) tmp_binlo(#) tmp_binhi(#)` | Equal-width daily temperature bins. |
-| `cuts(numlist)` | Bins at your own cutpoints (rain or temp). |
-| `lr_years(#)` | Rolling reference period: the `#` preceding years (default 10). |
-| `baseline(# #)` | Fixed reference period, e.g. `baseline(1981 2010)`; it must cover at least `ref_min()` windows of the data. |
-| `ref_min(#)` | Nonmissing reference years needed for a deviation; default all. |
-| `minobs(#)` | Observed days needed for a window's statistics; default 1. |
-| `shape(long\|wide)` | Shape of a calendar-window result; default `long`. |
-| `outstub(string)` | Prefix for all output names (e.g. to keep rain and temp results together). |
-| `keep(varlist)` | Variables to keep, typically identifiers. |
-| `save(filename [, replace])` | Save the output. |
+| `gdd_bin(#) gdd_binlo(#) gdd_binhi(#)` | Categories of width `gdd_bin()` of the seasonal GDD total (`gddcat`), starting at `gdd_binlo()` (default 0). Totals below `gdd_binlo()` get a bottom category; with `gdd_binhi()` (which must lie a whole number of widths above `gdd_binlo()`), totals at or above it share a top category, otherwise the categories extend to the largest total. At most 100 categories. Temp only. |
+| `tmp_bin(#) tmp_binlo(#) tmp_binhi(#)` | `#` daily temperature bins (at most 42): below `tmp_binlo()`, `#` - 2 equal-width bins from `tmp_binlo()` to `tmp_binhi()`, and `tmp_binhi()` or above (`tmp_bin(2)` splits at the midpoint, `tmp_bin(1)` counts all observed days). Temp only. |
+| `cuts(numlist)` | Bins at your own cutpoints (at most 41, strictly increasing; each bin includes its lower cutpoint). Rain or temp; cannot be combined with `tmp_bin()`. |
+| `lr_years(#)` | Rolling reference period: the `#` preceding years (2-50; default 10). |
+| `baseline(# #)` | Fixed reference period, e.g. `baseline(1981 2010)`; it must cover at least `ref_min()` windows (calendar) or years (unit-specific) of the data. Cannot be combined with `lr_years()`. |
+| `ref_min(#)` | Nonmissing reference values needed for a deviation, at least 2; default: all reference years. |
+| `minobs(#)` | Observed days a window needs for its statistics (`nobs` is always reported); default 1. |
+| `shape(long\|wide)` | Shape of a calendar-window result; default `long`. Ignored with unit-specific windows. |
+| `outstub(string)` | Prefix for all output names (e.g. to keep rain and temp results in one dataset). |
+| `keep(varlist)` | Variables to keep, typically identifiers; with long output it cannot include `year`. |
+| `save(filename [, replace])` | Save the output (`.dta` is added if the name has no extension); an existing file is overwritten only with `replace`. |
 
 ## Output
 
@@ -81,12 +86,15 @@ Long output (the default) has one row per observation and window, a variable `ye
 
 Definitions:
 
+- All statistics use the observed (nonmissing) days of the window. `var` and `sd` need 2 observed days, and `skew` (sample skewness) needs 3 and a nonzero `sd`. `pct_raindays` and `pct_heatdays` are shares (0 to 1) of the observed days. `mean_mo` is `total` divided by the number of calendar months with at least one observed day.
 - Growing degree days are the sum over observed days of `min(max(T - gdd_lo, 0), gdd_hi - gdd_lo)`; killing (extreme-heat) degree days are the sum of `max(T - k, 0)`, where `k` is `kdd_base()` or `heat_threshold()`.
 - Leading and trailing spells (`dry_start`/`dry_end`, `heat_start`/`heat_end`) count from the first and last observed day of the window; missing days at the edges are skipped, and a missing day ends a run. The mid-window spell (`dry`, `heat`) is the longest run strictly between the first and last break day (rainy day, or cooler day) when there are at least two; with none or one, it is the longest run anywhere in the window.
-- Windows with no observed day have missing statistics (and `nobs = 0`) and do not enter any reference period. A deviation or z-score needs `ref_min()` nonmissing reference values; a z-score is missing when the reference values do not vary.
-- Every variable has a label that states its threshold; characteristics record the statistic and window of each variable, and the command and its settings (`char list _dta[]`).
+- Windows with fewer than `minobs()` observed days (by default, no observed day) have missing statistics, although `nobs` is reported, and do not enter any reference period. A season inside the data with no daily variables is such a window (`nobs = 0`).
+- A deviation (`dev_`) is the statistic minus the mean of its reference values, and a z-score (`z_`) divides the deviation by their standard deviation; both need `ref_min()` nonmissing reference values, and a z-score is missing when the reference values do not vary. For calendar windows the reference values are the same statistic in the seasons of the reference period that are in the data (the `lr_years()` preceding seasons, or the `baseline()` seasons); a season gets deviations only when at least `ref_min()` such seasons exist, so wide output has `dev_` and `z_` variables only for those seasons. For unit-specific windows the reference values come from the same window (same days of the year) in each of the `lr_years()` preceding years or in each `baseline()` year.
+- Every variable has a label that states its threshold. Characteristics record the statistic and window of each variable (`[wxsum_stat]`, `[wxsum_window]`) and the command and its settings (`_dta[wxsum_cmdline]`, `[wxsum_version]`, `[wxsum_type]`, `[wxsum_shape]`, `[wxsum_window]`, `[wxsum_ref]`, `[wxsum_thresholds]`, `[wxsum_minobs]`; see `char list _dta[]`).
+- An output name that already exists (in `keep()`, or among all variables when wide or unit-specific output has no `keep()`) is an error; use `outstub()`. `wxsum` also checks `maxvar` before computing anything.
 
-`wxsum` is r-class: `return list` shows the number of rows, units, windows, and variables created, the window and reference period, the thresholds, and a matrix `r(missing)` that summarizes missing data by window. If anything fails, the data in memory are left unchanged.
+`wxsum` is r-class: `return list` shows the number of rows, units (`r(N_units)`, the distinct `keep()` combinations), windows, and variables created (`r(varlist)`), the window and reference period, the thresholds, and a matrix `r(missing)` that summarizes missing data: for calendar windows one row per season with `days`, `mean_nobs`, `any_missing`, `all_missing` (shares of observations), and `below_minobs`; for unit-specific windows one row that adds `outside` (windows that run past the data) and `missing_dates`. If anything fails, the data in memory are left unchanged.
 
 ## Examples
 
