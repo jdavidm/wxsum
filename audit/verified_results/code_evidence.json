@@ -1,0 +1,380 @@
+{
+  "wxsum.ado": [
+    {
+      "line": 23,
+      "text": "program define wxsum, rclass"
+    },
+    {
+      "line": 25,
+      "text": "\tlocal cmdline `\"wxsum `0'\"'"
+    },
+    {
+      "line": 410,
+      "text": "\t* Write the output. Everything after -preserve- is undone if"
+    },
+    {
+      "line": 413,
+      "text": "\tpreserve"
+    },
+    {
+      "line": 415,
+      "text": "\tlocal N_units = ."
+    },
+    {
+      "line": 419,
+      "text": "\t\tquietly egen byte `unit_tag' = tag(`keep')"
+    },
+    {
+      "line": 421,
+      "text": "\t\tlocal N_units = r(N)"
+    },
+    {
+      "line": 446,
+      "text": "\tquietly compress `created'"
+    },
+    {
+      "line": 457,
+      "text": "\trestore, not"
+    },
+    {
+      "line": 460,
+      "text": "\t\tquietly save `\"`save_file'\"', `save_replace'"
+    },
+    {
+      "line": 509,
+      "text": "\treturn scalar N = _N"
+    },
+    {
+      "line": 510,
+      "text": "\tif !missing(`N_units') return scalar N_units = `N_units'"
+    },
+    {
+      "line": 511,
+      "text": "\treturn scalar k_created = `k_created'"
+    },
+    {
+      "line": 512,
+      "text": "\treturn scalar n_windows = `n_windows'"
+    },
+    {
+      "line": 514,
+      "text": "\t\treturn scalar first_year = `first_year'"
+    },
+    {
+      "line": 515,
+      "text": "\t\treturn scalar last_year = `last_year'"
+    },
+    {
+      "line": 518,
+      "text": "\treturn scalar minobs = `minobs'"
+    },
+    {
+      "line": 519,
+      "text": "\treturn scalar ref_min = `ref_min'"
+    },
+    {
+      "line": 520,
+      "text": "\tif \"`ref_mode'\" == \"rolling\" return scalar lr_years = `lr_years'"
+    },
+    {
+      "line": 522,
+      "text": "\t\treturn scalar baseline_first = `b1'"
+    },
+    {
+      "line": 523,
+      "text": "\t\treturn scalar baseline_last = `b2'"
+    },
+    {
+      "line": 525,
+      "text": "\tif `israin' return scalar rain_threshold = `rain_threshold'"
+    },
+    {
+      "line": 527,
+      "text": "\t\treturn scalar gdd_lo = `gdd_lo'"
+    },
+    {
+      "line": 528,
+      "text": "\t\treturn scalar gdd_hi = `gdd_hi'"
+    },
+    {
+      "line": 529,
+      "text": "\t\treturn scalar heat_threshold = `heat_threshold'"
+    },
+    {
+      "line": 530,
+      "text": "\t\treturn scalar kdd_base = `kdd_base'"
+    },
+    {
+      "line": 540,
+      "text": "\treturn local cmdline `\"`cmdline'\"'"
+    },
+    {
+      "line": 607,
+      "text": "\t\tS.devk = (7..14)"
+    },
+    {
+      "line": 612,
+      "text": "\t\tS.devk = (8..14)"
+    },
+    {
+      "line": 774,
+      "text": "void _wx_unitwindows(struct _wx_state scalar S)"
+    },
+    {
+      "line": 874,
+      "text": "\t\tif (S.refbase) {"
+    },
+    {
+      "line": 890,
+      "text": "\tif (S.refbase) {"
+    },
+    {
+      "line": 903,
+      "text": "\tif (S.refbase) return(_wx_which((S.wyear :>= S.b1) :& (S.wyear :<= S.b2)))"
+    },
+    {
+      "line": 1031,
+      "text": "\t\t\t\tif (superset | (wide ? S.wqual[w] : S.has_dev)) {"
+    },
+    {
+      "line": 1039,
+      "text": "\t\t\t\tif (superset | rows(S.GC) > 0) {"
+    },
+    {
+      "line": 1081,
+      "text": "\tproj = cols(ex) + cols(S.onames) + 4"
+    },
+    {
+      "line": 1228,
+      "text": "void _wx_spells(real matrix Sp, real matrix Bk, real colvector lead,"
+    },
+    {
+      "line": 1358,
+      "text": "\t\tif (S.refbase) {"
+    },
+    {
+      "line": 1359,
+      "text": "\t\t\ts = _wx_shiftdate(S.us, J(N, 1, S.b1 + r - 1))"
+    },
+    {
+      "line": 1360,
+      "text": "\t\t\te = _wx_shiftdate(S.ue, (S.b1 + r - 1) :+ (ye - ys))"
+    },
+    {
+      "line": 1363,
+      "text": "\t\t\ts = _wx_shiftdate(S.us, ys :- r)"
+    },
+    {
+      "line": 1364,
+      "text": "\t\t\te = _wx_shiftdate(S.ue, ye :- r)"
+    },
+    {
+      "line": 1418,
+      "text": "real colvector _wx_shiftdate(real colvector d, real colvector y)"
+    },
+    {
+      "line": 1576,
+      "text": "\tst_local(\"created\", invtokens(select(S.onames, S.onames :!= \"year\")))"
+    }
+  ],
+  "wxprep.ado": [
+    {
+      "line": 10,
+      "text": "program define wxprep, rclass"
+    },
+    {
+      "line": 34,
+      "text": "program define _wxprep_towide, rclass"
+    },
+    {
+      "line": 64,
+      "text": "\tpreserve"
+    },
+    {
+      "line": 97,
+      "text": "\t\tif regexm(\"`fmt'\", \"^%-?tc\") quietly gen long `d' = dofc(`date')"
+    },
+    {
+      "line": 98,
+      "text": "\t\telse if regexm(\"`fmt'\", \"^%-?tC\") quietly gen long `d' = dofC(`date')"
+    },
+    {
+      "line": 157,
+      "text": "\tif `nid' + `n_days' + 2 > c(maxvar) {"
+    },
+    {
+      "line": 158,
+      "text": "\t\tdi as error \"the wide data need `=`nid' + `n_days'' variables, but maxvar is `c(maxvar)'.\""
+    },
+    {
+      "line": 178,
+      "text": "\trestore, not"
+    },
+    {
+      "line": 180,
+      "text": "\tif `\"`save_file'\"' != \"\" quietly save `\"`save_file'\"', `save_replace'"
+    },
+    {
+      "line": 206,
+      "text": "program define _wxprep_rename, rclass"
+    },
+    {
+      "line": 254,
+      "text": "program define _wxprep_tolong, rclass"
+    },
+    {
+      "line": 297,
+      "text": "\tpreserve"
+    },
+    {
+      "line": 310,
+      "text": "\trestore, not"
+    },
+    {
+      "line": 312,
+      "text": "\tif `\"`save_file'\"' != \"\" quietly save `\"`save_file'\"', `save_replace'"
+    },
+    {
+      "line": 329,
+      "text": "program define _wxprep_checkstub"
+    },
+    {
+      "line": 339,
+      "text": "program define _wxprep_saveopt, rclass"
+    },
+    {
+      "line": 442,
+      "text": "\t\tnames[k] = stub + strofreal(year(dts[k])) + strofreal(month(dts[k]), \"%02.0f\") + strofreal(day(dts[k]), \"%02.0f\")"
+    },
+    {
+      "line": 508,
+      "text": "\t\tnewn[k] = stub + strofreal(year(dts[k])) + strofreal(month(dts[k]), \"%02.0f\") + strofreal(day(dts[k]), \"%02.0f\")"
+    }
+  ],
+  "wxsum.sthlp": [
+    {
+      "line": 91,
+      "text": "{synopt:{opt outstub(string)}}prefix added to every output variable name{p_end}"
+    },
+    {
+      "line": 118,
+      "text": "the data are left unchanged."
+    },
+    {
+      "line": 128,
+      "text": "precipitation statistics; {cmd:type(temp)} gives temperature statistics. Other"
+    },
+    {
+      "line": 272,
+      "text": "{opt outstub(string)} adds a prefix to every output name except {cmd:year};"
+    },
+    {
+      "line": 365,
+      "text": "The longest heat spell anywhere in the window is"
+    },
+    {
+      "line": 366,
+      "text": "{cmd:max(heat_start, heat, heat_end)}. Spell lengths are counts with many"
+    },
+    {
+      "line": 386,
+      "text": "variables. Stata/SE and Stata/MP need {cmd:set maxvar} above the default of"
+    },
+    {
+      "line": 387,
+      "text": "5,000 for such data (type {cmd:clear all}, then {cmd:set maxvar 20000}, then"
+    },
+    {
+      "line": 419,
+      "text": "deviations for spells, {opt outstub()}, stored results, and {helpb wxprep}.{p_end}"
+    },
+    {
+      "line": 464,
+      "text": "The do-file {cmd:wxsum_examples.do} (with its log) runs all examples in the"
+    },
+    {
+      "line": 497,
+      "text": "{synopt:{cmd:r(outstub)}}{opt outstub()}{p_end}"
+    }
+  ],
+  "README.md": [
+    {
+      "line": 36,
+      "text": "- `towide` and `tolong` replace the data in memory: they need `clear` if the data have changed since the last save, and they leave the data unchanged if they fail. The daily values get the narrowest storage type that holds them exactly (`byte`, `int`, or `long` for whole numbers; otherwise `float`, or `double` if the input is `double` or `long`)."
+    },
+    {
+      "line": 53,
+      "text": "| `type(rain\\|temp)` | Required. Other daily series (humidity, wind, wet-bulb temperature) use `temp`. |"
+    },
+    {
+      "line": 97,
+      "text": "`wxsum` is r-class: `return list` shows the number of rows, units (`r(N_units)`, the distinct `keep()` combinations), windows, and variables created (`r(varlist)`), the window and reference period, the thresholds, and a matrix `r(missing)` that summarizes missing data: for calendar windows one row per season with `days`, `mean_nobs`, `any_missing`, `all_missing` (shares of observations), and `below_minobs`; for unit-specific windows one row that adds `outside` (windows that run past the data) and `missing_dates`. If anything fails, the data in memory are left unchanged."
+    },
+    {
+      "line": 140,
+      "text": "`examples/wxsum_examples.do` runs all examples in the article, including a merge with a (simulated) household panel and an illustrative regression; `examples/wxsum_examples.log` is its log."
+    },
+    {
+      "line": 155,
+      "text": "`tests/run_all.do` runs every test suite (from the repository root: `do tests/run_all.do`). It includes hand-computed checks, a comparison with an independent reference implementation on random data (`tests/reference/wxsum_ref.ado`), and a comparison with frozen version 5 output (`tests/reference/`)."
+    }
+  ],
+  "sj paper/wxsum_body.tex": [
+    {
+      "line": 1,
+      "text": "\\section{Introduction}"
+    },
+    {
+      "line": 13,
+      "text": "\\section{Data considerations}"
+    },
+    {
+      "line": 35,
+      "text": "Many weather products contain missing values due to sensor problems, limited spatial coverage, cloud contamination, or limitations in station interpolation \\citep{Dinku2020}. Before using \\texttt{wxsum}, users should examine missingness in the daily variables and decide whether the weather product and temporal coverage are adequate for the application. For means, medians, standard deviations, maxima, rainy-day counts, rain-day shares, daily-temperature bin counts, and dry spells, missing daily values are not treated as observed weather. For seasonal and monthly precipitation totals, \\texttt{wxsum} uses Stata's \\texttt{rowtotal()} function, and so missing daily values contribute zero to those sums. This means seasons with missing days will understate true missingness in total rainfall. If an empirical design requires a balanced panel of weather exposures or a minimum number of observed days within a season, that restriction should be imposed before running \\texttt{wxsum} and should be documented in the replication files."
+    },
+    {
+      "line": 37,
+      "text": "\\section{The \\texttt{wxsum} command}"
+    },
+    {
+      "line": 83,
+      "text": "\t\\item[\\texttt{ini\\_day(day)}] specifies the first day of the initial month to be included in the season. The default is \\texttt{01}."
+    },
+    {
+      "line": 85,
+      "text": "\t\\item[\\texttt{lr\\_years(num)}] specifies the number of strictly preceding years used to compute rolling deviations and $z$-scores. The default is 10, and the maximum is 50."
+    },
+    {
+      "line": 86,
+      "text": "\t\\item[\\texttt{rain\\_threshold(num)}] specifies the threshold used to define a rainy day. The default is 1. Valid only with \\texttt{type(rain)}."
+    },
+    {
+      "line": 89,
+      "text": "\t\\item[\\texttt{kdd\\_base(num)}] specifies the threshold above which killing degree days are calculated. This option is required when \\texttt{type(temp)} is specified."
+    },
+    {
+      "line": 91,
+      "text": "\t\\item[\\texttt{gdd\\_binlo(num)}] specifies the optional lower endpoint for GDD bins. The default is 0 when \\texttt{gdd\\_bin()} is specified. If any seasonal GDD total falls below this value, a bottom-coded bin is created. Requires \\texttt{gdd\\_bin()}."
+    },
+    {
+      "line": 96,
+      "text": "\t\\item[\\texttt{shape(wide\\textbar long)}] specifies the final output shape. The default is \\texttt{wide}, which produces one row per spatial unit with year-suffixed variable names. When \\texttt{long} is specified, the output is stacked into one row per retained unit-year and a variable named \\texttt{year} is created. Input data must still be wide. The \\texttt{shape(long)} option is a final-output stacking operation; it does not change the internal computation strategy or reduce peak memory use."
+    },
+    {
+      "line": 152,
+      "text": "\\section{Formulas and Calculations}"
+    },
+    {
+      "line": 233,
+      "text": "\\noindent If \\texttt{kdd\\_base()} is left at its default value of zero, \\texttt{wxsum} does not generate the KDD variables."
+    },
+    {
+      "line": 296,
+      "text": "\\section{Examples}"
+    },
+    {
+      "line": 375,
+      "text": "\\section{Conclusions}"
+    }
+  ]
+}

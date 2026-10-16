@@ -7,7 +7,7 @@ d spells, growing and killing degree days, bins, and deviations and z-scores
 d relative to a rolling or fixed reference period. wxprep converts long daily
 d data, or wide data with other variable names, to the layout wxsum needs.
 d
-d Distribution-Date: 20261014
+d Distribution-Date: 20261016
 d
 d Author: Jeffrey D. Michler
 d Support: jdmichler@arizona.edu

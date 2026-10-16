@@ -1,0 +1,92 @@
+[
+  {
+    "name": "package_file:wxsum.ado",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxsum.sthlp",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxprep.ado",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxprep.sthlp",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:rain.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:temp.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/rain_long.dta",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "package_file:examples/temp_long.dta",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "package_file:examples/hh_toy.dta",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "package_file:examples/wxsum_examples.do",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "package_file:examples/wxsum_examples.log",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "package_file:examples/make_example_data.do",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "documented_file:tests/run_all.do",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "documented_file:examples/wxsum_examples.do",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  },
+  {
+    "name": "documented_file:examples/wxsum_examples.log",
+    "group": "packaging",
+    "status": "FAIL",
+    "rc": 601
+  }
+]

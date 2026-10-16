@@ -1,0 +1,194 @@
+[
+  {
+    "path": ".gitignore",
+    "bytes": 340,
+    "sha256": "dc8960540f8cba69b4d3a7bad245e3bc4c3b9960f79c558825473d4e49e68943",
+    "lines": 15
+  },
+  {
+    "path": "comments/2026.09.11.michler_review_author.pdf",
+    "bytes": 77440,
+    "sha256": "5ac9ca6f1dd26f590af7dd67b02f768e313cbc4700a38f22f3a4405b412488ca"
+  },
+  {
+    "path": "comments/editor_comments.txt",
+    "bytes": 8308,
+    "sha256": "5bb8af452f2f09a4d78c5285d0456d442a68866ec2b71a6fa97db91ae6b40c47",
+    "lines": 63
+  },
+  {
+    "path": "comments/wxsum_v6_claude_implementation_review.md",
+    "bytes": 16748,
+    "sha256": "abe81af517f2c0e681938e64ee1f4e79165ea3a97e14bb4be4fe1187d2776f1b",
+    "lines": 245
+  },
+  {
+    "path": "comments/wxsum_v6_plan_claude_revision.md",
+    "bytes": 23728,
+    "sha256": "d1e407a713390c71cb570504418fcc620d3a6d9c3fbf2a4413b065846b0c2585",
+    "lines": 296
+  },
+  {
+    "path": "index.html",
+    "bytes": 7715,
+    "sha256": "d19062e9f26a422ebbfb7edd2999bed59c32ec16b8ea391226bf6be817868858",
+    "lines": 156
+  },
+  {
+    "path": "rain.csv",
+    "bytes": 2524902,
+    "sha256": "7384e93a7fe64fb37f88357c821e757d50c0a1be686ce3000773778782c7306e",
+    "lines": 101
+  },
+  {
+    "path": "rain.dta",
+    "bytes": 4986715,
+    "sha256": "4fa6f9435ad1b8b9a56653e073aad6fc2244a3b103349c3e21eeea414f3b6d12"
+  },
+  {
+    "path": "rain_full.dta",
+    "bytes": 8379675,
+    "sha256": "edfd31db4add55d66f42d2ba7fd01d596f55c7e3997b56e93a43e3fc9b603d03"
+  },
+  {
+    "path": "README.md",
+    "bytes": 14966,
+    "sha256": "abb07a438b9ac28421396c229c6072d12570a448817ab889c9b6ca35b3229639",
+    "lines": 173
+  },
+  {
+    "path": "sj paper/main.tex",
+    "bytes": 843,
+    "sha256": "6b250e016b4fd7c91719ae65fe35b669c5b9e80e61396992155c1c7d05de9e3a",
+    "lines": 38
+  },
+  {
+    "path": "sj paper/pagedims.sty",
+    "bytes": 4365,
+    "sha256": "07f7642fbc3cc5f63f7a71395f31b1dac1547e0ad5060ef73780b7b55da53acd",
+    "lines": 131
+  },
+  {
+    "path": "sj paper/readme_example.txt",
+    "bytes": 1888,
+    "sha256": "6bca631a140b7f25ad4bd980fcd42001f18ffd6f44710eb539db635db842cd43",
+    "lines": 42
+  },
+  {
+    "path": "sj paper/sj.bst",
+    "bytes": 34077,
+    "sha256": "c7b257f23bc9dc40c0ce03f9494e88b45e1a542635f5af5572b7525de043ed8a",
+    "lines": 1734
+  },
+  {
+    "path": "sj paper/sj.sty",
+    "bytes": 18567,
+    "sha256": "422eca7b6fafb4b460a99cdb7b79a4ad20cb63124d16011e1404a528e5665148",
+    "lines": 666
+  },
+  {
+    "path": "sj paper/sj.version",
+    "bytes": 28,
+    "sha256": "35f66593ed61d5cd6a7af98341d7585ad6fad6677a46305eebf56d1ce2d375a6",
+    "lines": 1
+  },
+  {
+    "path": "sj paper/stata.sty",
+    "bytes": 18582,
+    "sha256": "611188e74a02af24942eff4c1aacbfbe2790561479189c1c971eb555765585da",
+    "lines": 621
+  },
+  {
+    "path": "sj paper/statapress.cls",
+    "bytes": 7053,
+    "sha256": "d98ea8213a667c4e88d37baf03355f35dd5bd5fa28aa4f15bd4e9817ca109fcc",
+    "lines": 240
+  },
+  {
+    "path": "sj paper/wxsum_body.tex",
+    "bytes": 39930,
+    "sha256": "6d641e857f2c39923873e34bf13a671ec40ff10d474b7ebb64f0b031b1843424",
+    "lines": 381
+  },
+  {
+    "path": "sj paper/wxsum_head.tex",
+    "bytes": 2973,
+    "sha256": "4a0680abe674ab0c4667441f9246a8a8d7326c610e689f38fa536eab1372f9f9",
+    "lines": 49
+  },
+  {
+    "path": "sj paper/wxsum_readme.txt",
+    "bytes": 1234,
+    "sha256": "f0eaa8d3f6fe36fa16d108c4b60517b20b5c990fb6a0ae9169c1f656511b9ac7",
+    "lines": 33
+  },
+  {
+    "path": "sj paper/wxsum_ref.bib",
+    "bytes": 6684,
+    "sha256": "ed64dc57bb5411894a01698b7c50f769b680a18abb3c10460d21a84c5a2e4d4d",
+    "lines": 163
+  },
+  {
+    "path": "sj paper/wxsum_submission.pdf",
+    "bytes": 299757,
+    "sha256": "dcba9756a275a8e07539bcdf5aaa90df6363978c7b5ffddfb1c7b60e0e21c5d3"
+  },
+  {
+    "path": "stata.toc",
+    "bytes": 121,
+    "sha256": "89d424485c78493b6fbdcd1d2b2327d91386aec936798bdb2f32e725e40d1546",
+    "lines": 3
+  },
+  {
+    "path": "temp.csv",
+    "bytes": 5566045,
+    "sha256": "14a55f2ccdbdd76f0648cb6b15587a18e419db0e8455a6553e7fe86cb9aeca3d",
+    "lines": 101
+  },
+  {
+    "path": "temp.dta",
+    "bytes": 5195735,
+    "sha256": "6b47036111d779903aed20231736a164ff8aa409d00ad60cf65861794880381f"
+  },
+  {
+    "path": "temp_full.dta",
+    "bytes": 11744035,
+    "sha256": "d8a5e9333141516f0dc50f33d5cff98e507e0cf76456954eb2956f8867d64f6b"
+  },
+  {
+    "path": "wxprep.ado",
+    "bytes": 20182,
+    "sha256": "20db970505eedebbea183300655118e79afebd19fe1f79caba134c99107a65fa",
+    "lines": 598
+  },
+  {
+    "path": "wxprep.sthlp",
+    "bytes": 8570,
+    "sha256": "de2ac730c19e1ed00057981cc4b99db54eae9f5fb4e7e63dcb08e75383290406",
+    "lines": 224
+  },
+  {
+    "path": "wxsum.ado",
+    "bytes": 55297,
+    "sha256": "ccba5c2c49c98c01ece017237915ff3e4459e235579aa10fa28e27c4dbc918f1",
+    "lines": 1580
+  },
+  {
+    "path": "wxsum.code-workspace",
+    "bytes": 60,
+    "sha256": "69e7b37e2ebdaf8fc313bf6cb74882fed65895e5f853736e65759bafb333bc6b",
+    "lines": 8
+  },
+  {
+    "path": "wxsum.pkg",
+    "bytes": 828,
+    "sha256": "a661757fc58d1d7e377d0d96f133de852b68ea2eaeca6bb623d70ec57b029fd9",
+    "lines": 26
+  },
+  {
+    "path": "wxsum.sthlp",
+    "bytes": 24045,
+    "sha256": "7dbd749a4501f601c17756ce6cca43ca1f8d9da957cac58577a86df8821ee3e1",
+    "lines": 529
+  }
+]

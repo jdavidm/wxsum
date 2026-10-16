@@ -1,4 +1,4 @@
-*! version 1.0.0  14oct2026
+*! version 1.0.0  16oct2026
 *********************************************************************************
 *  wxprep: prepares daily weather data for wxsum                               *
 *    wxprep towide  long data (one row per unit-day) -> wide wxsum layout      *
@@ -175,9 +175,9 @@ program define _wxprep_towide, rclass
 	sort `g'
 	mata: _wxprep_write("`stub'", `dmin', `dmax' - `dmin' + 1, ("`nofill'" == ""), "`vsrc'")
 	drop `g'
-	restore, not
-
+	* save before -restore, not-, so that a failed save restores the input
 	if `"`save_file'"' != "" quietly save `"`save_file'"', `save_replace'
+	restore, not
 
 	local n_filled = `n_days' - `n_present'
 	local units = cond(_N == 1, "unit", "units")
@@ -307,9 +307,9 @@ program define _wxprep_tolong, rclass
 	format `date' %td
 	label variable `date' "Date"
 	sort `id' `date'
-	restore, not
-
+	* save before -restore, not-, so that a failed save restores the input
 	if `"`save_file'"' != "" quietly save `"`save_file'"', `save_replace'
+	restore, not
 
 	di as text "wxprep tolong: " as result `n_units' as text " units x " as result `n_days' ///
 		as text " days = " as result _N as text " observations; variables " as result "`date'" ///
@@ -439,7 +439,7 @@ void _wxprep_write(string scalar stub, real scalar dmin, real scalar D,
 	dts = days :+ (dmin - 1)
 	names = J(1, nc, "")
 	for (k = 1; k <= nc; k++) {
-		names[k] = stub + strofreal(year(dts[k])) + strofreal(month(dts[k]), "%02.0f") + strofreal(day(dts[k]), "%02.0f")
+		names[k] = stub + strofreal(year(dts[k]), "%04.0f") + strofreal(month(dts[k]), "%02.0f") + strofreal(day(dts[k]), "%02.0f")
 	}
 	(void) st_addvar(_wxprep_type(x, src), names)
 	// observations sorted by output column, so that each block is contiguous
@@ -505,7 +505,7 @@ void _wxprep_renameplan(string scalar vl, string scalar stub, string scalar mode
 	}
 	newn = J(1, n, "")
 	for (k = 1; k <= n; k++) {
-		newn[k] = stub + strofreal(year(dts[k])) + strofreal(month(dts[k]), "%02.0f") + strofreal(day(dts[k]), "%02.0f")
+		newn[k] = stub + strofreal(year(dts[k]), "%04.0f") + strofreal(month(dts[k]), "%02.0f") + strofreal(day(dts[k]), "%02.0f")
 		if (strlen(newn[k]) > 32) {
 			errprintf("new name %s is longer than 32 characters; use a shorter stub()\n", newn[k])
 			exit(198)

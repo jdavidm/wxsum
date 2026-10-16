@@ -1,0 +1,295 @@
+
+WXSUM / WXPREP: FOLDER-ONLY AUDIT
+
+15 October 2026 | Source: C:\Users\annal\Downloads\wxsum | Tested with StataNow/MP 19.5 on Windows
+
+
+Verdict
+
+The package does not yet satisfy everything the editor and reviewer requested. All four concrete reviewer feature requests are implemented and passed the independent tests. The broader resubmission remains incomplete: the paper is out of step with the code, required example/replication files are missing, and the new tests reproduce two implementation defects and a functional defect in the advertised longest-heat-spell calculation. It is not ready for an unqualified completion or resubmission sign-off.
+
+Overall result: 174 checks, with 156 passed and 18 failed. This combines 159 executable Stata cases (150 passed, 9 failed) and 15 file-presence checks (6 passed, 9 failed). The previously quoted 150 of 159 figure covered only the Stata cases. Failures are deliberately retained as ordinary failing regression tests. Related cases can expose the same defect; 18 failed checks do not mean 18 separate bugs.
+
+Check type | Total | Passed | Failed
+Executable Stata cases | 159 | 150 | 9
+Package/documentation file-presence checks | 15 | 6 | 9
+Overall | 174 | 156 | 18
+
+
+Scope and evidence
+
+All 33 files in the specified folder were inventoried and hashed. The review read both ado files, both help files, README, website/package files, editor comments, both development documents, the complete two-page reviewer report, the complete 18-page manuscript PDF, TeX sources, bibliography, submission readme, and included LaTeX support files. All six CSV/DTA datasets were loaded and profiled across their full contents. Formatting support files were inspected as document infrastructure; they do not define either command.
+
+No website, remote repository, linked submission guideline, outside paper, earlier checkout, or externally claimed test result was used to decide compliance or define expected behavior. Installed Stata and Python were execution tools only. The local plan and previous review were treated as evidence of design intent and prior claims, not proof that absent deliverables exist. The 33 original source hashes were unchanged after execution. All new files are in the audit output directory.
+
+Expected values were derived from formulas and semantics in the supplied manuscript, help, and plan. Where they conflict, tests use the current documented v6 command contract and explicit D3/D4 spell decisions; the report flags the contradictory paper/help statements separately. Tests do not certify physical validity of weather composites that the package does not define.
+
+
+Confirmed findings
+
+
+B1. Failed saves replace the original data in memory
+
+High. Confirmed command defect. Location: wxsum.ado:457-460; wxprep.ado:178-180 and 310-312.
+
+All three paths commit the transformed dataset with restore, not before attempting save. A missing destination directory produces a save error, but datasignature changes and the original input is gone from memory. This contradicts the README/help promise that failure leaves data unchanged. Successful saves and existing-file rejection were separately tested and passed.
+
+Reproduction: save_failure_atomic_wxsum; save_failure_atomic_prep_towide; save_failure_atomic_prep_tolong.
+
+Recommended action: Attempt save while the preserved input can still be restored, and commit the in-memory result only after saving succeeds. Add the same failure-atomicity guarantee to both conversion paths. These are recommendations; the source was not edited.
+
+
+B2. wxprep does not pad years to four digits
+
+Low / date-domain edge case. Confirmed command defect. Location: wxprep.ado:442 and 508.
+
+For an accepted daily date 1 January 0999, both towide and rename produce x_9990101 instead of x_09990101. Discovery in tolong and wxsum requires an eight-digit suffix, so the output violates the required naming format. The problem concerns historical year values, not the modern years in the bundled climate data.
+
+Reproduction: prep_early_year_eight_digit_names; prep_rename_early_year.
+
+Recommended action: Format the year with %04.0f in both name constructors and validate the supported year range; alternatively reject unsupported years explicitly before changing data and document the restriction.
+
+
+B3. The advertised longest-heat-spell calculation can understate the answer
+
+Medium. Confirmed functional contract defect: command/help inconsistency. Location: wxsum.sthlp:365-366; wxsum.ado:1228-1267.
+
+For daily temperatures 35, missing, 35, 35, 20, 20 with heat_threshold(30), the real longest heat run is 2. The command returns heat_start=1, heat=0, heat_end=0 under the specified D3/D4 rules, so the advertised calculation max(heat_start,heat,heat_end) gives 1. The command does not directly return a global longest-run variable. Its three outputs follow their individual definitions, as confirmed by the 729-pattern tests, but they do not provide the global longest-run functionality promised by the help. This is a functional defect against that advertised contract, not merely an outdated example or a command correctly rejecting invalid syntax.
+
+Reproduction: documented_longest_heat_formula.
+
+Recommended action: To deliver the advertised functionality, compute and expose the true longest run anywhere in the window, which is 2 in this case, and test it with internal missing days. Preserve the separately defined mid-window statistic unless its semantics are deliberately revised. Removing or narrowing the help claim would instead withdraw or limit the advertised capability; that would not implement the missing global longest-run result.
+
+
+B4. The manuscript describes the older interface and includes non-running examples
+
+High / submission blocker. Confirmed manuscript/software mismatch. Location: sj paper/wxsum_body.tex:41-52,89,96,104,213-215,223-233,296-373.
+
+The paper says wide is the default, omits required heat_threshold(), describes KDD as optional at a zero default, and omits wxprep, baseline(), observation-specific windows, heat spells, cuts(), minobs()/ref_min(), outstub(), and r() diagnostics. Its spell wording also predates the revised edge-missing and 0/1-break rules. Three temperature example blocks fail with r(198) for missing heat_threshold(). The submitted PDF was read alongside the TeX and is also the older presentation.
+
+Reproduction: manuscript_example_2; manuscript_example_3; manuscript_example_4; manuscript_example_1/5/6 passed.
+
+Recommended action: Update syntax, definitions, output tables/counts, narrative, all examples, and the compiled PDF together. Regenerate the article examples from a clean executable do-file and include their actual output.
+
+
+B5. Required package and replication files are absent
+
+High / distribution blocker. Confirmed packaging defect. Location: wxsum.pkg; README.md:140,155; wxsum.sthlp:464-466.
+
+The package lists six absent paths: examples/rain_long.dta, examples/temp_long.dta, examples/hh_toy.dta, examples/wxsum_examples.do, examples/wxsum_examples.log, and examples/make_example_data.do. tests/run_all.do is also absent. The file checks produce nine failures because the example do-file/log are checked both as manifest entries and as explicit documentation promises; this is seven unique missing paths, not nine independent missing files.
+
+Reproduction: Six package_file failures and three documented_file failures in results.csv.
+
+Recommended action: Include the referenced files and original test/reference materials, verify the package from a clean local installation, and ensure the distributed paths match the documentation. This audit did not fetch replacement files from elsewhere.
+
+
+B6. Several editorial writing and explanation requests remain unfinished
+
+Medium / response completeness. Assessment from supplied evidence. Location: Editor E2/E3/E6/E8/E9/E11/E13 in requirements_matrix.csv.
+
+The implementation substantially expands functionality, but the paper still needs a broader-use worked example, a substantive KDD explanation, explicit set maxvar guidance, the naming/rollback rationale, and forward-looking conclusions. Composite metrics and per-statistic naming were consciously not adopted in the plan; they need a clear explanation in the author response rather than a blanket completion claim.
+
+Reproduction: Point-by-point source review; not treated as an executable software test.
+
+Recommended action: Prepare a point-by-point response letter with explicit implemented, demonstrated, justified alternative, and deferred responses. Do not repeat the previous review's 100% completion statement.
+
+
+Mapping the failed checks to findings
+
+The nine failed Stata cases map to B1-B4. B1 and B2 are implementation defects; B3 is a functional defect against the advertised ability to recover the longest heat spell. Together B1-B3 account for six failed checks of command/package functionality. B4 accounts for three outdated manuscript examples that omit a required option; wxsum correctly rejects those calls. B5 accounts for all nine failed file-presence checks. B6 is a qualitative assessment of the editorial response, not an additional automated failure. The test group named documentation identifies where the B3 expectation originated; it does not imply that the resulting functional shortfall can be dismissed as prose alone.
+
+save_failure_atomic_wxsum -> B1
+A failed save leaves wxsum output in memory instead of restoring the input.
+
+save_failure_atomic_prep_tolong -> B1
+A failed save leaves the reshaped long data in memory instead of restoring the wide input.
+
+save_failure_atomic_prep_towide -> B1
+A failed save leaves the reshaped wide data in memory instead of restoring the long input.
+
+prep_early_year_eight_digit_names -> B2
+towide creates x_9990101 rather than x_09990101 for 1 January 0999.
+
+prep_rename_early_year -> B2
+rename creates the same unpadded date suffix.
+
+documented_longest_heat_formula -> B3
+The help formula gives 1 when the actual longest heat run is 2.
+
+manuscript_example_2 -> B4
+The temperature-summary example omits heat_threshold() and returns r(198).
+
+manuscript_example_3 -> B4
+The GDD-category example omits heat_threshold() and returns r(198).
+
+manuscript_example_4 -> B4
+The daily-temperature-bin example omits heat_threshold() and returns r(198).
+
+Thus B1 accounts for 3 failed Stata cases, B2 for 2, B3 for 1, and B4 for 3: 9 in total. The r(9) codes in assertion-based cases mean the audit expectation failed; they are not all crashes of the underlying command. The file-presence failures under B5 represent seven unique missing paths, with two paths checked twice against different promises.
+
+
+Point-by-point editor and reviewer assessment
+
+Reviewer R1 — Implemented and tested
+Convert long data to required wide layout; permit transformations and subdaily aggregation
+wxprep towide/rename/tolong; all documented date forms, daily(mean/sum/min/max), filling, nofill, duplicate rejection, exact round trips, and Kelvin transformation passed. The early-year naming defect is an edge-case exception.
+Evidence: wxprep.ado:34,206,254; prep_*; kelvin_transform_roundtrip
+
+Reviewer R2 — Implemented and tested
+Deviations and z-scores against a fixed baseline
+baseline() works in calendar and unit-specific modes. Independent calculations passed, including inclusion of baseline-year outcomes in their own fixed benchmark, ref_min(), and zero-variance handling. The paper does not describe this feature.
+Evidence: wxsum.ado:903,1301,1334; oracle_*_baseline_*
+
+Reviewer R3 — Implemented and tested
+Observation-specific start and end dates, or explain why unavailable
+start()/end() and event_date()/days()/lag() work; varying lengths, dates shifted across years, leap-day mapping, partial, missing dates, invalid dates, and shifted reference periods passed. Missing from the paper.
+Evidence: wxsum.ado:774,1334; oracle_*_unit_*; oracle_*_event_*
+
+Reviewer R4 — Implemented and tested
+Deviations and z-scores for leading, middle, and trailing dry spells, or justification
+All three spell statistics have reference deviations/z-scores. Independent calendar and observation-specific numerical comparisons passed. The paper still omits these reference outputs.
+Evidence: wxsum.ado:607; oracle_rain_*
+
+Editor E1 — Partly addressed
+Address reviewer requests and broaden functionality
+The four concrete reviewer feature requests are implemented. Software defects, missing replication materials, and the older paper prevent an overall completion finding.
+Evidence: Reviewer rows above; findings B1-B6
+
+Editor E2 — Partly addressed
+Make the case for widespread utility and help the wider Stata community
+Code and current help add flexible windows, heat exposure, arbitrary cutpoints, long output, and data preparation. The paper remains predominantly agricultural and omits most of the new capabilities. A focused broader-use illustration and point-by-point explanation are still needed.
+Evidence: README.md; wxsum.sthlp; sj paper/wxsum_body.tex:1-35
+
+Editor E3 — Partly addressed
+Broader input series, composite metrics, non-calendar periods, and adaptable output definitions
+Pregnancy/event windows, cuts(), outstub(), and external daily-series transformations are supported. Humidity/wet-bulb/wind must use type(temp) and supply temperature-style thresholds, and physical heat-rain/humidity composites are not calculated internally. The plan explicitly chooses this compromise; the paper and response letter must explain and demonstrate it. There is no stats() selector or per-statistic naming option.
+Evidence: comments/wxsum_v6_plan_claude_revision.md:decisions D9 and section 1.1; wxsum.sthlp:124-131,272-274
+
+Editor E4 — Implemented and tested
+Companion data preparation command
+wxprep supplies the requested conversion and naming functionality; conventional modern-date cases passed. Fix B2 before claiming unrestricted round-trip support.
+Evidence: wxprep.ado; prep_*
+
+Editor E5 — Implemented and tested
+Post-calculation diagnostics, counts, missingness, saved settings, and r() results
+rclass, printed summaries, r(varlist), r(k_created), r(N_units), r(missing), and characteristics exist. Stored-results and metadata checks passed. r(N_units) means distinct combinations of all keep() variables; it is not a separately specified ID count. Preserve actual unit dates with keep() when needed.
+Evidence: wxsum.ado:23,415-425,447-457,509-541; stored_results_and_metadata
+
+Editor E6 — Not supplied
+Show research use with output, toy data, merge, and illustrative analysis
+The original folder has no examples directory, toy household data, example do-file, or example log. The paper prints commands without results and does not show the proposed merge/regression. The new audit integration test demonstrates feasibility but does not supply the authors' missing article replication package.
+Evidence: sj paper/wxsum_body.tex:296-373; wxsum.pkg:listed example files
+
+Editor E7 — Implemented and tested
+Convenient long output for inspection and merging
+Calendar output defaults to long; shape(wide) is available. Both were checked numerically. The manuscript incorrectly identifies wide as the default.
+Evidence: wxsum.ado:346-366; wxsum.sthlp:263-269; sj paper/wxsum_body.tex:96,104
+
+Editor E8 — Partly addressed
+Explain the term killing degree days
+Current help/labels call KDD extreme-heat degree days and provide a formula. The manuscript still uses the term without the requested substantive explanation, and wrongly says KDD are omitted at a default base of zero.
+Evidence: wxsum.sthlp:319-320; sj paper/wxsum_body.tex:223-233
+
+Editor E9 — Partly addressed
+Explicitly discuss set maxvar
+README/help explain set maxvar and the commands check capacity. Both capacity rejection tests passed. The manuscript discusses edition limits but never says set maxvar, and its example setup omits it.
+Evidence: README.md:requirements; wxsum.sthlp:381-392; sj paper/wxsum_body.tex:19; maxvar_*
+
+Editor E10 — Not supplied
+Provide executable example do-files and plain-text logs reproducing article output
+Neither do-files nor logs are present in the original folder. The manifest and README promise them. Three extracted temperature examples also fail with r(198).
+Evidence: wxsum.pkg; README.md:140; manuscript_example_2/3/4
+
+Editor E11 — Not addressed
+Rewrite conclusions as forward-looking conclusions
+The final two paragraphs summarize capabilities and repeat research-design cautions. They do not give concrete future development directions or a forward-looking discussion responding to the editor.
+Evidence: sj paper/wxsum_body.tex:375-379
+
+Editor E12 — Addressed
+Remove capture program drop lines from ado files
+Neither ado file contains such a line. Test harness capture commands are outside the submitted ado files.
+Evidence: wxsum.ado and wxprep.ado, full source scan
+
+Editor E13 — Partly addressed
+Avoid hard-coded-variable side effects; support naming or justify fixed output stems
+The Mata/preserve architecture and outstub() provide a reasonable implementation response; preflight and forced-store rollback tests passed. Fixed stems remain by design, with the rationale in the development plan rather than a persuasive manuscript discussion. Save failures still replace the original data, contradicting the no-side-effects promise.
+Evidence: wxsum.ado:413-460; comments/wxsum_v6_plan_claude_revision.md:section 1.1; B1
+
+Editor E14 — Implemented and tested
+Compress output to reduce storage
+wxsum compresses created statistics; wxprep selects narrow integer/float/double storage. Round-trip tests include high-precision doubles, large integers, strings, and extended missing values.
+Evidence: wxsum.ado:446; wxprep.ado:375-398; prep_roundtrip_exact
+
+Resubmission package — Incomplete
+Complete code/article/replication package and point-by-point covering letter
+No point-by-point response letter is present. Six files listed by the package are missing. The older implementation review's claim that tests/examples all pass cannot be verified from this folder because those files were not included.
+Evidence: comments/editor_comments.txt:resubmission instructions; wxsum.pkg; comments/wxsum_v6_claude_implementation_review.md
+
+
+Test design and results
+
+The runner generated 67,567 assertion statements across 159 independently reported Stata cases. An assertion can apply to several observations, and cases stop at their first failing statement, so this is a generated-check count rather than a claim that every assertion executed. Cases run in one fresh batch Stata session with this folder first on adopath and set type double. Synthetic numerical checks use tolerance 1e-9 * max(1,abs(expected)); missing results are tested explicitly. Temperature CSV expectations are converted to the DTA input's binary32 precision before calculating expected statistics.
+
+The group table below includes both executable Stata cases and the packaging file checks. Its total is therefore 174 checks, rather than 159 Stata cases.
+
+packaging: 6 pass, 9 fail
+behavior: 49 pass, 2 fail
+oracle: 40 pass, 0 fail
+validation: 42 pass, 0 fail
+io: 0 pass, 3 fail
+documentation: 3 pass, 4 fail
+capacity: 2 pass, 0 fail
+integration: 2 pass, 0 fail
+bundled: 6 pass, 0 fail
+performance: 6 pass, 0 fail
+The 40 oracle cases passed: two exhaustive spell cases cover all 729 six-day combinations of missing/spell/break values for each of rain and heat; 38 independently computed numerical cases cover both types, six years and 12 units, long and wide output, calendar and cross-year windows, leap days, fixed and rolling references, varying-length unit windows, partial coverage, missing dates, and positive/negative event lags. Python scalar/date/statistics routines provide the oracle; these fixtures are loaded directly rather than being constructed through wxprep.
+
+Additional cases test hand-calculated statistics, minobs/ref_min, zero reference variance, all-missing/singleton/constant windows, threshold equality, daily temperature bins 1/2/4/42, arbitrary cuts, GDD categories/labels, stored results and characteristics, string keep variables, output collisions, invalid options, save/replace, forced rollback, all wxprep date forms, daily aggregation, duplicate handling, filtering, exact round trips, maxvar rejection, Kelvin conversion, and a toy merge/regression. The manuscript's six example blocks were extracted and run with data paths redirected to the supplied folder and the save target redirected to a tempfile; the wxsum syntax was preserved.
+
+Bundled DTA tests run sample and full rain/temperature data. Independent CSV-derived expectations verify every core statistic for the ten shared sample units over May 15–October 15, 2003–2023. The CSV files are larger histories than the small DTA examples, not exact file-format duplicates. Full-history and sample cross-year runs also passed. Both calendar and unit-specific 12,000-by-366-day tests cross the engine's four-million-cell chunk boundary and passed.
+
+
+Observed execution times
+
+bundled_rain_sample_cross_year: 0.06 seconds
+bundled_rain_full_cross_year: 0.27 seconds
+performance_rain_1000: 0.02 seconds
+performance_rain_10000: 0.08 seconds
+bundled_temp_sample_cross_year: 0.08 seconds
+bundled_temp_full_cross_year: 0.36 seconds
+performance_temp_1000: 0.02 seconds
+performance_temp_10000: 0.10 seconds
+chunk_boundary_calendar_12000x366: 2.21 seconds
+chunk_boundary_unit_12000x366: 3.46 seconds
+Total timed Stata batch: 18.40 seconds. Timings above isolate commands with Stata timers; they are observations from this machine, not performance guarantees. The 1,000/10,000-row cases use six daily variables; the separate 12,000-row cases use 366 days.
+
+
+Data and supporting-file review
+
+rain.csv: 100 rows, 11323 variables; 1993-01-01 to 2023-12-31; 0 missing daily cells
+rain.dta: 10 rows, 7671 variables; 2003-01-01 to 2023-12-31; 0 missing daily cells
+rain_full.dta: 100 rows, 11323 variables; 1993-01-01 to 2023-12-31; 0 missing daily cells
+temp.csv: 100 rows, 11292 variables; 1993-01-01 to 2023-11-30; 0 missing daily cells
+temp.dta: 10 rows, 7640 variables; 2003-01-01 to 2023-11-30; 0 missing daily cells
+temp_full.dta: 100 rows, 11292 variables; 1993-01-01 to 2023-11-30; 0 missing daily cells
+Every daily suffix in these six files parsed as a valid date; no duplicate daily dates or missing daily cells were found. The small DTA files are exact subsets of the corresponding full DTA data on shared IDs/columns. Temperature DTA values use float storage; small CSV/DTA decimal-versus-binary differences are expected input representation differences. rain.csv has whitespace around its hhid header; the test reader strips that whitespace. The complete profile and SHA-256 inventory are included as JSON.
+
+Additional submission housekeeping: the author readme still lists only wxsum files rather than wxprep and the new examples, its title field is blank, and one email ends in arizona.du. The manuscript header repeats Jeffrey Michler's email for Anna Josephson. These are source-observed editorial corrections, separate from command defects. The abstract's fixed count of 23 precipitation and 14 temperature measures should be reconciled with conditional v6 outputs.
+
+
+How to rerun and inspect failures
+
+From the extracted audit directory, run the following command using Python 3.10+ and a licensed Stata executable:
+
+python run_tests.py --source "C:\Users\annal\Downloads\wxsum" --stata "C:\Program Files\StataNow19\StataMP-64.exe"
+
+The runner uses the Python standard library and never installs anything or changes the source folder. It writes generated fixtures, .do cases, logs, CSV/JSON results, and source hashes under verified_results/. It returns exit status 1 while any regression or packaging check fails and 0 only when the run completes with every check passing. A nonzero status in this delivered run is expected. Output files are overwritten on a rerun; use --results with another directory to preserve this run.
+
+verified_results/run_all.do can rerun the already generated suite directly in Stata on this computer. For another computer or extraction location, use the Python runner first to regenerate its absolute file paths. Individual cases can be rerun after setting adopath to the source folder. The full text log preserves command output; failure_excerpts.txt gives compact reproductions. requirements_matrix.csv maps each request to evidence. source_inventory.json pins the exact audited files.
+
+
+Limits of the conclusion
+
+Passing cases show that the tested v6 calculations agree with independently computed expectations; they cannot prove that no other bug exists. This run used StataNow/MP 19.5 only; the advertised Stata 15/15.1 compatibility, other operating systems/editions, interactive user breaks, file-lock/disk-full races, every possible weather-value range, and every physical composite definition were not certified. No remote install was attempted. Local manifest completeness was tested; a clean distribution install still needs to be rerun after its missing files are supplied. The full PDF was read for content; its visual typesetting and TeX compilation were outside this code/compliance audit.
+
+The original package was not changed. The next substantive work is to correct B1/B2, resolve the missing longest-run functionality in B3, supply the missing replication package, update the paper/PDF and examples, then rerun this suite and prepare the point-by-point response letter.

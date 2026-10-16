@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.0.0 14oct2026}{...}
+{* *! version 6.0.0 16oct2026}{...}
 {vieweralsosee "wxprep" "help wxprep"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -351,20 +351,29 @@ a heat spell is a run of consecutive heat days (temp >=
 end a run, and so does a missing day.
 
 {phang2}
-{cmd:dry_start} ({cmd:heat_start}) counts the run that begins on the first
-observed day of the window; missing days at the start are skipped.
-{cmd:dry_end} ({cmd:heat_end}) counts the run that ends on the last observed
-day, skipping missing days at the end.{p_end}
+{cmd:dry_start} ({cmd:heat_start}), the leading spell, is the run that begins
+on the first observed day of the window; missing days at the start are
+skipped. It is 0 if the first observed day is a rainy (cooler) day.{p_end}
 {phang2}
-{cmd:dry} ({cmd:heat}) is the longest run strictly between the first and last
-rainy (cooler) day when the window has at least two of them. With none or one,
-it is the longest run anywhere in the window, so a window without rain has a
-long mid-window dry spell, not 0.{p_end}
+{cmd:dry_end} ({cmd:heat_end}), the trailing spell, is the run that ends on
+the last observed day, skipping missing days at the end. It is 0 if the last
+observed day is a rainy (cooler) day.{p_end}
+{phang2}
+{cmd:dry} ({cmd:heat}), the mid-window spell, is the longest run that is
+neither the leading nor the trailing spell when the window has at least two
+rainy (cooler) days. With none or one, it is the longest run anywhere in the
+window (which may also be the leading or trailing spell), so a window without
+rain has a long mid-window dry spell, not 0.{p_end}
 
 {pstd}
-The longest heat spell anywhere in the window is
-{cmd:max(heat_start, heat, heat_end)}. Spell lengths are counts with many
-zeros; read their z-scores with care.
+Every run is therefore the leading spell, the trailing spell, or a candidate
+for the mid-window spell, and the longest dry (heat) spell anywhere in the
+window is {cmd:max(dry_start, dry, dry_end)}
+({cmd:max(heat_start, heat, heat_end)}). For example, with
+{cmd:heat_threshold(30)}, daily temperatures 35, ., 35, 35, 20, 20 give
+{cmd:heat_start} = 1 (the missing second day ends the leading spell),
+{cmd:heat} = 2 (days 3-4), and {cmd:heat_end} = 0. Spell lengths are counts
+with many zeros; read their z-scores with care.
 
 {pstd}
 {ul:Missing data}

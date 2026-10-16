@@ -1,0 +1,12 @@
+{
+  "bundled_rain_sample_cross_year": 0.06,
+  "bundled_rain_full_cross_year": 0.27,
+  "performance_rain_1000": 0.02,
+  "performance_rain_10000": 0.08,
+  "bundled_temp_sample_cross_year": 0.08,
+  "bundled_temp_full_cross_year": 0.36,
+  "performance_temp_1000": 0.02,
+  "performance_temp_10000": 0.1,
+  "chunk_boundary_calendar_12000x366": 2.21,
+  "chunk_boundary_unit_12000x366": 3.46
+}

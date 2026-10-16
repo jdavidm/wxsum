@@ -1,0 +1,62 @@
+[
+  {
+    "id": "B1",
+    "priority": "High",
+    "title": "Failed saves replace the original data in memory",
+    "kind": "Confirmed command defect",
+    "where": "wxsum.ado:457-460; wxprep.ado:178-180 and 310-312",
+    "detail": "All three paths commit the transformed dataset with restore, not before attempting save. A missing destination directory produces a save error, but datasignature changes and the original input is gone from memory. This contradicts the README/help promise that failure leaves data unchanged. Successful saves and existing-file rejection were separately tested and passed.",
+    "tests": "save_failure_atomic_wxsum; save_failure_atomic_prep_towide; save_failure_atomic_prep_tolong",
+    "fix": "Attempt save while the preserved input can still be restored, and commit the in-memory result only after saving succeeds. Add the same failure-atomicity guarantee to both conversion paths. These are recommendations; the source was not edited."
+  },
+  {
+    "id": "B2",
+    "priority": "Low / date-domain edge case",
+    "title": "wxprep does not pad years to four digits",
+    "kind": "Confirmed command defect",
+    "where": "wxprep.ado:442 and 508",
+    "detail": "For an accepted daily date 1 January 0999, both towide and rename produce x_9990101 instead of x_09990101. Discovery in tolong and wxsum requires an eight-digit suffix, so the output violates the required naming format. The problem concerns historical year values, not the modern years in the bundled climate data.",
+    "tests": "prep_early_year_eight_digit_names; prep_rename_early_year",
+    "fix": "Format the year with %04.0f in both name constructors and validate the supported year range; alternatively reject unsupported years explicitly before changing data and document the restriction."
+  },
+  {
+    "id": "B3",
+    "priority": "Medium",
+    "title": "The advertised longest-heat-spell calculation can understate the answer",
+    "kind": "Confirmed functional contract defect: command/help inconsistency",
+    "where": "wxsum.sthlp:365-366; wxsum.ado:1228-1267",
+    "detail": "For daily temperatures 35, missing, 35, 35, 20, 20 with heat_threshold(30), the real longest heat run is 2. The command returns heat_start=1, heat=0, heat_end=0 under the specified D3/D4 rules, so the advertised calculation max(heat_start,heat,heat_end) gives 1. The command does not directly return a global longest-run variable. Its three outputs follow their individual definitions, as confirmed by the 729-pattern tests, but they do not provide the global longest-run functionality promised by the help. This is a functional defect against that advertised contract, not merely an outdated example or a command correctly rejecting invalid syntax.",
+    "tests": "documented_longest_heat_formula",
+    "fix": "To deliver the advertised functionality, compute and expose the true longest run anywhere in the window, which is 2 in this case, and test it with internal missing days. Preserve the separately defined mid-window statistic unless its semantics are deliberately revised. Removing or narrowing the help claim would instead withdraw or limit the advertised capability; that would not implement the missing global longest-run result."
+  },
+  {
+    "id": "B4",
+    "priority": "High / submission blocker",
+    "title": "The manuscript describes the older interface and includes non-running examples",
+    "kind": "Confirmed manuscript/software mismatch",
+    "where": "sj paper/wxsum_body.tex:41-52,89,96,104,213-215,223-233,296-373",
+    "detail": "The paper says wide is the default, omits required heat_threshold(), describes KDD as optional at a zero default, and omits wxprep, baseline(), observation-specific windows, heat spells, cuts(), minobs()/ref_min(), outstub(), and r() diagnostics. Its spell wording also predates the revised edge-missing and 0/1-break rules. Three temperature example blocks fail with r(198) for missing heat_threshold(). The submitted PDF was read alongside the TeX and is also the older presentation.",
+    "tests": "manuscript_example_2; manuscript_example_3; manuscript_example_4; manuscript_example_1/5/6 passed",
+    "fix": "Update syntax, definitions, output tables/counts, narrative, all examples, and the compiled PDF together. Regenerate the article examples from a clean executable do-file and include their actual output."
+  },
+  {
+    "id": "B5",
+    "priority": "High / distribution blocker",
+    "title": "Required package and replication files are absent",
+    "kind": "Confirmed packaging defect",
+    "where": "wxsum.pkg; README.md:140,155; wxsum.sthlp:464-466",
+    "detail": "The package lists six absent paths: examples/rain_long.dta, examples/temp_long.dta, examples/hh_toy.dta, examples/wxsum_examples.do, examples/wxsum_examples.log, and examples/make_example_data.do. tests/run_all.do is also absent. The file checks produce nine failures because the example do-file/log are checked both as manifest entries and as explicit documentation promises; this is seven unique missing paths, not nine independent missing files.",
+    "tests": "Six package_file failures and three documented_file failures in results.csv",
+    "fix": "Include the referenced files and original test/reference materials, verify the package from a clean local installation, and ensure the distributed paths match the documentation. This audit did not fetch replacement files from elsewhere."
+  },
+  {
+    "id": "B6",
+    "priority": "Medium / response completeness",
+    "title": "Several editorial writing and explanation requests remain unfinished",
+    "kind": "Assessment from supplied evidence",
+    "where": "Editor E2/E3/E6/E8/E9/E11/E13 in requirements_matrix.csv",
+    "detail": "The implementation substantially expands functionality, but the paper still needs a broader-use worked example, a substantive KDD explanation, explicit set maxvar guidance, the naming/rollback rationale, and forward-looking conclusions. Composite metrics and per-statistic naming were consciously not adopted in the plan; they need a clear explanation in the author response rather than a blanket completion claim.",
+    "tests": "Point-by-point source review; not treated as an executable software test",
+    "fix": "Prepare a point-by-point response letter with explicit implemented, demonstrated, justified alternative, and deferred responses. Do not repeat the previous review's 100% completion statement."
+  }
+]

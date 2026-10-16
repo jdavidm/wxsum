@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0 14oct2026}{...}
+{* *! version 1.0.0 16oct2026}{...}
 {vieweralsosee "wxsum" "help wxsum"}{...}
 {viewerjumpto "Syntax" "wxprep##syntax"}{...}
 {viewerjumpto "Description" "wxprep##description"}{...}
@@ -66,7 +66,8 @@ temperature and humidity, are easiest in long form: convert with
 
 {pstd}
 {cmd:towide} and {cmd:tolong} replace the data in memory. If the data in memory
-have changed since they were last saved, specify {opt clear}. The new weather 
+have changed since they were last saved, specify {opt clear}. If anything
+fails, including {cmd:save()}, the data in memory are left unchanged. The new weather 
 variables get the narrowest storage type that holds every value exactly 
 ({cmd:byte}, {cmd:int}, or {cmd:long} for whole numbers; otherwise {cmd:float}, 
 or {cmd:double} when the input is {cmd:double} or {cmd:long}), so a 

@@ -1,4 +1,4 @@
-*! version 6.0.0  14oct2026
+*! version 6.0.0  16oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -454,11 +454,9 @@ program define wxsum, rclass
 	char _dta[wxsum_ref] "`ref_desc', ref_min(`ref_min')"
 	char _dta[wxsum_thresholds] "`thr_desc'"
 	char _dta[wxsum_minobs] "`minobs'"
+	* save before -restore, not-, so that a failed save restores the input
+	if `"`save_file'"' != "" quietly save `"`save_file'"', `save_replace'
 	restore, not
-
-	if `"`save_file'"' != "" {
-		quietly save `"`save_file'"', `save_replace'
-	}
 
 	* ------------------------------------------------------------------
 	* Summary and stored results
@@ -1230,7 +1228,7 @@ void _wx_spells(real matrix Sp, real matrix Bk, real colvector lead,
 {
 	real scalar    N, D, d
 	real matrix    P, O, Smid
-	real colvector F, G, Lst, H, nb, fb, lb, runall, maxall, runmid, maxmid
+	real colvector F, G, Lst, H, nb, runall, maxall, runmid, maxmid
 
 	N = rows(Sp)
 	D = cols(Sp)
@@ -1245,12 +1243,13 @@ void _wx_spells(real matrix Sp, real matrix Bk, real colvector lead,
 	Lst = rowmax(P :* O)
 	H = rowmax(P :* ((P :< Lst) :& (Sp :== 0)))
 	trail = (Lst - H) :* rowmax(Sp :* (P :== Lst))
-	// mid-window spell: with >= 2 break days, the longest run strictly
-	// between the first and last break day; otherwise the longest run anywhere
+	// mid-window spell: with >= 2 break days, the longest run that is
+	// neither the leading nor the trailing run (so the longest run anywhere is
+	// max(lead, mid, trail)); otherwise the longest run anywhere. The leading
+	// run is F..F+lead-1 and the trailing run Lst-trail+1..Lst; the day next to
+	// each is not a spell day, so dropping them leaves the other runs intact.
 	nb = rowsum(Bk)
-	fb = editmissing(rowmin(P :/ Bk), D + 1)
-	lb = rowmax(P :* Bk)
-	Smid = Sp :* (P :> fb) :* (P :< lb)
+	Smid = Sp :* !((P :>= F) :& (P :< F :+ lead)) :* !((P :> Lst :- trail) :& (P :<= Lst))
 	runall = maxall = runmid = maxmid = J(N, 1, 0)
 	for (d = 1; d <= D; d++) {
 		runall = (runall :+ 1) :* Sp[., d]
