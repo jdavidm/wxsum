@@ -184,7 +184,7 @@ program define _wxprep_towide, rclass
 	local dvars = cond(`n_days' == 1, "daily variable", "daily variables")
 	di as text "wxprep towide: " as result _N as text " `units', " as result `n_days' as text " `dvars' " ///
 		as result "`first_var'" as text " to " as result "`last_var'"
-	if `n_filled' di as text "  `n_filled' calendar days without any data were added as missing (use nofill to skip them)"
+	if `n_filled' di as text "  `n_filled' days without data were added as missing days (nofill skips them)"
 	if `n_combined' di as text "  `n_combined' readings were combined into daily values with daily(`daily')"
 	if `"`save_file'"' != "" di as text `"  saved as `save_file'"'
 
@@ -312,8 +312,8 @@ program define _wxprep_tolong, rclass
 	restore, not
 
 	di as text "wxprep tolong: " as result `n_units' as text " units x " as result `n_days' ///
-		as text " days = " as result _N as text " observations; variables " as result "`date'" ///
-		as text " and " as result "`generate'"
+		as text " days = " as result _N as text " observations"
+	di as text "  new variables " as result "`date'" as text " and " as result "`generate'"
 	if `"`save_file'"' != "" di as text `"  saved as `save_file'"'
 
 	return scalar N = _N

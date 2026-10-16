@@ -416,7 +416,10 @@ program define wxsum, rclass
 	if "`keep'" != "" {
 		tempvar obsno unit_tag
 		quietly gen long `obsno' = _n
-		quietly egen byte `unit_tag' = tag(`keep')
+		* -bysort- rather than -egen tag()-, which fails (r(1004)) when keep()
+		* names thousands of variables, such as the daily variables of a
+		* second data type kept for a later run with outstub()
+		quietly bysort `keep': gen byte `unit_tag' = (_n == 1)
 		quietly count if `unit_tag'
 		local N_units = r(N)
 		sort `obsno'
@@ -461,44 +464,51 @@ program define wxsum, rclass
 	* ------------------------------------------------------------------
 	* Summary and stored results
 	* ------------------------------------------------------------------
+	* one item per line, so that the summary fits in 80 columns
 	local k_created : word count `created'
 	di as text _n "{bf:wxsum} summary"
-	di as text "  Data:          " as result "`type'" as text " (stub " as result "`stub'" as text "), `thr_desc'"
+	di as text "  Data:          " as result "`type'" as text ", stub " as result "`stub'"
+	di as text "  Thresholds:    `thr_desc'"
 	if "`mode'" == "calendar" {
-		di as text "  Window:        calendar, " as result "`window_desc'" as text ///
-			"; " as result "`n_windows'" as text " window(s), " as result "`first_year'-`last_year'"
+		local wtxt = cond(`n_windows' == 1, "window", "windows")
+		local ytxt = cond(`first_year' == `last_year', "`first_year'", "`first_year'-`last_year'")
+		di as text "  Window:        calendar, " as result "`window_desc'" as text "; " ///
+			as result "`n_windows'" as text " `wtxt', " as result "`ytxt'"
+		if "`shape'" == "long" {
+			di as text "  Output:        long, " as result _N as text " rows (" as result "`n_windows'" ///
+				as text " per observation); " as result "`k_created'" as text " new variables"
+		}
+		else {
+			di as text "  Output:        wide, " as result _N as text " rows; " ///
+				as result "`k_created'" as text " new variables"
+		}
 	}
 	else {
 		di as text "  Window:        unit-specific, " as result "`window_desc'" ///
-			as text cond("`partial'" != "", " (partial)", "")
+			as text cond("`partial'" != "", ", partial", "")
+		di as text "  Output:        " as result _N as text " rows, one per observation; " ///
+			as result "`k_created'" as text " new variables"
 	}
-	if "`mode'" == "unit" {
-		di as text "  Output:        one row per observation, " as result _N as text " rows; " ///
-			as result "`k_created'" as text " variables created"
-	}
-	else if "`shape'" == "long" {
-		di as text "  Output:        long, " as result _N as text " rows (" as result "`n_windows'" ///
-			as text " per input observation); " as result "`k_created'" as text " variables created"
-	}
-	else {
-		di as text "  Output:        wide, " as result _N as text " rows; " as result "`k_created'" as text " variables created"
-	}
-	if "`ref_mode'" == "rolling" local ref_txt "rolling `lr_years' years before each window"
+	if "`ref_mode'" == "rolling" local ref_txt "rolling, `lr_years' years before each window"
 	else local ref_txt "fixed baseline `b1'-`b2'"
-	di as text "  Reference:     `ref_txt', ref_min(`ref_min')" _c
+	di as text "  Reference:     `ref_txt'; ref_min(`ref_min')"
 	if "`has_dev'" == "1" {
-		if "`mode'" == "calendar" di as text "; deviations from " as result "`first_dev'"
-		else di as text "; deviations for " as result "`n_dev_ok'" as text " observations"
+		if "`mode'" == "calendar" di as text "  Deviations:    from " as result "`first_dev'"
+		else di as text "  Deviations:    for " as result "`n_dev_ok'" as text " of " as result _N as text " observations"
 	}
-	else di as text "; " as result "no deviations or z-scores" as text " (not enough reference years)"
-	di as text "  Missing data:  " as result "`n_anymiss'" as text " of " as result "`n_unitwin'" ///
-		as text " unit-windows have missing days; " as result "`n_allmiss'" as text " have no data; " ///
-		as result "`n_below'" as text " below minobs(`minobs')"
+	else di as text "  Deviations:    " as result "none" as text " (not enough reference years)"
+	di as text "  Missing days:  " as result "`n_anymiss'" as text " of " as result "`n_unitwin'" ///
+		as text cond(`n_unitwin' == 1, " unit-window; ", " unit-windows; ") ///
+		as result "`n_allmiss'" as text cond(`n_allmiss' == 1, " has", " have") " no observed day"
+	di as text "  Below minobs:  " as result "`n_below'" ///
+		as text cond(`n_below' == 1, " unit-window", " unit-windows") " (minobs(`minobs'))"
 	if "`mode'" == "unit" {
 		local how ""
-		if `n_outside' local how = cond("`partial'" != "", " (computed from the days inside the data)", " (statistics missing; see partial)")
-		di as text "                 " as result "`n_outside'" as text " unit-windows run past the data`how'; " ///
-			as result "`n_missdate'" as text " with missing dates"
+		if `n_outside' local how = cond("`partial'" != "", ": days inside the data used", ": statistics missing (see partial)")
+		di as text "  Outside data:  " as result "`n_outside'" ///
+			as text cond(`n_outside' == 1, " window runs", " windows run") " past the data`how'"
+		if `n_missdate' di as text "  Missing dates: " as result "`n_missdate'" ///
+			as text cond(`n_missdate' == 1, " observation", " observations")
 	}
 	if `"`save_file'"' != "" di as text `"  Saved:         `save_file'"'
 	di as text "  Stored results: type {stata return list}"
