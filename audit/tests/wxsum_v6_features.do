@@ -272,7 +272,12 @@ end
 	assert          "`: char total[wxsum_window]'" == "01jun-02jun"
 	assert          "`: char year[wxsum_window]'" == "01jun-02jun"
 	assert          strpos(`"`: char _dta[wxsum_cmdline]'"', "wxsum rf_,") == 1
-	assert          "`: char _dta[wxsum_version]'" == "6.0.0"
+	* the version stamp matches the *! line of wxsum.ado
+	tempname        adofile
+	file open       `adofile' using "wxsum.ado", read text
+	file read       `adofile' adoline
+	file close      `adofile'
+	assert          "`: char _dta[wxsum_version]'" == "`: word 3 of `adoline''"
 	assert          "`: char _dta[wxsum_type]'" == "rain"
 	assert          "`: char _dta[wxsum_shape]'" == "long"
 	assert          "`: char _dta[wxsum_window]'" == "01jun-02jun"

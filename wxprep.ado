@@ -1,10 +1,24 @@
 *! version 1.0.0  16oct2026
 *********************************************************************************
-*  wxprep: prepares daily weather data for wxsum                               *
-*    wxprep towide  long data (one row per unit-day) -> wide wxsum layout      *
-*    wxprep rename  wide data with other variable names -> stub + yyyymmdd     *
-*    wxprep tolong  wide wxsum layout -> long data (one row per unit-day)      *
-*  Part of the wxsum package (v6.0).                                           *
+*  wxprep: prepares daily weather data for wxsum                                *
+*    wxprep towide  long data (one row per unit-day) -> wide wxsum layout       *
+*    wxprep rename  wide data with other variable names -> stub + yyyymmdd      *
+*    wxprep tolong  wide wxsum layout -> long data (one row per unit-day)       *
+*  Part of the wxsum package.                                                   *
+*  v 0.1  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         towide, rename, and tolong; daily() combines readings within a day;   *
+*         reshaping in Mata                                                     *
+*  v 0.2  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         Missing or empty id() values are rejected; new variables get the      *
+*         narrowest storage type that holds every value exactly, instead of     *
+*         compress (much faster); tolong keeps double and long values exact;    *
+*         dates with data counted in Mata                                       *
+*  v 0.3  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         save() option for tolong                                              *
+*  v 1.0  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         Audit fixes: a failed save() leaves the data unchanged; years before  *
+*         1000 keep four digits in variable names; shorter messages. Release    *
+*         version.                                                              *
 *********************************************************************************
 
 program define wxprep, rclass

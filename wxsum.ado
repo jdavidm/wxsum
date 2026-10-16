@@ -1,4 +1,4 @@
-*! version 6.0.0  16oct2026
+*! version 6.2.0  16oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -6,7 +6,7 @@
 *         New stuff done by Aleksandr Michuda - amichuda@ucdavis.edu            *
 *  v 3.0  2july2019 by Jeffrey D. Michler - jdmichler@email.arizona.edu         *
 *  v 3.1  5july2019 by Brian McGreal - bmcgreal@email.arizona.edu               *
-*  v 3.2  8july2019 by Anna Josepshon - aljosephson@arizona.edu                 *
+*  v 3.2  8july2019 by Anna Josephson - aljosephson@arizona.edu                 *
 *  v 3.3  24apr2020 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 3.3  2nov2023  by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.0  2apr2026  by Jeffrey D. Michler - jdmichler@arizona.edu               *
@@ -15,9 +15,30 @@
 *  v 4.3  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
-*  v 6.0  14oct2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
-*         Mata engine; long output by default; heat days and spells;           *
-*         unit-specific windows; fixed baselines; cuts(); r() results         *
+*  v 5.1  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         Correctness fixes in the egen code: a window with no observed day has *
+*         missing statistics; ref_min(); monthly totals by calendar month; dry  *
+*         spells skip missing days at the window edges; heat_threshold()        *
+*         required for type(temp); long output by default; save() overwrites    *
+*         only with replace                                                     *
+*  v 6.0  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         Mata engine (under 0.2 seconds for each bundled example, against 7-52 *
+*         seconds in v5); heat days and spells; cuts(); baseline(); nobs and    *
+*         minobs(); deviations for spells; unit-specific windows (start(),      *
+*         end(), event_date(), days(), lag(), partial); outstub(); r() results, *
+*         labels, and characteristics; the data are unchanged if anything fails *
+*  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         29 February in ini_day()/fin_day() is 28 February in common years; a  *
+*         season without daily variables is a window with no observed day; with *
+*         unit-specific windows too, baseline() must cover ref_min() years of   *
+*         the data; the window, reference period, thresholds, and minobs() are  *
+*         stored as characteristics; calendar options must be whole numbers in  *
+*         range                                                                 *
+*  v 6.2  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*         Audit fixes: a failed save() leaves the data unchanged; the           *
+*         mid-window spell is the longest run other than the leading and        *
+*         trailing spells; keep() may name thousands of variables; the summary  *
+*         fits in 80 columns                                                    *
 *********************************************************************************
 
 program define wxsum, rclass
@@ -450,7 +471,8 @@ program define wxsum, rclass
 	* metadata that survive -save- (each variable also has [wxsum_stat] and
 	* [wxsum_window])
 	char _dta[wxsum_cmdline] `"`cmdline'"'
-	char _dta[wxsum_version] "6.0.0"
+	* the version on the *! line at the top of this file
+	char _dta[wxsum_version] "6.2.0"
 	char _dta[wxsum_type] "`type'"
 	char _dta[wxsum_shape] "`=cond("`mode'" == "unit", "unit", "`shape'")'"
 	char _dta[wxsum_window] "`window_char'"

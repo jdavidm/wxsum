@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.0.0 16oct2026}{...}
+{* *! version 6.2.0 16oct2026}{...}
 {vieweralsosee "wxprep" "help wxprep"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}

@@ -125,7 +125,7 @@ dry_start       byte    %12.0g                Leading dry spell, days (rain < 1)
   _dta[wxsum_window]:         15may-15oct
   _dta[wxsum_shape]:          long
   _dta[wxsum_type]:           rain
-  _dta[wxsum_version]:        6.0.0
+  _dta[wxsum_version]:        6.2.0
   _dta[wxsum_cmdline]:        wxsum rf_, type(rain) ini_month(5) ini_day(15) ..
 
 . 
