@@ -417,7 +417,10 @@ differ.{p_end}
 {phang2}o  Windows with no observed day give missing statistics instead of 0,
 so rolling deviations differ where version 5 used those zeros.{p_end}
 {phang2}o  Dry spells skip missing days at the edges of the window, and a
-window with 0 or 1 rainy days reports its longest dry run.{p_end}
+window with 0 or 1 rainy days reports its longest dry run. The mid-window
+spell is the longest run other than the leading and trailing spells, so a run
+after a missing day is no longer left out, and the longest dry spell is
+{cmd:max(dry_start, dry, dry_end)}.{p_end}
 {phang2}o  Monthly totals are grouped by calendar year and month.{p_end}
 {phang2}o  A season inside the data with no daily variables is a window with no
 observed day ({cmd:nobs} = 0) instead of being left out, and 29 February in
@@ -440,39 +443,47 @@ deviations for spells, {opt outstub()}, stored results, and {helpb wxprep}.{p_en
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)}{p_end}
 {phang2}{cmd:. return list}{p_end}
 
-{pstd}Temperature statistics for November to February{p_end}
+{pstd}Growing and killing degree days and heat spells for the same season{p_end}
 {phang2}{cmd:. use temp.dta, clear}{p_end}
-{phang2}{cmd:. wxsum tmp_, type(temp) ini_month(11) fin_month(2) gdd_lo(8) gdd_hi(32) heat_threshold(27) kdd_base(28) keep(hhid)}{p_end}
+{phang2}{cmd:. wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)}{p_end}
 
-{pstd}GDD categories and temperature bins{p_end}
+{pstd}Days in temperature bands over November to April, a season that crosses the end of the year{p_end}
 {phang2}{cmd:. use temp.dta, clear}{p_end}
-{phang2}{cmd:. wxsum tmp_, type(temp) ini_month(4) fin_month(9) fin_day(15) gdd_lo(18) gdd_hi(30) heat_threshold(30) gdd_bin(100) gdd_binlo(1100) gdd_binhi(1500) tmp_bin(10) tmp_binlo(20) tmp_binhi(36) keep(hhid)}{p_end}
+{phang2}{cmd:. wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30) heat_threshold(30) cuts(24 27 30) keep(hhid)}{p_end}
+
+{pstd}Temperature bins and GDD categories{p_end}
+{phang2}{cmd:. use temp.dta, clear}{p_end}
+{phang2}{cmd:. wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)}{p_end}
 {phang2}{cmd:. tabulate gddcat}{p_end}
 
 {pstd}Fixed baseline, wide output{p_end}
 {phang2}{cmd:. use rain.dta, clear}{p_end}
-{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) fin_month(10) baseline(2003 2012) keep(hhid) shape(wide)}{p_end}
+{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2012) keep(hhid) shape(wide)}{p_end}
 
-{pstd}A growing season that differs by household{p_end}
-{phang2}{cmd:. use rain.dta, clear}{p_end}
-{phang2}{cmd:. generate plant = mdy(5, 1, 2020) + 3 * (hhid - 101)}{p_end}
-{phang2}{cmd:. generate harvest = plant + 120}{p_end}
-{phang2}{cmd:. wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid plant harvest)}{p_end}
+{pstd}
+The next examples use the example datasets that {cmd:net get wxsum} copies
+with the sample data. They are simulated and illustrate the commands only.
 
-{pstd}The 273 days before a birth{p_end}
-{phang2}{cmd:. use temp.dta, clear}{p_end}
-{phang2}{cmd:. generate birth = mdy(3, 15, 2021) + 20 * (hhid - 101)}{p_end}
-{phang2}{cmd:. wxsum tmp_, type(temp) event_date(birth) days(273) gdd_lo(10) gdd_hi(30) heat_threshold(30) keep(hhid birth)}{p_end}
+{pstd}Growing seasons that differ by household and year{p_end}
+{phang2}{cmd:. use hh_panel.dta, clear}{p_end}
+{phang2}{cmd:. merge m:1 hhid using rain.dta, nogenerate}{p_end}
+{phang2}{cmd:. wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid year plant harvest yield)}{p_end}
 
-{pstd}Long daily data: convert with {helpb wxprep}, then summarize{p_end}
-{phang2}{cmd:. use rain_long.dta, clear}{p_end}
-{phang2}{cmd:. wxprep towide rain, id(hhid) date(date) stub(rf_)}{p_end}
-{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) fin_month(10) keep(hhid)}{p_end}
+{pstd}Heat in the last trimester of pregnancy: the 91 days before birth{p_end}
+{phang2}{cmd:. use births.dta, clear}{p_end}
+{phang2}{cmd:. merge m:1 hhid using temp.dta, nogenerate}{p_end}
+{phang2}{cmd:. wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) keep(childid birthdate bweight)}{p_end}
+
+{pstd}Hourly temperature in kelvin: convert with {helpb wxprep}, then summarize daily maxima{p_end}
+{phang2}{cmd:. use weather_hourly.dta, clear}{p_end}
+{phang2}{cmd:. generate tempc = t2m - 273.15}{p_end}
+{phang2}{cmd:. wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear}{p_end}
+{phang2}{cmd:. wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)}{p_end}
 
 {pstd}
 The do-file {cmd:wxsum_examples.do} (with its log) runs all examples in the
-article, including a merge with household data; get it with
-{cmd:net get wxsum}.
+article, including a merge with household data and an illustrative
+regression; get it with {cmd:net get wxsum}.
 
 
 {marker results}{...}

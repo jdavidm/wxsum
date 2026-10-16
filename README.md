@@ -8,7 +8,7 @@
 net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/") replace
 ```
 
-The sample data and the example do-file are ancillary files:
+The sample data, the example datasets, and the example do-file are ancillary files; `net get` copies them into the current folder:
 
 ```stata
 net get wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
@@ -102,42 +102,50 @@ Definitions:
 clear all
 set maxvar 20000
 
-* rainfall, 15 May - 15 October
+* rainfall in the growing season, 15 May - 15 October
 use rain.dta
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)
 return list
 
-* temperature, November - February (heat days at 27, KDD above 28)
+* growing and killing degree days and heat spells
 use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(11) fin_month(2) gdd_lo(8) gdd_hi(32) heat_threshold(27) kdd_base(28) keep(hhid)
+wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) ///
+    heat_threshold(29) keep(hhid)
 
-* GDD categories and temperature bins
+* temperature bins and GDD categories
 use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(4) fin_month(9) fin_day(15) gdd_lo(18) gdd_hi(30) heat_threshold(30) ///
-    gdd_bin(100) gdd_binlo(1100) gdd_binhi(1500) tmp_bin(10) tmp_binlo(20) tmp_binhi(36) keep(hhid)
+wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) ///
+    heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)
 
 * fixed baseline, wide output
 use rain.dta, clear
-wxsum rf_, type(rain) ini_month(5) fin_month(10) baseline(2003 2012) keep(hhid) shape(wide)
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2012) keep(hhid) shape(wide)
 
-* a growing season that differs by household
-use rain.dta, clear
-generate plant = mdy(5, 1, 2020) + 3 * (hhid - 101)
-generate harvest = plant + 120
-wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid plant harvest)
+* growing seasons that differ by household and year (example data)
+use hh_panel.dta, clear
+merge m:1 hhid using rain.dta, nogenerate
+wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid year plant harvest yield)
 
-* the 273 days before a birth
-use temp.dta, clear
-generate birth = mdy(3, 15, 2021) + 20 * (hhid - 101)
-wxsum tmp_, type(temp) event_date(birth) days(273) gdd_lo(10) gdd_hi(30) heat_threshold(30) keep(hhid birth)
+* heat in the last trimester of pregnancy (example data)
+use births.dta, clear
+merge m:1 hhid using temp.dta, nogenerate
+wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) ///
+    keep(childid birthdate bweight)
 
-* long daily data
-use examples/rain_long.dta, clear
-wxprep towide rain, id(hhid) date(date) stub(rf_)
-wxsum rf_, type(rain) ini_month(5) fin_month(10) keep(hhid)
+* hourly temperature in kelvin to daily maxima in degrees Celsius (example data)
+use weather_hourly.dta, clear
+generate tempc = t2m - 273.15
+wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear
+wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)
 ```
 
-`examples/wxsum_examples.do` runs all examples in the article, including a merge with a (simulated) household panel and an illustrative regression; `examples/wxsum_examples.log` is its log.
+`examples/wxsum_examples.do` runs all examples in the article, and `examples/wxsum_examples.log` is its log. Run the do-file in the folder where `net get wxsum` copied the files. Besides `rain.dta` and `temp.dta`, the examples use three datasets:
+
+- `hh_panel.dta`: 10 households, 2013-2023, with planting and harvest dates and crop yields
+- `births.dta`: 300 births, 2014-2023, with birth weights
+- `weather_hourly.dta`: hourly temperature (kelvin) and relative humidity for 2022
+
+These three datasets are simulated (`examples/make_example_data.do` creates them from `rain.dta` and `temp.dta`); they illustrate the commands and are not observed data.
 
 ## Changes from version 5
 
@@ -145,14 +153,14 @@ wxsum rf_, type(rain) ini_month(5) fin_month(10) keep(hhid)
 - Results are long unless `shape(wide)` is specified.
 - `save()` overwrites a file only with `replace`.
 - Windows with no observed day give missing statistics instead of 0, so rolling deviations differ where version 5 used those zeros.
-- Dry spells skip missing days at the edges of a window, and a window with 0 or 1 rainy days reports its longest dry run.
+- Dry spells skip missing days at the edges of a window, and a window with 0 or 1 rainy days reports its longest dry run. The mid-window spell is the longest run other than the leading and trailing spells, so a run after a missing day is no longer left out, and the longest spell is `max(dry_start, dry, dry_end)`.
 - Monthly totals are grouped by calendar year and month.
 - A season inside the data with no daily variables is a window with no observed day (`nobs` = 0) instead of being left out, and 29 February in `ini_day()`/`fin_day()` is 28 February in common years instead of skipping those years.
 - New: heat days and spells, `cuts()`, `baseline()`, `ref_min()`, `minobs()`, `nobs`, unit-specific windows, deviations for spells, `outstub()`, stored results, `wxprep`, and a Mata engine that is much faster (0.04-0.2 seconds for each bundled example, against 7-52 seconds in version 5).
 
 ## Testing
 
-`tests/run_all.do` runs every test suite (from the repository root: `do tests/run_all.do`). It includes hand-computed checks, a comparison with an independent reference implementation on random data (`tests/reference/wxsum_ref.ado`), and a comparison with frozen version 5 output (`tests/reference/`).
+Version 6 was tested against hand-computed cases, an independent reference implementation on random data, frozen version 5 output on the sample data, and an external audit with independently computed expected values. The tests are kept outside the distributed package.
 
 ## Reporting bugs
 

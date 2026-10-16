@@ -84,7 +84,7 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 
 wxprep towide varname, id(varlist) date(varname) stub(string) [daily(mean|sum|min|max) ...]
 wxprep rename varlist, stub(string) firstdate(date)
-wxprep tolong stub, id(varlist)</code></pre>
+wxprep tolong stub, id(varlist) [generate(name) date(name) clear save(filename [, replace])]</code></pre>
 
     <h3>Options</h3>
     <ul>
@@ -121,33 +121,35 @@ wxprep tolong stub, id(varlist)</code></pre>
 
     <h2>Examples</h2>
 
-    <h3>Rainfall</h3>
+    <h3>Rainfall, 15 May to 15 October</h3>
     <pre><code>clear all
 set maxvar 20000
 use rain.dta
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) keep(hhid) save(rainfall_stats.dta, replace)
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid) save(rain_season, replace)
 return list</code></pre>
 
-    <h3>Temperature, November to February</h3>
+    <h3>Growing and killing degree days and heat spells</h3>
     <pre><code>use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) heat_threshold(27) kdd_base(28) keep(hhid)</code></pre>
+wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)</code></pre>
 
-    <h3>GDD categories and temperature bins</h3>
+    <h3>Temperature bins and GDD categories</h3>
     <pre><code>use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) heat_threshold(30) gdd_bin(100) gdd_binlo(1100) gdd_binhi(1500) tmp_bin(10) tmp_binlo(20) tmp_binhi(36) keep(hhid)</code></pre>
+wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)</code></pre>
 
-    <h3>A growing season that differs by household</h3>
-    <pre><code>use rain.dta, clear
-generate plant = mdy(5, 1, 2020) + 3 * (hhid - 101)
-generate harvest = plant + 120
-wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid plant harvest)</code></pre>
+    <h3>Growing seasons that differ by household and year (example data)</h3>
+    <pre><code>use hh_panel.dta, clear
+merge m:1 hhid using rain.dta, nogenerate
+wxsum rf_, type(rain) start(plant) end(harvest) keep(hhid year plant harvest yield)</code></pre>
 
-    <h3>Long daily data</h3>
-    <pre><code>use rain_long.dta, clear
-wxprep towide rain, id(hhid) date(date) stub(rf_)
-wxsum rf_, type(rain) ini_month(05) fin_month(10) keep(hhid)</code></pre>
+    <h3>Hourly temperature to daily maxima (example data)</h3>
+    <pre><code>use weather_hourly.dta, clear
+generate tempc = t2m - 273.15
+wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear
+wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)</code></pre>
 
-    <p>The example do-file <code>wxsum_examples.do</code> and its log run all examples in the article.</p>
+    <p>The example do-file <code>wxsum_examples.do</code> and its log run all examples in the article. The example
+        datasets <code>hh_panel.dta</code>, <code>births.dta</code>, and <code>weather_hourly.dta</code> are simulated
+        (<code>make_example_data.do</code> creates them); they illustrate the commands and are not observed data.</p>
 
     <h2>Authors</h2>
     <p>Jeffrey D. Michler, Anna Josephson, Oscar Barriga-Cabanillas, Aleksandr Michuda, Jeffrey C. Oliver</p>

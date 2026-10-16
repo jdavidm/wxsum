@@ -18,9 +18,9 @@ f wxprep.ado
 f wxprep.sthlp
 f rain.dta
 f temp.dta
-f examples/rain_long.dta
-f examples/temp_long.dta
-f examples/hh_toy.dta
+f examples/hh_panel.dta
+f examples/births.dta
+f examples/weather_hourly.dta
 f examples/wxsum_examples.do
 f examples/wxsum_examples.log
 f examples/make_example_data.do

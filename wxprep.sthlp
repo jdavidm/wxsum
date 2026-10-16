@@ -166,18 +166,27 @@ since they were last saved.
 {marker examples}{...}
 {title:Examples}
 
-{pstd}Long daily data to wide, then {cmd:wxsum}{p_end}
-{phang2}{cmd:. use rain_long.dta, clear}{p_end}
-{phang2}{cmd:. wxprep towide rain, id(hhid) date(date) stub(rf_)}{p_end}
-{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) fin_month(10) keep(hhid)}{p_end}
+{pstd}Hourly temperature in kelvin (a {cmd:%tc} variable {cmd:time}) to daily
+maxima in degrees Celsius, then {cmd:wxsum}; {cmd:weather_hourly.dta} is a
+simulated example dataset that {cmd:net get wxsum} copies{p_end}
+{phang2}{cmd:. use weather_hourly.dta, clear}{p_end}
+{phang2}{cmd:. generate tempc = t2m - 273.15}{p_end}
+{phang2}{cmd:. wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear}{p_end}
+{phang2}{cmd:. wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)}{p_end}
 
-{pstd}Hourly temperature (a {cmd:%tc} variable {cmd:time}) to daily maxima{p_end}
-{phang2}{cmd:. wxprep towide t2m, id(site) date(time) stub(tmax_) daily(max)}{p_end}
+{pstd}A daily transformation in long form: rainfall in inches instead of
+millimetres; {cmd:rain.dta} has about 7,700 daily variables, more than the
+default {cmd:maxvar}{p_end}
+{phang2}{cmd:. clear all}{p_end}
+{phang2}{cmd:. set maxvar 20000}{p_end}
+{phang2}{cmd:. use rain.dta, clear}{p_end}
+{phang2}{cmd:. wxprep tolong rf_, id(hhid) generate(rain) clear}{p_end}
+{phang2}{cmd:. generate rain_in = rain / 25.4}{p_end}
+{phang2}{cmd:. wxprep towide rain_in, id(hhid) date(date) stub(ri_) clear}{p_end}
 
-{pstd}A daily transformation in long form: Kelvin to Celsius{p_end}
-{phang2}{cmd:. wxprep tolong k_, id(hhid) generate(kelvin)}{p_end}
-{phang2}{cmd:. generate celsius = kelvin - 273.15}{p_end}
-{phang2}{cmd:. wxprep towide celsius, id(hhid) date(date) stub(tmp_) clear}{p_end}
+{pstd}Save the long data{p_end}
+{phang2}{cmd:. use rain.dta, clear}{p_end}
+{phang2}{cmd:. wxprep tolong rf_, id(hhid) generate(rain) clear save(rain_long, replace)}{p_end}
 
 {pstd}Rename variables {cmd:rain1}-{cmd:rain365} that start on 1 January 2020{p_end}
 {phang2}{cmd:. wxprep rename rain1-rain365, stub(rf_) firstdate(01jan2020)}{p_end}
