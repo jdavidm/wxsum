@@ -16,29 +16,9 @@
 *  v 4.4  11jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.1  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
-*         Correctness fixes in the egen code: a window with no observed day has *
-*         missing statistics; ref_min(); monthly totals by calendar month; dry  *
-*         spells skip missing days at the window edges; heat_threshold()        *
-*         required for type(temp); long output by default; save() overwrites    *
-*         only with replace                                                     *
 *  v 6.0  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
-*         Mata engine (under 0.2 seconds for each bundled example, against 7-52 *
-*         seconds in v5); heat days and spells; cuts(); baseline(); nobs and    *
-*         minobs(); deviations for spells; unit-specific windows (start(),      *
-*         end(), event_date(), days(), lag(), partial); outstub(); r() results, *
-*         labels, and characteristics; the data are unchanged if anything fails *
-*  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
-*         29 February in ini_day()/fin_day() is 28 February in common years; a  *
-*         season without daily variables is a window with no observed day; with *
-*         unit-specific windows too, baseline() must cover ref_min() years of   *
-*         the data; the window, reference period, thresholds, and minobs() are  *
-*         stored as characteristics; calendar options must be whole numbers in  *
-*         range                                                                 *
+*  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *                                                                *
 *  v 6.2  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
-*         Audit fixes: a failed save() leaves the data unchanged; the           *
-*         mid-window spell is the longest run other than the leading and        *
-*         trailing spells; keep() may name thousands of variables; the summary  *
-*         fits in 80 columns                                                    *
 *********************************************************************************
 
 program define wxsum, rclass
@@ -109,7 +89,8 @@ program define wxsum, rclass
 			exit 198
 		}
 		if "`partial'" != "" {
-			di as error "partial is only allowed with unit-specific windows (start()/end() or event_date()/days())"
+			di as error "partial is only allowed with unit-specific windows (start()/end(),"
+			di as error "or event_date()/days()"
 			exit 198
 		}
 		local default_fin_day = ("`fin_day'" == "")
@@ -203,9 +184,8 @@ program define wxsum, rclass
 		}
 		if "`heat_threshold'" == "" {
 			if "`kdd_base'" != "" {
-				di as error "heat_threshold() is required for type(temp) in wxsum 6."
-				di as error "In wxsum 5, kdd_base() set the KDD threshold. Use heat_threshold(#), and add"
-				di as error "kdd_base(#) only if the KDD base should differ from heat_threshold()."
+				di as error "heat_threshold() is required for type(temp); use heat_threshold(#) and"
+				di as error "add kdd_base(#) only if the KDD base should differ from heat_threshold()"
 			}
 			else di as error "heat_threshold() is required for type(temp)"
 			exit 198
@@ -375,12 +355,12 @@ program define wxsum, rclass
 	}
 	if "`mode'" == "calendar" & "`shape'" == "long" {
 		if "`keep'" == "" {
-			di as text "note: shape(long) requested without keep(); output will not contain an explicit unit identifier."
+			di as text "note: shape(long) requested without keep(); output will not contain an explicit unit identifier"
 		}
 		else {
 			local keep_has_year : list posof "year" in keep
 			if `keep_has_year' {
-				di as error "shape(long) creates a variable named year; remove or rename year from keep()."
+				di as error "shape(long) creates a variable named year; remove or rename year from keep()"
 				exit 198
 			}
 		}
@@ -969,7 +949,7 @@ string scalar _wx_label(struct _wx_state scalar S, string scalar stem)
 		h = _wx_fmt(S.hthr)
 		if (stem == "max")          return("Maximum daily temp")
 		if (stem == "gdd")          return("Growing degree days, " + _wx_fmt(S.glo) + " to " + _wx_fmt(S.ghi))
-		if (stem == "kdd")          return("Killing (extreme-heat) degree days above " + _wx_fmt(S.kbase))
+		if (stem == "kdd")          return("Killing degree days above " + _wx_fmt(S.kbase))
 		if (stem == "heatdays")     return("Days with temp >= " + h)
 		if (stem == "pct_heatdays") return("Share of days with temp >= " + h)
 		if (stem == "heat_start")   return("Leading heat spell, days (temp >= " + h + ")")

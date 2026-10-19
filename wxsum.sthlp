@@ -11,7 +11,7 @@
 {title:Title}
 
 {phang}
-{bf:wxsum} {hline 2} Seasonal and window statistics from daily temperature and precipitation data
+{bf:wxsum} {hline 2} A command for creating statistics from daily temperature and precipitation data
 
 
 {marker syntax}{...}
@@ -127,7 +127,9 @@ the data are left unchanged.
 {opt type(rain|temp)} specifies the kind of daily data. {cmd:type(rain)} gives
 precipitation statistics; {cmd:type(temp)} gives temperature statistics. Other
 daily series, such as humidity, wind speed, or wet-bulb temperature, can be
-summarized with {cmd:type(temp)}; {opt cuts()} is often useful for them.
+summarized with {cmd:type(temp)}, though not all produced statistics may be 
+meaningful (i.e., GDD when data is windspeed); {opt cuts()} is often useful 
+when data is not temperature.
 
 {dlgtab:Calendar window}
 
@@ -142,9 +144,8 @@ is labeled with the year in which it starts.
 the window starts on the first day of {opt ini_month()} and ends on the last day
 of {opt fin_month()}, including 29 February in leap years. If {opt ini_day()}
 or {opt fin_day()} is 29 February, common years use 28 February. A window is
-computed for every start year whose window lies completely inside the dates of
-the data, even if some or all of its days have no daily variable (such days
-count as missing).
+computed for every year in which the entire window lies completely inside the dates of
+the data.
 
 {dlgtab:Unit-specific window}
 
@@ -235,7 +236,7 @@ the {it:#} preceding years (2 to 50; default 10). The current window is never
 part of its own reference.
 
 {phang}
-{opt baseline(# #)} compares every window with a fixed set of years, such as a
+{opt baseline(# #)} compares each window with a fixed set of years, such as a
 climate normal: {cmd:baseline(1981 2010)} uses the windows that start in
 1981-2010. Windows inside the baseline are compared with a baseline that
 includes them. The baseline must cover at least {opt ref_min()} windows of
@@ -249,7 +250,7 @@ years: {opt lr_years()}, or the number of years in {opt baseline()}.
 
 {pstd}
 With a unit-specific window, the reference windows are the same window moved
-back 1, 2, ... years (or moved to each baseline year), with 29 February moved
+back 1, 2, etc. years (or moved to each baseline year), with 29 February moved
 to 28 February in common years.
 
 {dlgtab:Missing data}
@@ -265,8 +266,8 @@ statistics only for windows with no observed day.
 {opt shape(long|wide)} sets the shape of a calendar-window result. {cmd:long}
 (the default) has one row per observation and window, a variable {cmd:year}
 (the year the window starts), and statistics named {cmd:total}, {cmd:mean},
-.... {cmd:wide} has one row per observation and statistics named
-{cmd:total_1993}, {cmd:mean_1993}, .... Input data are wide in both cases.
+etc. {cmd:wide} has one row per observation and statistics named
+{cmd:total_1993}, {cmd:mean_1993}, etc. Input data are wide in both cases.
 
 {phang}
 {opt outstub(string)} adds a prefix to every output name except {cmd:year};
@@ -320,7 +321,7 @@ days.
 
 {p2colset 8 26 28 2}{...}
 {p2col:{cmd:max}}highest daily value{p_end}
-{p2col:{cmd:gdd}}growing degree days: the sum of min(max(T - gdd_lo, 0), gdd_hi - gdd_lo){p_end}
+{p2col:{cmd:gdd}}growing degree days:  sum of (T - gdd_lo) for temperatures between {opt gdd_lo()} and {opt gdd_hi()}, capped when T >= gdd_hi{p_end}
 {p2col:{cmd:kdd}}killing (extreme-heat) degree days: the sum of max(T - k, 0), where k is {opt kdd_base()} or {opt heat_threshold()}{p_end}
 {p2col:{cmd:heatdays pct_heatdays}}days with T >= {opt heat_threshold()}, and their share{p_end}
 {p2col:{cmd:heat_start heat heat_end}}leading, mid-window, and trailing heat spells (days){p_end}
