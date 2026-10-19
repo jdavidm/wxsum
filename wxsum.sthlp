@@ -349,7 +349,7 @@ characteristics {cmd:_dta[wxsum_cmdline]}, {cmd:_dta[wxsum_type]},
 A dry spell is a run of consecutive dry days (rain < {opt rain_threshold()});
 a heat spell is a run of consecutive heat days (temp >=
 {opt heat_threshold()}). The other observed days (rainy days, or cooler days)
-end a run, and so does a missing day.
+end a run as does a missing day.
 
 {phang2}
 {cmd:dry_start} ({cmd:heat_start}), the leading spell, is the run that begins
@@ -357,12 +357,12 @@ on the first observed day of the window; missing days at the start are
 skipped. It is 0 if the first observed day is a rainy (cooler) day.{p_end}
 {phang2}
 {cmd:dry_end} ({cmd:heat_end}), the trailing spell, is the run that ends on
-the last observed day, skipping missing days at the end. It is 0 if the last
+the last observed day of the window, skipping missing days at the end. It is 0 if the last
 observed day is a rainy (cooler) day.{p_end}
 {phang2}
 {cmd:dry} ({cmd:heat}), the mid-window spell, is the longest run that is
 neither the leading nor the trailing spell when the window has at least two
-rainy (cooler) days. With none or one, it is the longest run anywhere in the
+rainy (cooler) days, to create a break between the start and end spells. With none or one, it is the longest run anywhere in the
 window (which may also be the leading or trailing spell), so a window without
 rain has a long mid-window dry spell, not 0.{p_end}
 
@@ -405,33 +405,6 @@ Continuous statistics are stored in the default storage type
 ({helpb generate:set type}, normally {cmd:float}); counts are stored as
 integers. Output variables are compressed.
 
-
-{marker changes}{...}
-{title:Changes from version 5}
-
-{phang2}o  {opt heat_threshold()} is required for {cmd:type(temp)}. In
-version 5, {opt kdd_base()} set the KDD threshold; add
-{opt heat_threshold(#)}, and keep {opt kdd_base()} only if the KDD base should
-differ.{p_end}
-{phang2}o  Results are long unless {cmd:shape(wide)} is specified.{p_end}
-{phang2}o  {cmd:save()} overwrites a file only with {cmd:replace}.{p_end}
-{phang2}o  Windows with no observed day give missing statistics instead of 0,
-so rolling deviations differ where version 5 used those zeros.{p_end}
-{phang2}o  Dry spells skip missing days at the edges of the window, and a
-window with 0 or 1 rainy days reports its longest dry run. The mid-window
-spell is the longest run other than the leading and trailing spells, so a run
-after a missing day is no longer left out, and the longest dry spell is
-{cmd:max(dry_start, dry, dry_end)}.{p_end}
-{phang2}o  Monthly totals are grouped by calendar year and month.{p_end}
-{phang2}o  A season inside the data with no daily variables is a window with no
-observed day ({cmd:nobs} = 0) instead of being left out, and 29 February in
-{opt ini_day()} or {opt fin_day()} is 28 February in common years instead of
-skipping those years.{p_end}
-{phang2}o  New: heat days and spells, {opt cuts()}, {opt baseline()},
-{opt ref_min()}, {opt minobs()}, {cmd:nobs}, unit-specific windows,
-deviations for spells, {opt outstub()}, stored results, and {helpb wxprep}.{p_end}
-
-
 {marker examples}{...}
 {title:Examples}
 
@@ -462,8 +435,7 @@ deviations for spells, {opt outstub()}, stored results, and {helpb wxprep}.{p_en
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2012) keep(hhid) shape(wide)}{p_end}
 
 {pstd}
-The next examples use the example datasets that {cmd:net get wxsum} copies
-with the sample data. They are simulated and illustrate the commands only.
+The next examples use simulated data and illustrate the commands only.
 
 {pstd}Growing seasons that differ by household and year{p_end}
 {phang2}{cmd:. use hh_panel.dta, clear}{p_end}
