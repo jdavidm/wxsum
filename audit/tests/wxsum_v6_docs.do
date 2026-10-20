@@ -1,14 +1,24 @@
 * project: wxsum
-* task: run the examples in README.md and the help files
+* task: the examples in the do-file, the help files, README.md, and
+*       index.html are the same, and they run
 * created on: 16 oct 2026
 * created by: claude
+* edited on: 20 oct 2026
 * Stata v.15.1
 *
-* The example commands are read from the documentation itself: the Stata
-* block under "## Examples" in README.md, and the {cmd:. ...} lines in the
-* Examples sections of wxsum.sthlp and wxprep.sthlp. They run in a folder laid
-* out like the one -net get wxsum- creates, so that the example datasets are
-* found as the documentation says.
+* The example commands are read from each source:
+*   examples/wxsum_examples.do: the commands between -log using- and
+*     -log close-, with /// continuations joined
+*   wxsum.sthlp, wxprep.sthlp: the {phang2}{cmd:. command}{p_end} lines of
+*     the Examples section, up to "hypothetical variable names" (examples
+*     with variables that the sample data do not have)
+*   README.md: the Stata blocks under "## Examples"
+*   index.html: the <pre><code> blocks under <h2>Examples</h2>
+* After whitespace is collapsed and comments and the setup commands
+* (clear all, set maxvar) are dropped, all five must hold the same commands
+* in the same order (audit/sync_docs.py copies the do-file into the others).
+* The README and help-file commands then run in a folder laid out like the
+* one -net get wxsum- creates.
 
 **********************************************************************
 **# 0 - setup
@@ -29,55 +39,144 @@
 	adopath         ++ "`root'"
 	discard
 
-* collect the example commands into a do-file:
-*   README.md: the Stata block under "## Examples"
-*   help files: the {phang2}{cmd:. command}{p_end} lines of the Examples
-*   section; the -wxprep rename- examples name variables (rain1-rain365,
-*   rain_*) that the sample data do not have, so they are skipped
 mata:
-void _docs_collect(string scalar outfile)
+// whitespace collapsed; comments, blank lines, and setup commands dropped
+string colvector _docs_norm(string colvector raw)
 {
-	string colvector L, cmd, help
-	string scalar    s, c
-	real scalar      i, h, state, n, fh
+	string colvector out
+	string scalar    s
+	real scalar      i
 
-	cmd = "version 15.1"
-	L = subinstr(cat("README.md"), char(13), "")
-	state = n = 0
+	out = J(0, 1, "")
+	for (i = 1; i <= rows(raw); i++) {
+		s = stritrim(strtrim(raw[i]))
+		if (s == "" | substr(s, 1, 1) == "*") continue
+		if (s == "clear all" | s == "set maxvar 20000") continue
+		out = out \ s
+	}
+	return(out)
+}
+
+// lines of a text file, without carriage returns
+string colvector _docs_lines(string scalar fn)
+{
+	return(subinstr(cat(fn), char(13), ""))
+}
+
+// commands of examples/wxsum_examples.do, /// continuations joined
+string colvector _docs_dofile()
+{
+	string colvector L, out
+	string scalar    s, cur
+	real scalar      i, on
+
+	L = _docs_lines("examples/wxsum_examples.do")
+	out = J(0, 1, "")
+	on = 0
+	cur = ""
+	for (i = 1; i <= rows(L); i++) {
+		s = strtrim(L[i])
+		if (substr(s, 1, 9) == "log using") {
+			on = 1
+			continue
+		}
+		if (substr(s, 1, 9) == "log close") break
+		if (!on) continue
+		if (substr(s, -3, 3) == "///") {
+			cur = cur + substr(s, 1, strlen(s) - 3) + " "
+			continue
+		}
+		out = out \ (cur + s)
+		cur = ""
+	}
+	return(out)
+}
+
+// {cmd:. command} lines of a help file's Examples section
+string colvector _docs_help(string scalar fn)
+{
+	string colvector L, out
+	string scalar    s
+	real scalar      i, on
+
+	L = _docs_lines(fn)
+	out = J(0, 1, "")
+	on = 0
 	for (i = 1; i <= rows(L); i++) {
 		s = L[i]
-		if (state == 0 & s == "## Examples") state = 1
-		else if (state == 1 & s == "```stata") state = 2
-		else if (state == 2) {
-			if (s == "```") state = 3
-			else {
-				cmd = cmd \ s
-				n++
+		if (strpos(s, "{marker examples}")) on = 1
+		else if (strpos(s, "{marker results}") | strpos(s, "hypothetical variable names")) on = 0
+		else if (on & regexm(s, "^\{phang2\}\{cmd:\. (.*)\}\{p_end\}$")) out = out \ regexs(1)
+	}
+	return(out)
+}
+
+// code lines under a heading, between an opening and a closing marker
+string colvector _docs_blocks(string scalar fn, string scalar heading,
+	string scalar nexthead, string scalar open, string scalar close)
+{
+	string colvector L, out
+	string scalar    s
+	real scalar      i, sect, code
+
+	L = _docs_lines(fn)
+	out = J(0, 1, "")
+	sect = code = 0
+	for (i = 1; i <= rows(L); i++) {
+		s = L[i]
+		if (!sect) {
+			if (s == heading) sect = 1
+			continue
+		}
+		if (!code & substr(s, 1, strlen(nexthead)) == nexthead) break
+		if (!code & substr(s, 1, strlen(open)) == open) {
+			code = 1
+			s = substr(s, strlen(open) + 1, .)
+			if (s == "") continue
+		}
+		if (!code) continue
+		if (strpos(s, close)) {
+			s = substr(s, 1, strpos(s, close) - 1)
+			code = 0
+			if (s == "") continue
+		}
+		out = out \ s
+	}
+	return(out)
+}
+
+void _docs_collect(string scalar outfile)
+{
+	string colvector D, H, R, I, run
+	real scalar      i, fh
+
+	D = _docs_norm(_docs_dofile())
+	H = _docs_norm(_docs_help("wxsum.sthlp") \ _docs_help("wxprep.sthlp"))
+	R = _docs_norm(_docs_blocks("README.md", "## Examples", "## ", "```stata", "```"))
+	I = _docs_blocks("index.html", "<h2>Examples</h2>", "<h2>", "<pre><code>", "</code></pre>")
+	I = _docs_norm(subinstr(subinstr(subinstr(I, "&lt;", "<"), "&gt;", ">"), "&amp;", "&"))
+	st_local("n_do", strofreal(rows(D)))
+	st_local("n_help", strofreal(rows(H)))
+	st_local("n_readme", strofreal(rows(R)))
+	st_local("n_index", strofreal(rows(I)))
+	st_local("same_help", strofreal(rows(H) == rows(D) && all(H :== D)))
+	st_local("same_readme", strofreal(rows(R) == rows(D) && all(R :== D)))
+	st_local("same_index", strofreal(rows(I) == rows(D) && all(I :== D)))
+	if (rows(H) != rows(D) || !all(H :== D)) {
+		for (i = 1; i <= min((rows(H), rows(D))); i++) {
+			if (H[i] != D[i]) {
+				printf("first difference at command %f:\n  do-file: %s\n  help:    %s\n", i, D[i], H[i])
+				break
 			}
 		}
 	}
-	st_local("n_readme", strofreal(n))
-	help = ("wxsum" \ "wxprep")
-	for (h = 1; h <= rows(help); h++) {
-		L = subinstr(cat(help[h] + ".sthlp"), char(13), "")
-		state = n = 0
-		for (i = 1; i <= rows(L); i++) {
-			s = L[i]
-			if (strpos(s, "{marker examples}")) state = 1
-			else if (strpos(s, "{marker results}")) state = 2
-			else if (state == 1 & regexm(s, "^\{phang2\}\{cmd:\. (.*)\}\{p_end\}$")) {
-				c = regexs(1)
-				if (!strpos(c, "rain1-rain365") & !strpos(c, "rain_*")) {
-					cmd = cmd \ c
-					n++
-				}
-			}
-		}
-		st_local("n_" + help[h], strofreal(n))
-	}
+	// the README commands, then the help-file commands (with their setup)
+	run = "version 15.1" \ "clear all" \ "set maxvar 20000" \
+		_docs_blocks("README.md", "## Examples", "## ", "```stata", "```") \
+		"clear all" \ "set maxvar 20000" \ _docs_help("wxsum.sthlp") \ _docs_help("wxprep.sthlp")
 	if (fileexists(outfile)) unlink(outfile)
 	fh = fopen(outfile, "w")
-	for (i = 1; i <= rows(cmd); i++) fput(fh, cmd[i])
+	for (i = 1; i <= rows(run); i++) fput(fh, run[i])
 	fclose(fh)
 }
 end
@@ -98,18 +197,17 @@ end
 	}
 
 **********************************************************************
-**# 1 - collect the example commands
+**# 1 - the same commands in the do-file, help files, README, and index.html
 **********************************************************************
 
 * the documentation is read in Mata: Markdown lines with backticks and
 * quotes cannot pass through Stata macros
 	mata: _docs_collect("`work'/doc_examples.do")
-
-* the parser found the examples
-	di as text      "commands: README `n_readme', wxsum help `n_wxsum', wxprep help `n_wxprep'"
-	assert          `n_readme' >= 20
-	assert          `n_wxsum' >= 15
-	assert          `n_wxprep' >= 8
+	di as text      "commands: do-file `n_do', help `n_help', README `n_readme', index.html `n_index'"
+	assert          `n_do' >= 80
+	assert          `same_help'
+	assert          `same_readme'
+	assert          `same_index'
 
 **********************************************************************
 **# 2 - run the examples
@@ -129,6 +227,6 @@ end
 **********************************************************************
 
 * report test completion
-	di as result    "All documented examples ran."
+	di as result    "The examples agree in all five places and they run."
 
 /* END */

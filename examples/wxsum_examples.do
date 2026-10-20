@@ -108,9 +108,7 @@ list year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016, ///
 * ============================================================================
 * suppose that the rainfall of household 103 is missing in June and July 2015
 use rain, clear
-foreach v of varlist rf_201506* rf_201507* {
-    quietly replace `v' = . if hhid == 103
-}
+quietly recode rf_201506* rf_201507* (nonmissing = .) if hhid == 103
 preserve
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
     minobs(140) keep(hhid)

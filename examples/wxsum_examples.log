@@ -289,9 +289,7 @@ wxsum summary
 . * suppose that the rainfall of household 103 is missing in June and July 2015
 . use rain, clear
 
-. foreach v of varlist rf_201506* rf_201507* {
-  2.     quietly replace `v' = . if hhid == 103
-  3. }
+. quietly recode rf_201506* rf_201507* (nonmissing = .) if hhid == 103
 
 . preserve
 

@@ -185,33 +185,65 @@ since they were last saved.
 {marker examples}{...}
 {title:Examples}
 
-{pstd}Hourly temperature in kelvin (a {cmd:%tc} variable {cmd:time}) to daily
-maxima in degrees Celsius, then {cmd:wxsum}; {cmd:weather_hourly.dta} is a
-simulated example dataset that {cmd:net get wxsum} copies{p_end}
-{phang2}{cmd:. use weather_hourly.dta, clear}{p_end}
+{pstd}
+These are examples 10-12 of the article; examples 1-9 are in
+{help wxsum##examples:help wxsum}. The do-file {cmd:wxsum_examples.do} runs
+all twelve; {cmd:net get wxsum} copies it, the sample data, and the example
+datasets into the current folder. {cmd:weather_hourly.dta} is simulated.
+
+{pstd}Setup: the sample data have about 7,700 daily variables, more than
+the default {cmd:maxvar}{p_end}
+{phang2}{cmd:. clear all}{p_end}
+{phang2}{cmd:. set maxvar 20000}{p_end}
+
+{pstd}{bf:Example 10.} wxprep rename: daily variables with other names{p_end}
+{pstd}One year of rainfall in variables named day1, day2, ..., day365{p_end}
+{phang2}{cmd:. use hhid rf_2023* using rain, clear}{p_end}
+{phang2}{cmd:. rename rf_2023* day#, renumber}{p_end}
+{phang2}{cmd:. describe, short}{p_end}
+{phang2}{cmd:. wxprep rename day1-day365, stub(rf_) firstdate(01jan2023)}{p_end}
+{phang2}{cmd:. describe rf_20230101 rf_20231231}{p_end}
+
+{pstd}{bf:Example 11.} wxprep towide: hourly temperature and humidity{p_end}
+{phang2}{cmd:. use weather_hourly, clear}{p_end}
+{phang2}{cmd:. describe}{p_end}
+{phang2}{cmd:. list in 1/3, noobs}{p_end}
+{pstd}Daily maximum temperature in degrees Celsius{p_end}
 {phang2}{cmd:. generate tempc = t2m - 273.15}{p_end}
 {phang2}{cmd:. wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear}{p_end}
 {phang2}{cmd:. wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)}{p_end}
+{phang2}{cmd:. summarize max heatdays heat}{p_end}
+{pstd}Daily maximum wet-bulb temperature, from hourly temperature and relative humidity with the formula of Stull (2011){p_end}
+{phang2}{cmd:. use weather_hourly, clear}{p_end}
+{phang2}{cmd:. generate tempc = t2m - 273.15}{p_end}
+{phang2}{cmd:. generate tw = tempc*atan(0.151977*sqrt(rh + 8.313659)) + atan(tempc + rh) - atan(rh - 1.676331) + 0.00391838*rh^1.5*atan(0.023101*rh) - 4.686035}{p_end}
+{phang2}{cmd:. wxprep towide tw, id(hhid) date(time) stub(tw_) daily(max) clear}{p_end}
+{phang2}{cmd:. wxsum tw_, type(temp) ini_month(4) fin_month(9) gdd_lo(10) gdd_hi(30) heat_threshold(26) keep(hhid)}{p_end}
+{phang2}{cmd:. summarize max heatdays heat_start heat heat_end}{p_end}
 
-{pstd}A daily transformation in long form: rainfall in inches instead of
-millimetres; {cmd:rain.dta} has about 7,700 daily variables, more than the
-default {cmd:maxvar}{p_end}
-{phang2}{cmd:. clear all}{p_end}
-{phang2}{cmd:. set maxvar 20000}{p_end}
-{phang2}{cmd:. use rain.dta, clear}{p_end}
-{phang2}{cmd:. wxprep tolong rf_, id(hhid) generate(rain) clear}{p_end}
-{phang2}{cmd:. generate rain_in = rain / 25.4}{p_end}
-{phang2}{cmd:. wxprep towide rain_in, id(hhid) date(date) stub(ri_) clear}{p_end}
-
-{pstd}Save the long data{p_end}
-{phang2}{cmd:. use rain.dta, clear}{p_end}
+{pstd}{bf:Example 12.} wxprep tolong: compound hot and dry days{p_end}
+{phang2}{cmd:. use rain, clear}{p_end}
 {phang2}{cmd:. wxprep tolong rf_, id(hhid) generate(rain) clear save(rain_long, replace)}{p_end}
+{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. wxprep tolong tmp_, id(hhid) generate(temp) clear}{p_end}
+{phang2}{cmd:. merge 1:1 hhid date using rain_long, keep(match) nogenerate}{p_end}
+{pstd}A hot and dry day: less than 1 mm of rain and a mean temperature of 29 degrees C or more{p_end}
+{phang2}{cmd:. generate byte hotdry = rain < 1 & temp >= 29 if !missing(rain, temp)}{p_end}
+{phang2}{cmd:. wxprep towide hotdry, id(hhid) date(date) stub(hd_) clear}{p_end}
+{phang2}{cmd:. wxsum hd_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(0) gdd_hi(1) heat_threshold(1) keep(hhid)}{p_end}
+{phang2}{cmd:. summarize heatdays heat_start heat heat_end z_heatdays}{p_end}
+
+{pstd}Other uses, with hypothetical variable names{p_end}
 
 {pstd}Rename variables {cmd:rain1}-{cmd:rain365} that start on 1 January 2020{p_end}
 {phang2}{cmd:. wxprep rename rain1-rain365, stub(rf_) firstdate(01jan2020)}{p_end}
 
 {pstd}Rename variables such as {cmd:rain_01jan2020}{p_end}
 {phang2}{cmd:. wxprep rename rain_*, stub(rf_) from(rain_) dateformat(DMY)}{p_end}
+
+{pstd}Daily rain from hourly readings, with the visit time (a {cmd:%tc} id()
+variable) turned into a daily date{p_end}
+{phang2}{cmd:. wxprep towide rain, id(site visit) date(time) stub(rf_) daily(sum) convert(visit) clear}{p_end}
 
 
 {marker results}{...}

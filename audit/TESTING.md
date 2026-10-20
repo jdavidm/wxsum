@@ -10,6 +10,7 @@ Everything used to test the package lives in this folder, which is not part of t
 | `tests/run_all.do` | Runs the 15 test suites: `do audit/tests/run_all.do` from the root, or batch mode from `audit/tests`. |
 | `tests/reference/` | Frozen version 5 output on the sample data (`v5_*.dta`, made by `make_v5_reference.do` with `wxsum_v5.ado`) and the independent reference implementation `wxsum_ref.ado` used by the equivalence suite. |
 | `run_examples.do` | Rebuilds `examples/wxsum_examples.log` (and, with the argument `data`, the example datasets) in a folder laid out like the one `net get wxsum` creates. |
+| `sync_docs.py` | Copies the twelve examples of `examples/wxsum_examples.do` into `wxsum.sthlp` (1-9), `wxprep.sthlp` (10-12), and `README.md`, and rebuilds `index.html` from `README.md`: `python audit/sync_docs.py` from the root after changing the examples or the README. |
 
 The test suites:
 
@@ -20,7 +21,7 @@ The test suites:
 | `wxsum_v6_features` | Heat spells, `cuts()`, `baseline()`, `minobs()`, stored results, labels, characteristics, rollback on failure |
 | `wxsum_v6_unit` | Unit-specific windows: `start()`/`end()`, `event_date()`/`days()`/`lag()`, `partial`, references |
 | `wxsum_v6_wxprep` | `towide`, `rename`, `tolong`: dates, `daily()`, round trips, storage types, failed `save()` (B1), years before 1000 (B2) |
-| `wxsum_v6_docs` | Every example command in README.md and the two help files, read from those files and run in a `net get` style folder |
+| `wxsum_v6_docs` | The example commands in `wxsum_examples.do`, the two help files, `README.md`, and `index.html` are the same, in the same order; the README and help-file commands run in a `net get` style folder |
 | `wxsum_v6_regression` | Version 6 against frozen version 5 output where the rules did not change |
 | `wxsum_v6_equivalence` | The Mata engine against `wxsum_ref.ado` on random data with missing days (1e-10) |
 | `wxsum_v6_performance` | Run times on the sample data and scaled copies |
