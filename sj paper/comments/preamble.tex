@@ -1,0 +1,144 @@
+%==============================================================================
+% Page Layout 
+%==============================================================================
+\usepackage[letterpaper]{geometry} % Letter paper size
+\geometry{
+    verbose, % Show verbose output
+    tmargin=1in, % Top margin
+    bmargin=1in, % Bottom margin 
+    lmargin=1.1in, % Left margin
+    rmargin=1.1in % Right margin
+}
+
+\setlength{\parindent}{0pt} % No paragraph indentation
+\setlength{\parskip}{\medskipamount}
+
+\usepackage[utf8]{inputenc} % UTF-8 input encoding
+\usepackage{fancyhdr} % Custom headers and footers
+\usepackage{setspace} % Custom line spacing
+
+% Tweaking lists
+\usepackage{enumitem}
+% Enable \pageref{LastPage} to write page # of ##
+\usepackage{lastpage}
+
+\usepackage{lscape}
+\usepackage{threeparttable}
+%==============================================================================
+% Tables
+%==============================================================================
+\usepackage{booktabs,tabularx} % Advanced tables
+
+% ======================================================================
+% Packages
+% ======================================================================
+
+% Import AMS math, mathtools, fonts, and symbols
+\usepackage{amsmath, mathtools, amsfonts, amssymb}
+
+% Enable UTF-8 input encoding
+\usepackage[utf8]{inputenc}
+
+% Enable graphics support and set graphics path
+\usepackage{graphicx}
+\graphicspath{ {figures/} }
+
+% Enable URL support
+\usepackage{url}
+
+% Enable fancy headers
+\usepackage{fancyhdr}
+
+% Switch to pdflscape instead of lscape (informs pdf viewer that page is landscape)
+\usepackage{pdflscape}
+
+% Fancy looping for the appendix
+\usepackage{pgffor}
+
+% Enable advanced table features
+\usepackage{booktabs, multicol, multirow, float, ragged2e, rotating, adjustbox}
+% \floatsetup[table]{capposition=top}
+% \floatsetup[figure]{capposition=top}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup[subfigure]{justification=centering}
+
+% Enable line spacing
+\usepackage{setspace}
+
+% Enable color support and define custom colors
+\usepackage[dvipsnames]{xcolor}
+\definecolor{DarkBlue}{HTML}{090994}
+
+% Enable hyperlinks
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    allcolors=DarkBlue,
+    allbordercolors=white,
+    pdfpagemode=FullScreen,
+    breaklinks=true,
+    pdfhighlight=/N
+}
+
+%==============================================================================
+% Bibliography
+%==============================================================================
+\usepackage[longnamesfirst,authoryear]{natbib} % Bibliography style
+\setcitestyle{round} % Round parentheses in citations
+\bibliographystyle{ecta_YEAR}
+
+% Change some distances in bibliography:
+    \setlength{\bibsep}{3pt}
+    \setlength{\bibhang}{7pt}
+
+% ======================================================================
+% Commands and Specifications
+% ======================================================================
+
+% Set paragraph indentation
+\setlength{\parindent}{4ex}
+\setlength{\parskip}{\smallskipamount}
+
+% Custom footnotes
+\newcommand{\footremember}[2]{%
+   \footnote{#2}
+    \newcounter{#1}
+    \setcounter{#1}{\value{footnote}}%
+}
+\newcommand{\footrecall}[1]{%
+    \footnotemark[\value{#1}]%
+} 
+% ======================================================================
+% Change font size of abstract 
+% ======================================================================
+\renewenvironment{abstract}
+ {\small
+  \begin{center}
+  \bfseries \abstractname \vspace{-.5em}\vspace{0pt}
+  \end{center}
+  \list{}{
+    \setlength{\leftmargin}{.1in}  % Adjust this to make the abstract wider or narrower
+    \setlength{\rightmargin}{\leftmargin}  % Keep this the same as leftmargin for symmetry
+  }%
+  \item\relax}
+ {\endlist}
+
+
+% ======================================================================
+% Blockquote
+% ======================================================================
+\definecolor{blockquote-border}{RGB}{150,150,150}
+\definecolor{blockquote-text}{RGB}{60,60,60}
+\usepackage{mdframed}
+    \newmdenv[rightline=false, 
+            bottomline=false, 
+            topline=false, 
+            linewidth=3.5pt, 
+            leftmargin=1em,
+            linecolor=blockquote-border,
+            skipabove=\parskip]{customblockquote}
+
+
+\renewenvironment{quote}{\begin{customblockquote}\list{}{\rightmargin=0em\leftmargin=0em}%
+\item\relax\color{blockquote-text}\ignorespaces}{\unskip\unskip\endlist\end{customblockquote}}
