@@ -5,8 +5,8 @@ Everything used to test the package lives in this folder, which is not part of t
 | Path | What it is |
 |---|---|
 | `README.txt`, `audit_report.*`, `findings.json`, `requirements_matrix.csv`, `run_tests.py`, `verified_results/` | The external audit of 15 October 2026, as delivered. `run_tests.py` is the auditor's runner, unchanged. |
-| `run_tests_revised.py` | The auditor's runner with two changes, described at its top: the revised mid-window spell rule (finding B3) and no check for `tests/run_all.do`, since the tests are kept out of the package. |
-| `rerun_20261016/` | Reruns of both runners on the package as it will be submitted (the repository without `audit/`). |
+| `run_tests_revised.py` | The auditor's runner with three changes, described at its top: the revised mid-window spell rule (finding B3), no check for `tests/run_all.do` (the tests are kept out of the package), and deviations only for the mid-window spells. |
+| `rerun_20261016/`, `rerun_20261020/` | Reruns of both runners on the package as it will be submitted (the repository without `audit/`). |
 | `tests/run_all.do` | Runs the 15 test suites: `do audit/tests/run_all.do` from the root, or batch mode from `audit/tests`. |
 | `tests/reference/` | Frozen version 5 output on the sample data (`v5_*.dta`, made by `make_v5_reference.do` with `wxsum_v5.ado`) and the independent reference implementation `wxsum_ref.ado` used by the equivalence suite. |
 | `run_examples.do` | Rebuilds `examples/wxsum_examples.log` (and, with the argument `data`, the example datasets) in a folder laid out like the one `net get wxsum` creates. |

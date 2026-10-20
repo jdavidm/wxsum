@@ -403,6 +403,47 @@ end
 	assert          _N == 3
 	confirm         variable keepvariable_4000 total
 
+**## 1.19 - GDD and KDD: degrees between the bounds and above the base, summed
+* temperatures below gdd_lo, at gdd_lo, between, at gdd_hi, above gdd_hi, and
+* a missing day, with gdd_lo(10) gdd_hi(30)
+	clear
+	set obs         1
+	gen             id = 1
+	local           v "5 10 15 30 35 ."
+	forvalues d = 1/6 {
+		gen double      tmp_2020010`d' = real(word("`v'", `d'))
+	}
+	tempfile        gk
+	quietly save    `gk'
+* GDD per day: 0, 0, 5, 20, 20 (none for the missing day) = 45
+* KDD per day above heat_threshold(30): 0, 0, 0, 0, 5 = 5
+	wxsum           tmp_, type(temp) ini_month(1) fin_month(1) fin_day(6) gdd_lo(10) ///
+	    gdd_hi(30) heat_threshold(30) keep(id)
+	assert          nobs == 5 & gdd == 45 & kdd == 5
+* KDD above kdd_base(32): 0, 0, 0, 0, 3 = 3 (heat days still use 30)
+	use             `gk', clear
+	wxsum           tmp_, type(temp) ini_month(1) fin_month(1) fin_day(6) gdd_lo(10) ///
+	    gdd_hi(30) heat_threshold(30) kdd_base(32) keep(id)
+	assert          gdd == 45 & kdd == 3 & heatdays == 2
+
+**## 1.20 - no deviations for the leading and trailing spells in unit windows
+	clear
+	set obs         2
+	gen             id = _n
+	forvalues y = 2018/2020 {
+		forvalues d = 1/6 {
+			gen             rf_`y'010`d' = mod(`d' + id + `y', 3)
+		}
+	}
+	gen             s = mdy(1, 1, 2020)
+	gen             e = mdy(1, 6, 2020)
+	wxsum           rf_, type(rain) start(s) end(e) lr_years(2) keep(id)
+	confirm         variable dev_dry z_dry
+	foreach v in dev_dry_start z_dry_start dev_dry_end z_dry_end {
+		capture confirm variable `v'
+		_assert_rc      _rc 111 "no `v' with unit-specific windows"
+	}
+
 **********************************************************************
 **# 2 - end matter
 **********************************************************************

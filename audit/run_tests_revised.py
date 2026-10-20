@@ -2,7 +2,7 @@
 Only the supplied folder defines expected behavior. Never modifies that folder.
 
 REVISED COPY (16 Oct 2026) of the auditor's run_tests.py, which is kept unchanged
-next to this file. Two changes, both following decisions made after the audit:
+next to this file. Three changes, all following decisions made after the audit:
   1. spells(): the mid-window spell is the longest run that is neither the
      leading nor the trailing spell when there are at least two break days
      (audit finding B3), so max(start, mid, end) is the longest spell. The
@@ -11,6 +11,9 @@ next to this file. Two changes, both following decisions made after the audit:
   2. The documented-file check for tests/run_all.do is dropped: the test suites
      are kept out of the distributed package (they live in audit/tests), and the
      README no longer refers to them.
+  3. (20 Oct 2026) reference(): deviations and z-scores are expected only for
+     the mid-window spells (dry, heat), not for the leading and trailing
+     spells, which no longer have them.
 Everything else, including all cases and tolerances, is the auditor's.
 Usage: python run_tests.py --source "C:/Users/annal/Downloads/wxsum" --stata "C:/Program Files/StataNow19/StataMP-64.exe"
 """
@@ -108,7 +111,8 @@ def core(series, s, e, typ, minobs=1, edges=(), h=30, k=32):
     return result
 
 def reference(current, refs, refmin, typ):
-    stems = ['mean_mo','total','raindays','norain','pct_raindays','dry_start','dry','dry_end'] if typ=='rain' else ['gdd','kdd','heatdays','pct_heatdays','heat_start','heat','heat_end']
+    # revised (change 3): of the spells, only the mid-window spell
+    stems = ['mean_mo','total','raindays','norain','pct_raindays','dry'] if typ=='rain' else ['gdd','kdd','heatdays','pct_heatdays','heat']
     result={}
     for stem in stems:
         v=[r[stem] for r in refs if r[stem] is not None]

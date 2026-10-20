@@ -27,7 +27,7 @@ wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 30 new variables
+  Output:        long, 210 rows (21 per observation); 26 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  0 of 210 unit-windows; 0 have no observed day
@@ -62,7 +62,7 @@ scalars:
           r(last_year) =  2023
          r(first_year) =  2003
           r(n_windows) =  21
-          r(k_created) =  30
+          r(k_created) =  26
             r(N_units) =  10
                   r(N) =  210
 
@@ -125,7 +125,7 @@ dry_start       byte    %12.0g                Leading dry spell, days (rain < 1)
   _dta[wxsum_window]:         15may-15oct
   _dta[wxsum_shape]:          long
   _dta[wxsum_type]:           rain
-  _dta[wxsum_version]:        6.2.0
+  _dta[wxsum_version]:        6.3.0
   _dta[wxsum_cmdline]:        wxsum rf_, type(rain) ini_month(5) ini_day(15) ..
 
 . 
@@ -142,7 +142,7 @@ wxsum summary
   Data:          temp, stub tmp_
   Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(29)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 28 new variables
+  Output:        long, 210 rows (21 per observation); 24 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  0 of 210 unit-windows; 0 have no observed day
@@ -177,7 +177,7 @@ wxsum summary
   Data:          temp, stub tmp_
   Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(30)
   Window:        calendar, 01nov-30apr; 20 windows, 2003-2022
-  Output:        long, 200 rows (20 per observation); 32 new variables
+  Output:        long, 200 rows (20 per observation); 28 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  0 of 200 unit-windows; 0 have no observed day
@@ -253,7 +253,7 @@ wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 30 new variables
+  Output:        long, 210 rows (21 per observation); 26 new variables
   Reference:     fixed baseline 2003-2012; ref_min(10)
   Deviations:    from 2003
   Missing days:  0 of 210 unit-windows; 0 have no observed day
@@ -302,7 +302,7 @@ wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 30 new variables
+  Output:        long, 210 rows (21 per observation); 26 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  1 of 210 unit-windows; 0 have no observed day
@@ -358,7 +358,7 @@ wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 30 new variables
+  Output:        long, 210 rows (21 per observation); 26 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  0 of 210 unit-windows; 0 have no observed day
@@ -384,7 +384,7 @@ wxsum summary
 
 Contains data from temp.dta
  Observations:           210                  
-    Variables:            60                  12 Jun 2026 13:53
+    Variables:            52                  12 Jun 2026 13:53
 Sorted by: hhid  year
      Note: Dataset has changed since last saved.
 
@@ -411,21 +411,20 @@ Sorted by: hhid  year
 
 Contains data from rain.dta
  Observations:            10                  
-    Variables:           471                  12 Jun 2026 13:52
+    Variables:           427                  12 Jun 2026 13:52
 Sorted by: 
      Note: Dataset has changed since last saved.
 
 . ds *_2023, varwidth(21)
-nobs_2023              dev_total_2023         z_pct_raindays_2023
-mean_2023              z_total_2023           dry_start_2023
-median_2023            raindays_2023          dev_dry_start_2023
-var_2023               dev_raindays_2023      z_dry_start_2023
-sd_2023                z_raindays_2023        dry_2023
-skew_2023              norain_2023            dev_dry_2023
-mean_mo_2023           dev_norain_2023        z_dry_2023
-dev_mean_mo_2023       z_norain_2023          dry_end_2023
-z_mean_mo_2023         pct_raindays_2023      dev_dry_end_2023
-total_2023             dev_pct_raindays_2023  z_dry_end_2023
+nobs_2023              total_2023             pct_raindays_2023
+mean_2023              dev_total_2023         dev_pct_raindays_2023
+median_2023            z_total_2023           z_pct_raindays_2023
+var_2023               raindays_2023          dry_start_2023
+sd_2023                dev_raindays_2023      dry_2023
+skew_2023              z_raindays_2023        dev_dry_2023
+mean_mo_2023           norain_2023            z_dry_2023
+dev_mean_mo_2023       dev_norain_2023        dry_end_2023
+z_mean_mo_2023         z_norain_2023
 
 . 
 . 
@@ -487,7 +486,7 @@ wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        unit-specific, start(plant) to end(harvest)
-  Output:        110 rows, one per observation; 30 new variables
+  Output:        110 rows, one per observation; 26 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    for 110 of 110 observations
   Missing days:  0 of 110 unit-windows; 0 have no observed day
@@ -590,7 +589,7 @@ wxsum summary
   Data:          temp, stub tmp_
   Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(30)
   Window:        unit-specific, event_date(birthdate), days(91), lag(0)
-  Output:        300 rows, one per observation; 28 new variables
+  Output:        300 rows, one per observation; 24 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    for 300 of 300 observations
   Missing days:  0 of 300 unit-windows; 0 have no observed day
@@ -809,7 +808,7 @@ wxsum summary
   Data:          temp, stub hd_
   Thresholds:    gdd_lo(0) gdd_hi(1) heat_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
-  Output:        long, 210 rows (21 per observation); 28 new variables
+  Output:        long, 210 rows (21 per observation); 24 new variables
   Reference:     rolling, 10 years before each window; ref_min(10)
   Deviations:    from 2013
   Missing days:  0 of 210 unit-windows; 0 have no observed day

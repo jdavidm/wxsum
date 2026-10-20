@@ -83,8 +83,8 @@ wxsum stub, type(rain|temp) start(varname) end(varname) [partial options]
 wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 
 wxprep towide varname, id(varlist) date(varname) stub(string) [daily(mean|sum|min|max) ...]
-wxprep rename varlist, stub(string) firstdate(date)
-wxprep tolong stub, id(varlist) [generate(name) date(name) clear save(filename [, replace])]</code></pre>
+wxprep rename varlist, stub(string) firstdate(date) [convert(varlist)]
+wxprep tolong stub, id(varlist) [generate(name) date(name) convert(varlist) clear save(filename [, replace])]</code></pre>
 
     <h3>Options</h3>
     <ul>

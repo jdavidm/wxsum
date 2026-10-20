@@ -1,4 +1,4 @@
-*! version 6.2.0  16oct2026
+*! version 6.3.0  20oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -17,8 +17,9 @@
 *  v 5.0  12jun2026 by Jeffrey D. Michler - jdmichler@arizona.edu               *
 *  v 5.1  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *  v 6.0  11oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
-*  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *                                                                *
+*  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *  v 6.2  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*  v 6.3  20oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *********************************************************************************
 
 program define wxsum, rclass
@@ -90,7 +91,7 @@ program define wxsum, rclass
 		}
 		if "`partial'" != "" {
 			di as error "partial is only allowed with unit-specific windows (start()/end(),"
-			di as error "or event_date()/days()"
+			di as error "or event_date()/days())"
 			exit 198
 		}
 		local default_fin_day = ("`fin_day'" == "")
@@ -153,7 +154,8 @@ program define wxsum, rclass
 		foreach dv of local datevars {
 			local fmt : format `dv'
 			if regexm("`fmt'", "^%-?t[cC]") {
-				di as error "`dv' is a datetime (%tc); convert it to a daily date with dofc()"
+				di as error "`dv' is a datetime (%tc); convert it to a daily date with dofc(),"
+				di as error "or with the convert() option of wxprep"
 				exit 198
 			}
 		}
@@ -452,7 +454,7 @@ program define wxsum, rclass
 	* [wxsum_window])
 	char _dta[wxsum_cmdline] `"`cmdline'"'
 	* the version on the *! line at the top of this file
-	char _dta[wxsum_version] "6.2.0"
+	char _dta[wxsum_version] "6.3.0"
 	char _dta[wxsum_type] "`type'"
 	char _dta[wxsum_shape] "`=cond("`mode'" == "unit", "unit", "`shape'")'"
 	char _dta[wxsum_window] "`window_char'"
@@ -608,18 +610,20 @@ struct _wx_state {
 
 // Statistic stems in the order of the columns of _wx_core().
 // Rows 1-6 are common; rows 7-14 depend on the data type; bins follow.
+// devk: the stems with deviations and z-scores; of the spells, only the
+// mid-window spell (13) has them
 void _wx_stems(struct _wx_state scalar S)
 {
 	real scalar b
 	if (S.israin) {
 		S.stems = ("nobs", "mean", "median", "var", "sd", "skew", "mean_mo",
 			"total", "raindays", "norain", "pct_raindays", "dry_start", "dry", "dry_end")
-		S.devk = (7..14)
+		S.devk = (7, 8, 9, 10, 11, 13)
 	}
 	else {
 		S.stems = ("nobs", "mean", "median", "var", "sd", "skew", "max",
 			"gdd", "kdd", "heatdays", "pct_heatdays", "heat_start", "heat", "heat_end")
-		S.devk = (8..14)
+		S.devk = (8, 9, 10, 11, 13)
 	}
 	for (b = 1; b <= rows(S.bins); b++) {
 		S.stems = S.stems, S.binstem + strofreal(b, "%02.0f")

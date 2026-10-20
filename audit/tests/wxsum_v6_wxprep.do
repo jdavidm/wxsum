@@ -476,6 +476,87 @@ end
 	wxprep          rename a b, stub(rf_) firstdate(09990101)
 	confirm         variable rf_09990101 rf_09990102
 
+**## 4.6 - convert(): datetime variables to daily dates
+* rename: any variable other than the renamed daily variables
+	clear
+	set obs         2
+	gen             id = _n
+	gen double      stamp = clock("15mar2021 14:30:00", "DMYhms") + (id - 1) * msofhours(30)
+	format          stamp %tc
+	label variable  stamp "Interview time"
+	gen double      stampC = Clock("15mar2021 23:59:59", "DMYhms")
+	format          stampC %tC
+	gen             a = 1
+	gen             b = 2
+	wxprep          rename a b, stub(rf_) firstdate(01jan2021) convert(stamp stampC)
+	assert          "`r(converted)'" == "stamp stampC"
+	assert          stamp == mdy(3, 15, 2021) if id == 1
+	assert          stamp == mdy(3, 16, 2021) if id == 2
+	assert          stampC == mdy(3, 15, 2021)
+	assert          "`: format stamp'" == "%td" & "`: variable label stamp'" == "Interview time"
+	local           t : type stamp
+	assert          inlist("`t'", "byte", "int", "long")
+	confirm         variable rf_20210101 rf_20210102
+
+* rename: a variable that is not a datetime, or one being renamed, is an
+* error and nothing changes
+	clear
+	set obs         1
+	gen             d = mdy(1, 1, 2021)
+	format          d %td
+	gen             a = 1
+	gen double      t = clock("01jan2021 08:00:00", "DMYhms")
+	format          t %tc
+	quietly datasignature
+	local           sig "`r(datasignature)'"
+	capture noisily wxprep rename a, stub(rf_) firstdate(01jan2021) convert(d)
+	_assert_rc      _rc 198 "convert() rejects a %td variable"
+	capture noisily wxprep rename a t, stub(rf_) firstdate(01jan2021) convert(t)
+	_assert_rc      _rc 198 "convert() rejects a variable being renamed"
+	quietly datasignature
+	assert          "`r(datasignature)'" == "`sig'"
+	confirm         variable a t
+
+* towide: a %tc id() variable; two readings on the same day become one unit
+	clear
+	input           site str16 visit rain
+	1 "15mar2021 08:00" 4
+	1 "15mar2021 17:00" 6
+	2 "15mar2021 09:00" 1
+	end
+	gen double      vtime = clock(visit, "DMYhm")
+	format          vtime %tc
+	gen             date = mdy(1, 1, 2021)
+	format          date %td
+	drop            visit
+	quietly save    `"`c(tmpdir)'/wxprep_conv.dta"', replace
+	capture noisily wxprep towide rain, id(site vtime) date(date) stub(rf_) clear convert(date)
+	_assert_rc      _rc 198 "towide convert() must name id() variables"
+	capture noisily wxprep towide rain, id(site vtime) date(date) stub(rf_) clear convert(vtime)
+	_assert_rc      _rc 459 "converted ids on the same day need daily()"
+	wxprep          towide rain, id(site vtime) date(date) stub(rf_) clear convert(vtime) daily(sum)
+	assert          _N == 2 & "`r(converted)'" == "vtime"
+	assert          vtime == mdy(3, 15, 2021) & "`: format vtime'" == "%td"
+	assert          rf_20210101 == 10 if site == 1
+
+* tolong: a %tc id() variable must still identify the observations
+	clear
+	set obs         2
+	gen             site = _n
+	gen double      vtime = clock("15mar2021 08:00:00", "DMYhms") + (site - 1) * msofhours(2)
+	format          vtime %tc
+	forvalues d = 1/3 {
+		gen             rf_2021010`d' = site * `d'
+	}
+	quietly datasignature
+	local           sig "`r(datasignature)'"
+	capture noisily wxprep tolong rf_, id(vtime) clear convert(vtime)
+	_assert_rc      _rc 459 "two datetimes on the same day no longer identify the observations"
+	quietly datasignature
+	assert          "`r(datasignature)'" == "`sig'"
+	wxprep          tolong rf_, id(site vtime) clear convert(vtime)
+	assert          _N == 6 & vtime == mdy(3, 15, 2021) & "`r(converted)'" == "vtime"
+
 **********************************************************************
 **# 5 - end matter
 **********************************************************************

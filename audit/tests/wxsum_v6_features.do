@@ -88,7 +88,7 @@ end
 	local           lab : variable label heatdays_2020
 	assert          "`lab'" == "Days with temp >= 30, 2020"
 	local           lab : variable label kdd_2020
-	assert          "`lab'" == "Killing (extreme-heat) degree days above 30, 2020"
+	assert          "`lab'" == "Killing degree days above 30, 2020"
 
 **## 1.2 - cuts() for rainfall and temperature
 * test cuts() for rainfall
@@ -205,24 +205,46 @@ end
 	                    baseline(2005 2010) ref_min(2) keep(id) shape(wide)
 	assert          abs(dev_total_2001 - (10 - 55)) < 1e-6 if id == 1
 
-**## 1.7 - deviations and z-scores for dry spells
-* create 3-year panel
+**## 1.7 - deviations and z-scores for the mid-window spells only
+* create 3-year panel: day 1 rainy, then k dry days, then rainy days, so the
+* mid-window dry spell is k (1, 3, and 2 days)
 	clear
 	set obs         1
 	gen             id = 1
 	foreach y in 2020 2021 2022 {
 		local           k = cond(`y' == 2020, 1, cond(`y' == 2021, 3, 2))
-		forvalues d = 1/5 {
-			gen             rf_`y'01`=string(`d', "%02.0f")' = cond(`d' <= `k', 0, 5)
+		forvalues d = 1/7 {
+			gen             rf_`y'01`=string(`d', "%02.0f")' = cond(`d' >= 2 & `d' <= `k' + 1, 0, 5)
 		}
 	}
 
-* execute wxsum
-	wxsum           rf_, type(rain) ini_month(1) fin_month(1) fin_day(5) lr_years(2) keep(id) shape(wide)
-	assert          dry_start_2022 == 2
-	assert          abs(dev_dry_start_2022 - 0) < 1e-6
-	assert          abs(z_dry_start_2022 - 0) < 1e-6
-	confirm variable dev_dry_2022 z_dry_2022 dev_dry_end_2022 z_dry_end_2022
+* execute wxsum: 2022 against 2020-2021 (mean 2, sd sqrt(2))
+	wxsum           rf_, type(rain) ini_month(1) fin_month(1) fin_day(7) lr_years(2) keep(id) shape(wide)
+	assert          dry_2022 == 2 & dry_start_2022 == 0 & dry_end_2022 == 0
+	assert          abs(dev_dry_2022 - 0) < 1e-6
+	assert          abs(z_dry_2022 - 0) < 1e-6
+	foreach v in dev_dry_start z_dry_start dev_dry_end z_dry_end {
+		capture confirm variable `v'_2022
+		_assert_rc      _rc 111 "no `v' for the leading and trailing spells"
+	}
+
+* the same for heat spells, in long output
+	clear
+	set obs         1
+	gen             id = 1
+	foreach y in 2020 2021 2022 {
+		local           k = cond(`y' == 2020, 1, cond(`y' == 2021, 3, 2))
+		forvalues d = 1/7 {
+			gen             tmp_`y'01`=string(`d', "%02.0f")' = cond(`d' >= 2 & `d' <= `k' + 1, 35, 20)
+		}
+	}
+	wxsum           tmp_, type(temp) ini_month(1) fin_month(1) fin_day(7) gdd_lo(10) gdd_hi(30) ///
+	    heat_threshold(30) lr_years(2) keep(id)
+	assert          heat == 2 & abs(dev_heat - 0) < 1e-6 & abs(z_heat - 0) < 1e-6 if year == 2022
+	foreach v in dev_heat_start z_heat_start dev_heat_end z_heat_end {
+		capture confirm variable `v'
+		_assert_rc      _rc 111 "no `v' for the leading and trailing spells"
+	}
 
 **## 1.8 - r() results and long format layout
 * create panel

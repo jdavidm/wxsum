@@ -1,4 +1,4 @@
-*! version 1.0.0  16oct2026
+*! version 1.0.0  20oct2026
 *********************************************************************************
 *  wxprep: prepares daily weather data for wxsum                                *
 *    wxprep towide  long data (one row per unit-day) -> wide wxsum layout       *
@@ -15,9 +15,10 @@
 *         dates with data counted in Mata                                       *
 *  v 0.3  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *         save() option for tolong                                              *
-*  v 1.0  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*  v 1.0  20oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *         Audit fixes: a failed save() leaves the data unchanged; years before  *
-*         1000 keep four digits in variable names; shorter messages. Release    *
+*         1000 keep four digits in variable names; convert() turns %tc and %tC  *
+*         datetime variables into %td daily dates; shorter messages. Release    *
 *         version.                                                              *
 *********************************************************************************
 
@@ -43,12 +44,21 @@ end
 
 * ---------------------------------------------------------------------------
 * wxprep towide varname [if] [in], id(varlist) date(varname) stub(string)
-*     [daily(mean|sum|min|max) dateformat(string) nofill clear save(filename [, replace])]
+*     [daily(mean|sum|min|max) dateformat(string) nofill convert(varlist) clear
+*     save(filename [, replace])]
 * ---------------------------------------------------------------------------
 program define _wxprep_towide, rclass
 	syntax varname(numeric) [if] [in], id(varlist) date(varname) stub(string) ///
-		[daily(string) dateformat(string) NOFILL clear save(string asis)]
+		[daily(string) dateformat(string) NOFILL CONVert(varlist) clear save(string asis)]
 	local value "`varlist'"
+	* convert(): towide keeps only id() and the daily variables
+	local notid : list convert - id
+	if "`notid'" != "" {
+		di as error "convert() must name id() variables; towide keeps only id() and the daily"
+		di as error "variables, and converts a %tc date() itself"
+		exit 198
+	}
+	_wxprep_convcheck "`convert'"
 
 	if c(changed) & "`clear'" == "" {
 		di as error "no; data in memory would be lost"
@@ -82,6 +92,8 @@ program define _wxprep_towide, rclass
 		exit 2000
 	}
 	quietly keep `id' `date' `value'
+	* datetime id() variables to daily dates, before readings are combined
+	_wxprep_convert "`convert'"
 
 	* missing identifiers (numeric missing or empty strings) are not allowed
 	foreach v of local id {
@@ -200,10 +212,12 @@ program define _wxprep_towide, rclass
 		as result "`first_var'" as text " to " as result "`last_var'"
 	if `n_filled' di as text "  `n_filled' days without data were added as missing days (nofill skips them)"
 	if `n_combined' di as text "  `n_combined' readings were combined into daily values with daily(`daily')"
+	if "`convert'" != "" di as text "  converted to daily dates: " as result "`convert'"
 	if `"`save_file'"' != "" di as text `"  saved as `save_file'"'
 
 	return scalar N = _N
 	return scalar n_days = `n_days'
+	return local converted "`convert'"
 	return scalar n_filled = `n_filled'
 	return scalar n_combined = `n_combined'
 	return scalar first_date = `dmin'
@@ -214,12 +228,19 @@ program define _wxprep_towide, rclass
 end
 
 * ---------------------------------------------------------------------------
-* wxprep rename varlist, stub(string) firstdate(string)
-* wxprep rename varlist, stub(string) from(string) dateformat(string)
+* wxprep rename varlist, stub(string) firstdate(string) [convert(varlist)]
+* wxprep rename varlist, stub(string) from(string) dateformat(string) [convert(varlist)]
 * ---------------------------------------------------------------------------
 program define _wxprep_rename, rclass
-	syntax varlist(numeric), stub(string) [firstdate(string) from(string) dateformat(string)]
+	syntax varlist(numeric), stub(string) [firstdate(string) from(string) dateformat(string) ///
+		CONVert(varlist)]
 	_wxprep_checkstub "`stub'"
+	local both : list convert & varlist
+	if "`both'" != "" {
+		di as error "convert() must not name the daily variables being renamed"
+		exit 198
+	}
+	_wxprep_convcheck "`convert'"
 	if "`firstdate'" != "" {
 		if `"`from'`dateformat'"' != "" {
 			di as error "use either firstdate() or from() with dateformat(), not both"
@@ -249,11 +270,14 @@ program define _wxprep_rename, rclass
 	}
 	mata: _wxprep_renameplan("`varlist'", "`stub'", "`mode'", `fd', `"`from'"', `"`dateformat'"')
 	rename (`varlist') (`newnames')
+	_wxprep_convert "`convert'"
 	local n : word count `varlist'
 	di as text "wxprep rename: " as result `n' as text " variables renamed, " ///
 		as result "`first_var'" as text " to " as result "`last_var'"
 	if `n_gaps' di as text "  note: `n_gaps' calendar days between the first and last date have no variable"
+	if "`convert'" != "" di as text "  converted to daily dates: " as result "`convert'"
 	return scalar n_vars = `n'
+	return local converted "`convert'"
 	return scalar first_date = `rd1'
 	return scalar last_date = `rd2'
 	return scalar n_gaps = `n_gaps'
@@ -263,10 +287,20 @@ program define _wxprep_rename, rclass
 end
 
 * ---------------------------------------------------------------------------
-* wxprep tolong stub, id(varlist) [generate(name) date(name) clear save(filename [, replace])]
+* wxprep tolong stub, id(varlist) [generate(name) date(name) convert(varlist) clear
+*     save(filename [, replace])]
 * ---------------------------------------------------------------------------
 program define _wxprep_tolong, rclass
-	syntax anything(name=stub id="stub"), id(varlist) [GENerate(name) date(name) clear save(string asis)]
+	syntax anything(name=stub id="stub"), id(varlist) [GENerate(name) date(name) ///
+		CONVert(varlist) clear save(string asis)]
+	* convert(): tolong keeps only id() and the new date and value variables
+	local notid : list convert - id
+	if "`notid'" != "" {
+		di as error "convert() must name id() variables; tolong keeps only id() and the new"
+		di as error "date and value variables"
+		exit 198
+	}
+	_wxprep_convcheck "`convert'"
 	if `: word count `stub'' != 1 {
 		di as error "specify one stub, the common prefix of the daily variables (e.g., rf_)"
 		exit 198
@@ -309,6 +343,17 @@ program define _wxprep_tolong, rclass
 	}
 
 	preserve
+	* datetime id() variables to daily dates; two datetimes on the same day
+	* would give the same id()
+	if "`convert'" != "" {
+		_wxprep_convert "`convert'"
+		capture isid `id'
+		if _rc {
+			di as error "id() does not uniquely identify the observations once convert() turns"
+			di as error "the datetimes into daily dates"
+			exit 459
+		}
+	}
 	mata: _wxprep_tolong_read("`stub'")
 	quietly keep `id'
 	tempvar rowid j
@@ -328,15 +373,48 @@ program define _wxprep_tolong, rclass
 	di as text "wxprep tolong: " as result `n_units' as text " units x " as result `n_days' ///
 		as text " days = " as result _N as text " observations"
 	di as text "  new variables " as result "`date'" as text " and " as result "`generate'"
+	if "`convert'" != "" di as text "  converted to daily dates: " as result "`convert'"
 	if `"`save_file'"' != "" di as text `"  saved as `save_file'"'
 
 	return scalar N = _N
 	return scalar n_units = `n_units'
+	return local converted "`convert'"
 	return scalar n_days = `n_days'
 	return scalar first_date = `d1'
 	return scalar last_date = `d2'
 	return local generate "`generate'"
 	return local date "`date'"
+end
+
+* convert(): every variable must be a %tc or %tC datetime; checked before
+* anything changes
+program define _wxprep_convcheck
+	args vars
+	foreach v of local vars {
+		capture confirm numeric variable `v'
+		local bad = _rc
+		if !`bad' {
+			local fmt : format `v'
+			local bad = !regexm("`fmt'", "^%-?t[cC]")
+		}
+		if `bad' {
+			di as error "convert(): `v' is not a %tc or %tC datetime variable"
+			exit 198
+		}
+	}
+end
+
+* convert(): datetimes to daily dates, in place (name, position, and label
+* are kept); %tc with dofc(), %tC with dofC()
+program define _wxprep_convert
+	args vars
+	foreach v of local vars {
+		local fmt : format `v'
+		if regexm("`fmt'", "^%-?tC") quietly replace `v' = dofC(`v')
+		else quietly replace `v' = dofc(`v')
+		format `v' %td
+		quietly compress `v'
+	}
 end
 
 * stub + yyyymmdd must be a valid name of at most 32 characters

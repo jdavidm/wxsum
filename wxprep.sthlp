@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0 16oct2026}{...}
+{* *! version 1.0.0 20oct2026}{...}
 {vieweralsosee "wxsum" "help wxsum"}{...}
 {viewerjumpto "Syntax" "wxprep##syntax"}{...}
 {viewerjumpto "Description" "wxprep##description"}{...}
@@ -21,23 +21,24 @@ Long to wide: one row per unit-day to one row per unit and one variable per day
 {p 8 16 2}
 {cmd:wxprep towide} {varname} {ifin}{cmd:,} {opth id(varlist)} {opth date(varname)}
 {opt stub(string)} [{opt daily(mean|sum|min|max)} {opt dateformat(string)}
-{opt nofill} {opt clear} {cmd:save(}{it:{help filename}} [{cmd:, replace}]{cmd:)}]
+{opt nofill} {opth convert(varlist)} {opt clear} {cmd:save(}{it:{help filename}} [{cmd:, replace}]{cmd:)}]
 
 {pstd}
 Wide to wide: rename daily variables to {it:stub}{it:yyyymmdd}
 
 {p 8 16 2}
-{cmd:wxprep rename} {varlist}{cmd:,} {opt stub(string)} {opt firstdate(date)}
+{cmd:wxprep rename} {varlist}{cmd:,} {opt stub(string)} {opt firstdate(date)} [{opth convert(varlist)}]
 
 {p 8 16 2}
 {cmd:wxprep rename} {varlist}{cmd:,} {opt stub(string)} {opt from(string)} {opt dateformat(string)}
+[{opth convert(varlist)}]
 
 {pstd}
 Wide to long: one row per unit and one variable per day to one row per unit-day
 
 {p 8 16 2}
 {cmd:wxprep tolong} {it:stub}{cmd:,} {opth id(varlist)} [{opth gen:erate(newvar)}
-{opth date(newvar)} {opt clear} {cmd:save(}{it:{help filename}} [{cmd:, replace}]{cmd:)}]
+{opth date(newvar)} {opth convert(varlist)} {opt clear} {cmd:save(}{it:{help filename}} [{cmd:, replace}]{cmd:)}]
 
 
 {marker description}{...}
@@ -111,6 +112,12 @@ to the last date and leaves days without data missing, so that
 {helpb wxsum} counts them as missing days.
 
 {phang}
+{opth convert(varlist)} turns {cmd:%tc} and {cmd:%tC} datetime variables into
+{cmd:%td} daily dates ({cmd:dofc()} or {cmd:dofC()}), keeping their names and labels, so
+that they can be used in the {opt start()}, {opt end()}, and {opt event_date()} options of
+{helpb wxsum}. With {cmd:towide}, the variables must be {cmd:id()} variables, the only other variables {cmd:towide} keeps; they are converted before readings are combined, so two datetimes on the same day become one unit. A {cmd:%tc} {opt date()} is converted without this option.
+
+{phang}
 {opt clear} allows {cmd:towide} to replace data in memory that have changed
 since they were last saved.
 
@@ -134,6 +141,12 @@ written as {cmd:01jan1993}, {cmd:1993-01-01}, or {cmd:19930101}.
 that follows it. For example, {cmd:rain_01jan1993} has {cmd:from(rain_)} and
 {cmd:dateformat(DMY)}.
 
+{phang}
+{opth convert(varlist)} turns {cmd:%tc} and {cmd:%tC} datetime variables into
+{cmd:%td} daily dates ({cmd:dofc()} or {cmd:dofC()}), keeping their names and labels, so
+that they can be used in the {opt start()}, {opt end()}, and {opt event_date()} options of
+{helpb wxsum}. With {cmd:rename}, any variables other than the daily variables being renamed can be converted.
+
 {pstd}
 Before renaming anything, {cmd:rename} checks that every name gives a valid
 date, that no two variables have the same date, and that no new name exists
@@ -154,6 +167,12 @@ without a trailing underscore: {cmd:rf_} gives {cmd:rf}.
 {phang}
 {opth date(newvar)} names the {cmd:%td} date variable; the default is
 {cmd:date}.
+
+{phang}
+{opth convert(varlist)} turns {cmd:%tc} and {cmd:%tC} datetime variables into
+{cmd:%td} daily dates ({cmd:dofc()} or {cmd:dofC()}), keeping their names and labels, so
+that they can be used in the {opt start()}, {opt end()}, and {opt event_date()} options of
+{helpb wxsum}. With {cmd:tolong}, the variables must be {cmd:id()} variables, which must still identify the observations after the conversion.
 
 {phang}
 {opt clear} allows {cmd:tolong} to replace data in memory that have changed
@@ -206,18 +225,21 @@ default {cmd:maxvar}{p_end}
 {synopt:{cmd:r(n_combined)}}readings combined by {opt daily()}{p_end}
 {synopt:{cmd:r(first_date)}, {cmd:r(last_date)}}first and last date{p_end}
 {synopt:{cmd:r(stub)}, {cmd:r(first_var)}, {cmd:r(last_var)}}stub and first and last new variables{p_end}
+{synopt:{cmd:r(converted)}}variables converted by {opt convert()}{p_end}
 
 {pstd}{cmd:wxprep rename} stores{p_end}
 {synopt:{cmd:r(n_vars)}}variables renamed{p_end}
 {synopt:{cmd:r(n_gaps)}}days between the first and last date without a variable{p_end}
 {synopt:{cmd:r(first_date)}, {cmd:r(last_date)}}first and last date{p_end}
 {synopt:{cmd:r(stub)}, {cmd:r(first_var)}, {cmd:r(last_var)}}stub and first and last new names{p_end}
+{synopt:{cmd:r(converted)}}variables converted by {opt convert()}{p_end}
 
 {pstd}{cmd:wxprep tolong} stores{p_end}
 {synopt:{cmd:r(N)}}observations (units x days){p_end}
 {synopt:{cmd:r(n_units)}, {cmd:r(n_days)}}units and days{p_end}
 {synopt:{cmd:r(first_date)}, {cmd:r(last_date)}}first and last date{p_end}
 {synopt:{cmd:r(generate)}, {cmd:r(date)}}names of the new variables{p_end}
+{synopt:{cmd:r(converted)}}variables converted by {opt convert()}{p_end}
 {p2colreset}{...}
 
 

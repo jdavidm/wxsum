@@ -32,6 +32,7 @@ wxprep tolong rf_, id(hhid)                                  // wide -> long
 
 - `towide` combines several readings per day with `daily(mean|sum|min|max)` (without it, duplicate unit-days are an error), reads string dates with `dateformat()` (e.g. `dateformat(YMD)`), and accepts `%td` dates, `%tc` datetimes, and YYYYMMDD integers. By default it creates a variable for every calendar day from the first to the last date, so days without data become missing days in `wxsum`; `nofill` creates variables only for dates in the data. `if`/`in` convert part of the data, and `save()` saves the result.
 - `rename` takes `firstdate()` for consecutive days, or `from()` and `dateformat()` to read the dates from the old names.
+- All three take `convert(varlist)`, which turns `%tc` and `%tC` datetime variables into `%td` daily dates for `wxsum`'s `start()`, `end()`, and `event_date()`. With `rename`, any other variables can be converted; `towide` and `tolong` keep only the `id()` variables, so there the variables must be `id()` variables.
 - `tolong` names the value and date variables with `generate()` (default: the stub without a trailing `_`) and `date()` (default `date`), and `save()` saves the long data; `id()` must identify the observations.
 - `towide` and `tolong` replace the data in memory: they need `clear` if the data have changed since the last save, and they leave the data unchanged if they fail. The daily values get the narrowest storage type that holds them exactly (`byte`, `int`, or `long` for whole numbers; otherwise `float`, or `double` if the input is `double` or `long`).
 
@@ -53,7 +54,7 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 | `type(rain\|temp)` | Required. Other daily series (humidity, wind, wet-bulb temperature) use `temp`. |
 | `ini_month(#) fin_month(#)` | First and last month of a calendar window, whole numbers from 1 to 12 (`05` is read as 5). A window that crosses the end of the year is labeled with its start year. Only windows that lie entirely within the dates of the daily variables are summarized. |
 | `ini_day(#) fin_day(#)` | First and last day (1-31, and a valid date with its month); by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). 29 February given here is 28 February in common years. |
-| `start(varname) end(varname)` | Each observation's first and last day (`%td` dates; `%tc` datetimes are rejected). A window that ends before it starts is an error; a missing date gives missing statistics. |
+| `start(varname) end(varname)` | Each observation's first and last day (`%td` dates; convert `%tc` datetimes with `dofc()` or `wxprep`'s `convert()` option). A window that ends before it starts is an error; a missing date gives missing statistics. |
 | `event_date(varname) days(#) [lag(#)]` | Window of `#` days ending the day before an event, i.e. from `event_date - days - lag` to `event_date - 1 - lag`; `lag()` (default 0) moves it `#` days earlier. |
 | `partial` | Use the days inside the data when a unit-specific window runs past the first or last daily variable; without it, such windows have missing statistics. |
 | `rain_threshold(#)` | Rainy day if rain >= `#` (nonnegative); default 1. Rain only. |
@@ -82,12 +83,12 @@ Long output (the default) has one row per observation and window, a variable `ye
 | Rain | `total`, `mean_mo` (mean of monthly totals), `raindays`, `norain`, `pct_raindays`, `dry_start`, `dry`, `dry_end` |
 | Temp | `max`, `gdd`, `kdd`, `heatdays`, `pct_heatdays`, `heat_start`, `heat`, `heat_end` |
 | Optional | `gddcat`, `tmpbin01`..., `cut01`... |
-| Reference | `dev_` and `z_` for `mean_mo`, `total`, `raindays`, `norain`, `pct_raindays`, and the dry spells (rain), or `gdd`, `kdd`, `heatdays`, `pct_heatdays`, and the heat spells (temp) |
+| Reference | `dev_` and `z_` for `mean_mo`, `total`, `raindays`, `norain`, `pct_raindays`, and the mid-window dry spell `dry` (rain), or `gdd`, `kdd`, `heatdays`, `pct_heatdays`, and the mid-window heat spell `heat` (temp) |
 
 Definitions:
 
 - All statistics use the observed (nonmissing) days of the window. `var` and `sd` need 2 observed days, and `skew` (sample skewness) needs 3 and a nonzero `sd`. `pct_raindays` and `pct_heatdays` are shares (0 to 1) of the observed days. `mean_mo` is `total` divided by the number of calendar months with at least one observed day.
-- Growing degree days are the sum over observed days of `min(max(T - gdd_lo, 0), gdd_hi - gdd_lo)`; killing (extreme-heat) degree days are the sum of `max(T - k, 0)`, where `k` is `kdd_base()` or `heat_threshold()`.
+- Growing degree days are the number of degrees between `gdd_lo()` and `gdd_hi()` each day, summed over the observed days: 0 when T <= `gdd_lo`, T - `gdd_lo` when `gdd_lo` < T < `gdd_hi`, and `gdd_hi` - `gdd_lo` when T >= `gdd_hi`. Killing degree days are the number of degrees above the KDD base `k` each day, summed over the observed days: T - `k` when T > `k`, otherwise 0, where `k` is `kdd_base()` or, without it, `heat_threshold()`.
 - Leading and trailing spells (`dry_start`/`dry_end`, `heat_start`/`heat_end`) count from the first and last observed day of the window; missing days at the edges are skipped, and a missing day ends a run. The mid-window spell (`dry`, `heat`) is the longest run that is neither the leading nor the trailing spell when the window has at least two break days (rainy days, or cooler days); with none or one, it is the longest run anywhere in the window. So the longest spell anywhere is `max(dry_start, dry, dry_end)` (`max(heat_start, heat, heat_end)`): with `heat_threshold(30)`, temperatures 35, ., 35, 35, 20, 20 give `heat_start` = 1, `heat` = 2, and `heat_end` = 0.
 - Windows with fewer than `minobs()` observed days (by default, no observed day) have missing statistics, although `nobs` is reported, and do not enter any reference period. A season inside the data with no daily variables is such a window (`nobs = 0`).
 - A deviation (`dev_`) is the statistic minus the mean of its reference values, and a z-score (`z_`) divides the deviation by their standard deviation; both need `ref_min()` nonmissing reference values, and a z-score is missing when the reference values do not vary. For calendar windows the reference values are the same statistic in the seasons of the reference period that are in the data (the `lr_years()` preceding seasons, or the `baseline()` seasons); a season gets deviations only when at least `ref_min()` such seasons exist, so wide output has `dev_` and `z_` variables only for those seasons. For unit-specific windows the reference values come from the same window (same days of the year) in each of the `lr_years()` preceding years or in each `baseline()` year.
@@ -156,7 +157,7 @@ These three datasets are simulated (`examples/make_example_data.do` creates them
 - Dry spells skip missing days at the edges of a window, and a window with 0 or 1 rainy days reports its longest dry run. The mid-window spell is the longest run other than the leading and trailing spells, so a run after a missing day is no longer left out, and the longest spell is `max(dry_start, dry, dry_end)`.
 - Monthly totals are grouped by calendar year and month.
 - A season inside the data with no daily variables is a window with no observed day (`nobs` = 0) instead of being left out, and 29 February in `ini_day()`/`fin_day()` is 28 February in common years instead of skipping those years.
-- New: heat days and spells, `cuts()`, `baseline()`, `ref_min()`, `minobs()`, `nobs`, unit-specific windows, deviations for spells, `outstub()`, stored results, `wxprep`, and a Mata engine that is much faster (0.04-0.2 seconds for each bundled example, against 7-52 seconds in version 5).
+- New: heat days and spells, `cuts()`, `baseline()`, `ref_min()`, `minobs()`, `nobs`, unit-specific windows, deviations for the mid-window spells, `outstub()`, stored results, `wxprep`, and a Mata engine that is much faster (0.04-0.2 seconds for each bundled example, against 7-52 seconds in version 5).
 
 ## Testing
 

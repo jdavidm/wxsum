@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 6.2.0 16oct2026}{...}
+{* *! version 6.3.0 20oct2026}{...}
 {vieweralsosee "wxprep" "help wxprep"}{...}
 {viewerjumpto "Syntax" "wxsum##syntax"}{...}
 {viewerjumpto "Description" "wxsum##description"}{...}
@@ -153,7 +153,8 @@ the data.
 {opth start(varname)} and {opth end(varname)} hold each observation's first and
 last day as Stata daily dates ({cmd:%td}). Windows can differ in length.
 Observations with a missing date get missing statistics. {cmd:%tc} datetimes
-are not accepted; convert them with {cmd:dofc()}.
+are not accepted; convert them with {cmd:dofc()} or with the {opt convert()}
+option of {helpb wxprep}.
 
 {phang}
 {opth event_date(varname)} and {opt days(#)} are a shortcut for a window of
@@ -321,8 +322,8 @@ days.
 
 {p2colset 8 26 28 2}{...}
 {p2col:{cmd:max}}highest daily value{p_end}
-{p2col:{cmd:gdd}}growing degree days:  sum of (T - gdd_lo) for temperatures between {opt gdd_lo()} and {opt gdd_hi()}, capped when T >= gdd_hi{p_end}
-{p2col:{cmd:kdd}}killing (extreme-heat) degree days: the sum of max(T - k, 0), where k is {opt kdd_base()} or {opt heat_threshold()}{p_end}
+{p2col:{cmd:gdd}}growing degree days: the number of degrees between {opt gdd_lo()} and {opt gdd_hi()} each day, summed over the days: 0 when T <= gdd_lo, T - gdd_lo when gdd_lo < T < gdd_hi, and gdd_hi - gdd_lo when T >= gdd_hi{p_end}
+{p2col:{cmd:kdd}}killing degree days: the number of degrees above the KDD base k each day, summed over the days: T - k when T > k, otherwise 0; k is {opt kdd_base()}, or {opt heat_threshold()} when {opt kdd_base()} is not given{p_end}
 {p2col:{cmd:heatdays pct_heatdays}}days with T >= {opt heat_threshold()}, and their share{p_end}
 {p2col:{cmd:heat_start heat heat_end}}leading, mid-window, and trailing heat spells (days){p_end}
 {p2colreset}{...}
@@ -330,17 +331,10 @@ days.
 {pstd}
 plus {cmd:gddcat}, {cmd:tmpbin}{it:##}, or {cmd:cut}{it:##} when requested,
 and deviations ({cmd:dev_}) and z-scores ({cmd:z_}) for {cmd:mean_mo},
-{cmd:total}, {cmd:raindays}, {cmd:norain}, {cmd:pct_raindays},
-{cmd:dry_start}, {cmd:dry}, and {cmd:dry_end} (rain) or {cmd:gdd}, {cmd:kdd},
-{cmd:heatdays}, {cmd:pct_heatdays}, {cmd:heat_start}, {cmd:heat}, and
-{cmd:heat_end} (temp). Every variable has a label that states its threshold;
-the characteristics {cmd:[wxsum_stat]} and {cmd:[wxsum_window]} record the
-statistic and the window (with the year in wide output). The dataset
-characteristics {cmd:_dta[wxsum_cmdline]}, {cmd:_dta[wxsum_type]},
-{cmd:_dta[wxsum_shape]}, {cmd:_dta[wxsum_window]}, {cmd:_dta[wxsum_ref]},
-{cmd:_dta[wxsum_thresholds]}, and {cmd:_dta[wxsum_minobs]} record the last
-{cmd:wxsum} command and its settings, so they survive {cmd:save}; type
-{cmd:char list} to see them.
+{cmd:total}, {cmd:raindays}, {cmd:norain}, {cmd:pct_raindays}, and the
+mid-window dry spell {cmd:dry} (rain) or {cmd:gdd}, {cmd:kdd},
+{cmd:heatdays}, {cmd:pct_heatdays}, and the mid-window heat spell
+{cmd:heat} (temp).
 
 {pstd}
 {ul:Spells}
@@ -399,6 +393,19 @@ load the data). Stata/BE allows 2,048 variables, about five years; use
 {helpb wxprep} with {cmd:if} to convert part of the years at a time, and make
 sure each part contains the reference years you need. {cmd:wxsum} checks
 {cmd:maxvar} before it starts. Long output needs few variables.
+
+{pstd}
+{ul:Labels, characteristics, and storage}
+
+{pstd}
+Every variable that {cmd:wxsum} creates has a label that states its threshold,
+and the characteristics {cmd:[wxsum_stat]} and {cmd:[wxsum_window]} record the
+statistic and the window (with the year in wide output). The dataset
+characteristics {cmd:_dta[wxsum_cmdline]}, {cmd:_dta[wxsum_version]},
+{cmd:_dta[wxsum_type]}, {cmd:_dta[wxsum_shape]}, {cmd:_dta[wxsum_window]},
+{cmd:_dta[wxsum_ref]}, {cmd:_dta[wxsum_thresholds]}, and
+{cmd:_dta[wxsum_minobs]} record the last {cmd:wxsum} command and its
+settings, so they survive {cmd:save}; type {cmd:char list} to see them.
 
 {pstd}
 Continuous statistics are stored in the default storage type

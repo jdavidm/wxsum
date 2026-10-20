@@ -91,9 +91,9 @@ end
 
 * define comparison variable stems
 	local           rstems "nobs mean median var sd skew mean_mo total raindays norain pct_raindays dry_start dry dry_end"
-	local           rdev "dev_total z_total dev_raindays z_raindays dev_mean_mo z_mean_mo dev_dry z_dry dev_dry_start z_dry_start"
+	local           rdev "dev_total z_total dev_raindays z_raindays dev_mean_mo z_mean_mo dev_dry z_dry"
 	local           tstems "nobs mean median var sd skew max gdd kdd heatdays pct_heatdays heat_start heat heat_end"
-	local           tdev "dev_gdd z_gdd dev_kdd z_kdd dev_heatdays z_heatdays dev_heat z_heat dev_heat_end z_heat_end"
+	local           tdev "dev_gdd z_gdd dev_kdd z_kdd dev_heatdays z_heatdays dev_heat z_heat"
 
 **********************************************************************
 **# 1 - rainfall unit-specific windows vs calendar windows
