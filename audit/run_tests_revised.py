@@ -2,7 +2,7 @@
 Only the supplied folder defines expected behavior. Never modifies that folder.
 
 REVISED COPY (16 Oct 2026) of the auditor's run_tests.py, which is kept unchanged
-next to this file. Three changes, all following decisions made after the audit:
+next to this file. Four changes, all following decisions made after the audit:
   1. spells(): the mid-window spell is the longest run that is neither the
      leading nor the trailing spell when there are at least two break days
      (audit finding B3), so max(start, mid, end) is the longest spell. The
@@ -14,6 +14,8 @@ next to this file. Three changes, all following decisions made after the audit:
   3. (20 Oct 2026) reference(): deviations and z-scores are expected only for
      the mid-window spells (dry, heat), not for the leading and trailing
      spells, which no longer have them.
+  4. (20 Oct 2026) stored_results_and_metadata: the expected _dta[wxsum_version]
+     is the version on the *! line of the audited wxsum.ado, not "6.0.0".
 Everything else, including all cases and tolerances, is the auditor's.
 Usage: python run_tests.py --source "C:/Users/annal/Downloads/wxsum" --stata "C:/Program Files/StataNow19/StataMP-64.exe"
 """
@@ -24,6 +26,7 @@ import statistics, struct, subprocess, sys, time
 HERE = Path(__file__).resolve().parent
 EPOCH = dt.date(1960, 1, 1)
 CASES = []
+WXSUM_VERSION = None
 
 def q(p):
     return '"' + str(p).replace('\\', '/') + '"'
@@ -155,7 +158,7 @@ def make_behavior():
         case(typ+'_cuts_edges',wide([vals])+cmd+' cuts(1 2 30)\nassert cut01==1 & cut02==1 & cut03==2 & cut04==1\n')
     case('kdd_separate_base',wide([[20,30,35,40,None,None]])+TEMP+' kdd_base(35)\nassert heatdays==3 & kdd==5 & gdd==70\n')
     case('outstub_and_string_keep',wide([[1]*6,[2]*6])+'gen str5 name="site"+string(id)\n'+RAIN.replace('keep(id)','keep(id name) outstub(r_)')+'\nassert r_total==6*id\nassert name=="site"+string(id)\nconfirm variable year\nconfirm variable r_dry_start\n')
-    case('stored_results_and_metadata',base+RAIN+'\nlocal vv `r(varlist)\'\nlocal n : word count `vv\'\nassert r(k_created)==`n\'\nassert r(N)==3 & r(N_units)==3 & r(n_windows)==1\nmatrix M=r(missing)\nassert M[1,1]==6 & abs(M[1,2]-11/3)<1e-12\nassert abs(M[1,3]-2/3)<1e-12 & abs(M[1,4]-1/3)<1e-12 & M[1,5]==1\nlocal stat : char total[wxsum_stat]\nassert "`stat\'"=="total"\nlocal ver : char _dta[wxsum_version]\nassert "`ver\'"=="6.0.0"\nlocal shape : char _dta[wxsum_shape]\nassert "`shape\'"=="long"\n')
+    case('stored_results_and_metadata',base+RAIN+'\nlocal vv `r(varlist)\'\nlocal n : word count `vv\'\nassert r(k_created)==`n\'\nassert r(N)==3 & r(N_units)==3 & r(n_windows)==1\nmatrix M=r(missing)\nassert M[1,1]==6 & abs(M[1,2]-11/3)<1e-12\nassert abs(M[1,3]-2/3)<1e-12 & abs(M[1,4]-1/3)<1e-12 & M[1,5]==1\nlocal stat : char total[wxsum_stat]\nassert "`stat\'"=="total"\nlocal ver : char _dta[wxsum_version]\nassert "`ver\'"=="'+WXSUM_VERSION+'"\nlocal shape : char _dta[wxsum_shape]\nassert "`shape\'"=="long"\n')
     for shape in ['long','wide']:
         case('rollback_forced_'+shape,base+'datasignature\nlocal before `r(datasignature)\'\nglobal WXSUM_TEST_FAIL store\ncapture '+RAIN+f' shape({shape})\nlocal rc=_rc\nglobal WXSUM_TEST_FAIL\nassert `rc\'==9\ndatasignature\nassert "`before\'"=="`r(datasignature)\'"\n')
     for name,cmd,rc in [
@@ -416,6 +419,9 @@ def main():
     run.mkdir(parents=True,exist_ok=True); (run/'cases').mkdir(exist_ok=True)
     if not (source/'wxsum.ado').is_file() or not (source/'wxprep.ado').is_file(): p.error('source must contain both ado files')
     inv=inventory(source,run)
+    # revised (change 4): the expected version stamp is the one on the *! line
+    global WXSUM_VERSION
+    WXSUM_VERSION=(source/'wxsum.ado').read_text(encoding='utf-8',errors='replace').splitlines()[0].split()[2]
     make_behavior();make_prep();make_oracles(run);make_failure_io(run);make_extended(source,run)
     rows=[]
     # This is a separate packaging test, without network or a remote installation.
