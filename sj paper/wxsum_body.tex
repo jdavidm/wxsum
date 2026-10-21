@@ -170,11 +170,6 @@ Input data must be wide, with one row per observation and separate numeric varia
 
 \texttt{wxsum} is a data-management command that produces a dataset of window-level weather statistics. For calendar windows, the default \texttt{shape(long)} output contains one row per observation and year, with a variable named \texttt{year} identifying the window. With \texttt{shape(wide)}, each input observation remains one row and the generated statistics receive year suffixes, such as \texttt{mean\_1993} and \texttt{total\_1993}. Windows crossing calendar years are assigned to the year in which they begin. For unit-specific windows, the output contains one row per input observation, and generated statistics have no year suffix. Table~\ref{tab:rainout} and~\ref{tab:tempout} list rainfall and temperature statistics without an optional output prefix or year suffix.
 
-
-\subsubsection{Output}
-
-\texttt{wxsum} is a data-management command that produces a dataset of window-level weather statistics. For calendar windows, the default \texttt{shape(long)} output contains one row per observation and year, with a variable named \texttt{year} identifying the window. With \texttt{shape(wide)}, each input observation remains one row and the generated statistics receive year suffixes, such as \texttt{mean\_1993} and \texttt{total\_1993}. Windows crossing calendar years are assigned to the year in which they begin. For unit-specific windows, the output contains one row per input observation, and generated statistics have no year suffix. The following tables list variable names without an optional output prefix or year suffix.
-
 For rainfall, \texttt{wxsum} generates measures of the distribution, amount, frequency, and persistence of precipitation. In addition to standard distributional statistics, the command calculates mean monthly precipitation and total rainfall over the exposure window. Rainy-day counts and shares capture the frequency of precipitation, while dry-spell measures distinguish the duration of rainfall deficits at the beginning, within, and at the end of the window. These measures capture dimensions of rainfall exposure that may not be apparent from total precipitation alone. Optional bins further characterize the distribution of daily rainfall intensity.
 
 \begin{table}[htbp]
