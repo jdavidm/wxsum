@@ -1,0 +1,93 @@
+[
+  {
+    "path": "examples/births.dta",
+    "bytes": 9058,
+    "sha256": "88584d3875f85114b14b30a7b3fc9d3fdcf7574bb9e2f671ea9af3aa2ef686df"
+  },
+  {
+    "path": "examples/hh_panel.dta",
+    "bytes": 8736,
+    "sha256": "af43e9470a0741f9286b8dbb03ceda1dcc79fe9d40a5d2be05da85093a5e7cc2"
+  },
+  {
+    "path": "examples/make_example_data.do",
+    "bytes": 7158,
+    "sha256": "fa950ceb077a7439c9296052fae9c091222912ad26c9b15fb76ca4584a17515f",
+    "lines": 141
+  },
+  {
+    "path": "examples/weather_hourly.dta",
+    "bytes": 1581055,
+    "sha256": "c657102856e48a036629b4aa14d40fbf0b54066b1c5091b0b5cd3934dd6889f8"
+  },
+  {
+    "path": "examples/wxsum_examples.do",
+    "bytes": 10618,
+    "sha256": "8a7e20c134ac3b116b355d6863cf4bf718f45506aec1544f186dc99bae6f2f3e",
+    "lines": 243
+  },
+  {
+    "path": "examples/wxsum_examples.log",
+    "bytes": 36586,
+    "sha256": "43990a4558a0b9443b6b05d993a837f9c6ffb012b867ca22f34e7e18f16c4227",
+    "lines": 827
+  },
+  {
+    "path": "index.html",
+    "bytes": 28467,
+    "sha256": "94ee1396683638d3f4c697d154cdc393125a816d8c839d3506a1d8c908506244",
+    "lines": 302
+  },
+  {
+    "path": "rain.dta",
+    "bytes": 4986715,
+    "sha256": "4fa6f9435ad1b8b9a56653e073aad6fc2244a3b103349c3e21eeea414f3b6d12"
+  },
+  {
+    "path": "README.md",
+    "bytes": 22349,
+    "sha256": "1c2f7df3e014cff6628208713e4cb7fe0ed667200854611ea205b1b997d0b0ca",
+    "lines": 309
+  },
+  {
+    "path": "stata.toc",
+    "bytes": 121,
+    "sha256": "89d424485c78493b6fbdcd1d2b2327d91386aec936798bdb2f32e725e40d1546",
+    "lines": 3
+  },
+  {
+    "path": "temp.dta",
+    "bytes": 5195735,
+    "sha256": "6b47036111d779903aed20231736a164ff8aa409d00ad60cf65861794880381f"
+  },
+  {
+    "path": "wxprep.ado",
+    "bytes": 24224,
+    "sha256": "e94001550c32ca95f3e1b2235248f4323c30bdd6e249d39bf5fd9e8cc98e8fa4",
+    "lines": 690
+  },
+  {
+    "path": "wxprep.sthlp",
+    "bytes": 13036,
+    "sha256": "8b1e7860d98ff4b1a7d23e8dc321b4fb758c7ee6818679bf85ed1d9715f28fc3",
+    "lines": 288
+  },
+  {
+    "path": "wxsum.ado",
+    "bytes": 56591,
+    "sha256": "e7dcee01b5b701b47d7c203ef054a5d108f48e386b168ee60cf04aee6245d69e",
+    "lines": 1595
+  },
+  {
+    "path": "wxsum.pkg",
+    "bytes": 832,
+    "sha256": "5f463b76a8cc27959a5e6ebabdb1bfa1dc67c69f67cd192a2a278082dddc09f5",
+    "lines": 26
+  },
+  {
+    "path": "wxsum.sthlp",
+    "bytes": 28778,
+    "sha256": "d52a81119610be19ceef5f0b9c2ae187f9a143bd3127220f0d5e041f471845bc",
+    "lines": 584
+  }
+]

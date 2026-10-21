@@ -4,13 +4,20 @@ Everything used to test the package lives in this folder, which is not part of t
 
 | Path | What it is |
 |---|---|
-| `README.txt`, `audit_report.*`, `findings.json`, `requirements_matrix.csv`, `run_tests.py`, `verified_results/` | The external audit of 15 October 2026, as delivered. `run_tests.py` is the auditor's runner, unchanged. |
-| `run_tests_revised.py` | The auditor's runner with four changes, described at its top: the revised mid-window spell rule (finding B3), no check for `tests/run_all.do` (the tests are kept out of the package), deviations only for the mid-window spells, and the expected version stamp read from `wxsum.ado`. |
-| `rerun_20261016/`, `rerun_20261020/` | Reruns of both runners on the package as it will be submitted (the repository without `audit/`). |
+| `README.txt`, `audit_report.*`, `findings.json`, `requirements_matrix.csv`, `run_tests.py`, `verified_results/` | The external audit of 15 October 2026, as delivered. `run_tests.py` is the auditor's runner, unchanged. It reads `rain.csv`, `temp.csv`, `rain_full.dta`, `temp_full.dta`, and the manuscript, none of which ship with the package, so it no longer runs on the package. |
+| `run_tests_revised.py` | The audit runner to use. It is the auditor's runner with seven changes, described at its top: the revised mid-window spell rule (finding B3); no check for `tests/run_all.do` (the tests are kept out of the package); deviations only for the mid-window spells; the expected version stamp read from `wxsum.ado`; no cases on `rain_full.dta` and `temp_full.dta`; the bundled-data oracle read from `rain.dta` and `temp.dta` instead of the CSV files; and no manuscript examples. It needs only the code and data in the package. |
+| `rerun_20261016/`, `rerun_20261020/`, `rerun_20261021/` | Reruns on the package as it will be submitted (the repository without `audit/`; on 21 October also without `sj paper/`, `rain.csv`, and `temp.csv`). The first two also ran the auditor's runner. |
 | `tests/run_all.do` | Runs the 15 test suites: `do audit/tests/run_all.do` from the root, or batch mode from `audit/tests`. |
 | `tests/reference/` | Frozen version 5 output on the sample data (`v5_*.dta`, made by `make_v5_reference.do` with `wxsum_v5.ado`) and the independent reference implementation `wxsum_ref.ado` used by the equivalence suite. |
 | `run_examples.do` | Rebuilds `examples/wxsum_examples.log` (and, with the argument `data`, the example datasets) in a folder laid out like the one `net get wxsum` creates. |
 | `sync_docs.py` | Copies the twelve examples of `examples/wxsum_examples.do` into `wxsum.sthlp` (1-9), `wxprep.sthlp` (10-12), and `README.md`, and rebuilds `index.html` from `README.md`: `python audit/sync_docs.py` from the root after changing the examples or the README. |
+
+To rerun the audit, export the package to an empty folder and point the runner at it (Python 3 standard library and a licensed Stata; the runner never changes the folder it audits):
+
+```bash
+git archive HEAD -- . ':!audit' | tar -x -C <empty folder>
+python audit/run_tests_revised.py --source <empty folder> --stata "<path to StataMP-64.exe>" --results audit/rerun_<date>
+```
 
 The test suites:
 

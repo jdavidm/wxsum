@@ -2,7 +2,7 @@
 Only the supplied folder defines expected behavior. Never modifies that folder.
 
 REVISED COPY (16 Oct 2026) of the auditor's run_tests.py, which is kept unchanged
-next to this file. Four changes, all following decisions made after the audit:
+next to this file. Seven changes, all following decisions made after the audit:
   1. spells(): the mid-window spell is the longest run that is neither the
      leading nor the trailing spell when there are at least two break days
      (audit finding B3), so max(start, mid, end) is the longest spell. The
@@ -16,7 +16,18 @@ next to this file. Four changes, all following decisions made after the audit:
      spells, which no longer have them.
   4. (20 Oct 2026) stored_results_and_metadata: the expected _dta[wxsum_version]
      is the version on the *! line of the audited wxsum.ado, not "6.0.0".
-Everything else, including all cases and tolerances, is the auditor's.
+  5. (21 Oct 2026) The bundled_*_full_cross_year cases are dropped: rain_full.dta
+     and temp_full.dta are too large for a Stata package and are not in it. The
+     cross-year cases on rain.dta and temp.dta are kept.
+  6. (21 Oct 2026) The bundled-data oracle reads the daily values from rain.dta
+     and temp.dta themselves (read_dta(), a reader for Stata's .dta format 118
+     and 119) instead of from rain.csv and temp.csv, which belong to the R
+     package wxsumR and are not in this one. The cases are renamed
+     bundled_*_dta_oracle, and they cover every household in the files.
+  7. (21 Oct 2026) The manuscript_example_* cases are dropped: the article and
+     the review correspondence are not part of the package, so the audit checks
+     only the code and the data shipped with it.
+Everything else, including all other cases and tolerances, is the auditor's.
 Usage: python run_tests.py --source "C:/Users/annal/Downloads/wxsum" --stata "C:/Program Files/StataNow19/StataMP-64.exe"
 """
 from pathlib import Path
@@ -30,6 +41,44 @@ WXSUM_VERSION = None
 
 def q(p):
     return '"' + str(p).replace('\\', '/') + '"'
+
+def read_dta(path):
+    """revised (change 6): variable names and rows of a Stata .dta file of
+    format 118 or 119. Missing values and strings are None."""
+    b = path.read_bytes()
+    def tag(t):
+        i = b.index(b'<'+t+b'>')+len(t)+2
+        return b[i:b.index(b'</'+t+b'>', i)], i
+    release = int(tag(b'release')[0])
+    if release not in (118, 119): raise ValueError(f'{path}: .dta format {release}, not 118 or 119')
+    bo = '<' if tag(b'byteorder')[0] == b'LSF' else '>'
+    K = struct.unpack(bo+('H' if release == 118 else 'I'), tag(b'K')[0])[0]
+    N = struct.unpack(bo+'Q', tag(b'N')[0])[0]
+    m = struct.unpack(bo+'14Q', tag(b'map')[0])
+    i = m[2]+len(b'<variable_types>')
+    types = struct.unpack(bo+f'{K}H', b[i:i+2*K])
+    i = m[3]+len(b'<varnames>')
+    names = [b[i+129*j:i+129*(j+1)].split(b'\0')[0].decode('utf-8') for j in range(K)]
+    # struct code, bytes, and the smallest missing value of each numeric type
+    num = {65526: ('d', 8, 2.0**1023), 65527: ('f', 4, 2.0**127), 65528: ('l', 4, 2147483621),
+           65529: ('h', 2, 32741), 65530: ('b', 1, 101)}
+    fmt, width, cols = bo, 0, []
+    for t in types:
+        if t in num:
+            fmt += num[t][0]; width += num[t][1]; cols.append(num[t][2])
+        else:
+            n = 8 if t == 32768 else t
+            fmt += f'{n}x'; width += n; cols.append(None)
+    num_cols = [j for j, c in enumerate(cols) if c is not None]
+    i = m[9]+len(b'<data>')
+    rows = []
+    for r in range(N):
+        vals = struct.unpack(fmt, b[i+r*width:i+(r+1)*width])
+        row = [None]*K
+        for j, v in zip(num_cols, vals):
+            row[j] = None if v >= cols[j] else float(v)
+        rows.append(row)
+    return names, rows
 
 def case(name, body, group='behavior'):
     CASES.append(dict(name=name, body=body.strip()+'\n', group=group))
@@ -340,39 +389,30 @@ def make_extended(source, run):
     case('maxvar_wxprep','clear\nset obs 2\ngen id=1\ngen long d=mdy(1,1,1960)+(_n-1)*20001\nformat d %td\ngen v=1\ndatasignature\nlocal before `r(datasignature)\'\ncapture wxprep towide v, id(id) date(d) stub(x_) clear\nassert _rc==900\ndatasignature\nassert "`before\'"=="`r(datasignature)\'"\n','capacity')
     case('kelvin_transform_roundtrip',wide([[273.15,283.15,303.15,313.15,None,None]])+'wxprep tolong x_, id(id) generate(kelvin) clear\ngen double celsius=kelvin-273.15\nwxprep towide celsius, id(id) date(date) stub(c_) clear\nwxsum c_, type(temp) ini_month(1) fin_month(1) fin_day(6) gdd_lo(10) gdd_hi(30) heat_threshold(30) keep(id)\nassert abs(gdd-40)<1e-9 & abs(kdd-10)<1e-9 & heatdays==2 & nobs==4\n','integration')
     case('merge_and_analysis',wide([[0,1,2,3,4,5],[1,2,3,4,5,6],[2,3,4,5,6,7],[3,4,5,6,7,8],[4,5,6,7,8,9],[5,6,7,8,9,10]])+RAIN+'\ntempfile stats\nsave "`stats\'"\nclear\nset obs 6\ngen id=_n\ngen year=2020\ngen double outcome=5+18*id\nmerge 1:1 id year using "`stats\'"\nassert _merge==3\nregress outcome total\nassert abs(_b[total]-3)<1e-9 & e(N)==6\n','integration')
-    # CSV files are inspected directly with Python's CSV reader. The DTA command
-    # results are checked against independently computed CSV expectations.
+    # revised (change 6): the daily values are read from the .dta files with
+    # read_dta(), and the command results on the same files are checked against
+    # values computed independently from them. The values arrive exactly as
+    # stored (float temperatures included), so no rounding to the input
+    # precision is needed.
     for typ,stub in [('rain','rf_'),('temp','tmp_')]:
-        with (source/(typ+'.csv')).open(newline='',encoding='utf-8-sig') as f:
-            reader=csv.DictReader(f); raw=list(reader);fields=reader.fieldnames
-        datecols={c:dt.datetime.strptime(c[-8:],'%Y%m%d').date() for c in fields if c.startswith(stub) and len(c)==len(stub)+8}
+        names,raw=read_dta(source/(typ+'.dta'))
+        datecols={c:dt.datetime.strptime(c[-8:],'%Y%m%d').date() for c in names if c.startswith(stub) and len(c)==len(stub)+8}
         units={}
         for row in raw:
-            row={key.strip():value for key,value in row.items()}
-            # Bundled CSV uses a row identifier; DTA may be a different subset.
-            ident=row.get('hhid',row.get('id',''))
-            if not ident or not 101<=float(ident)<=110: continue
-            def daily_value(value):
-                if value.strip() in ['', '.', 'NA','NaN']: return None
-                x=float(value)
-                # DTA temperature values are float32; CSV decimal text is not
-                # exact binary32. Match the *input* precision before the oracle.
-                return struct.unpack('f',struct.pack('f',x))[0] if typ=='temp' else x
-            units[float(ident)]={d:daily_value(row[c.strip()]) for c,d in datecols.items()}
+            row=dict(zip(names,row))
+            units[row['hhid']]={d:row[c] for c,d in datecols.items()}
+        assert units and datecols, f'{typ}.dta has no hhid rows or {stub} variables'
         opts='type(rain)' if typ=='rain' else 'type(temp) gdd_lo(10) gdd_hi(30) heat_threshold(30) kdd_base(32)'
         text='use '+q(source/(typ+'.dta'))+', clear\n'+f'wxsum {stub}, {opts} ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)\nassert _N>0\nisid hhid year\nassert nobs>=0 & nobs<=154\n'
-        # Only add numerical CSV comparisons if this CSV has matching hhid keys;
-        # otherwise smoke execution is distinct from a numerical equivalence test.
         for ident,a in units.items():
             for y in sorted({d.year for d in a if d.year>=2003}):
                 s,e=dt.date(y,5,15),dt.date(y,10,15)
                 if s<min(a) or e>max(a): continue
-                for k,v in core(a,s,e,typ).items(): text+=eq(k,v,f'hhid=={ident} & year=={y}')
-        case('bundled_'+typ+'_csv_oracle',text,'bundled')
-        for full in [False,True]:
-            file=source/(typ+('_full' if full else '')+'.dta')
-            text='use '+q(file)+', clear\nassert _N>0\n'+f'timer clear 1\ntimer on 1\nwxsum {stub}, {opts} ini_month(11) fin_month(2) keep(hhid)\ntimer off 1\ntimer list 1\nisid hhid year\nassert nobs>=0 & nobs<=121\n'
-            case('bundled_'+typ+('_full' if full else '_sample')+'_cross_year',text,'bundled')
+                for k,v in core(a,s,e,typ).items(): text+=eq(k,v,f'hhid=={ident:.17g} & year=={y}')
+        case('bundled_'+typ+'_dta_oracle',text,'bundled')
+        # revised (change 5): the sample data only; the _full files are not shipped
+        text='use '+q(source/(typ+'.dta'))+', clear\nassert _N>0\n'+f'timer clear 1\ntimer on 1\nwxsum {stub}, {opts} ini_month(11) fin_month(2) keep(hhid)\ntimer off 1\ntimer list 1\nisid hhid year\nassert nobs>=0 & nobs<=121\n'
+        case('bundled_'+typ+'_sample_cross_year',text,'bundled')
         for rows in [1000,10000]:
             text=wide([[1]*6])+f'expand {rows}\nreplace id=_n\ntimer clear 1\ntimer on 1\n'+(RAIN if typ=='rain' else TEMP)+'\ntimer off 1\ntimer list 1\nassert _N=='+str(rows)+'\nassert nobs==6\n'
             case(f'performance_{typ}_{rows}',text,'performance')
@@ -385,17 +425,7 @@ def make_extended(source, run):
             cmd='wxsum x_, type(rain) start(s) end(e) keep(id)'
         text+='timer clear 1\ntimer on 1\n'+cmd+'\ntimer off 1\ntimer list 1\nassert _N==12000 & nobs==366 & total==366 & mean==1 & var==0\n'
         case('chunk_boundary_'+mode+'_12000x366',text,'performance')
-    import re
-    body=(source/'sj paper'/'wxsum_body.tex').read_text(encoding='utf-8')
-    for n,block in enumerate(re.findall(r'\\begin\{stlog\}(.*?)\\end\{stlog\}',body,re.S),1):
-        commands=[]
-        for line in block.splitlines():
-            line=line.strip()
-            if line.startswith(('. ','> ')): commands.append(line[2:])
-        if not any(c.startswith('wxsum ') for c in commands): continue
-        commands=[re.sub(r'^use (\w+\.dta)',lambda m:'use '+q(source/m[1]),c) for c in commands]
-        commands=[re.sub(r'save\([^)]*\)', 'save("`paper_save\'")',c) for c in commands]
-        case('manuscript_example_'+str(n),'tempfile paper_save\n'+'\n'.join(commands)+'\n','documentation')
+    # revised (change 7): no manuscript_example_* cases; the article is not shipped
 
 def inventory(source, run):
     result=[]
