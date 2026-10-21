@@ -22,11 +22,7 @@
 \onehalfspacing
 \section*{Reviewer's Comments}
 
-This paper is well-written, transparent, and the Stata package it introduces is useful for the
-kinds of applications the authors discuss. Based on my verification exercise, the package works
-correctly. That is, it calculates the summary variables listed above correctly for both
-temperature and rainfall data. I do have some concerns and recommendations, which I outline
-below.
+This paper is well-written, transparent, and the Stata package it introduces is useful for the kinds of applications the authors discuss. Based on my verification exercise, the package works correctly. That is, it calculates the summary variables listed above correctly for both temperature and rainfall data. I do have some concerns and recommendations, which I outline below.
     \begin{quote}
         Thank you for your encouraging comments and the chance to revise and improve the manuscript for re-consideration. \\ 
         
@@ -44,12 +40,12 @@ In light of this limitation, I recommend that the authors incorporate an option 
 \emph{Deviations and z-Scores Relative to a Fixed Baseline} \\
 In the current version of the package, deviations and z-scores are calculated relative to a lagged rolling window. This is useful for some applications. However, in other applications, researchers might want to calculate deviations and z-scores relative to a fixed climate baseline (e.g. 1900 to 1950). I think this option should be incorporated into the package.
     \begin{quote}
-        We have added an option to \texttt{wxsum} that allows users to specify a fixed baseline by providing a start and end year. Deviations and z-scores are then calculated against that fixed baseline for all year, including years that fall within the baseline (the rolling window option only calculates deviations outside the window).
+        We have added an option to \texttt{wxsum} that allows users to specify a fixed baseline by providing a start and end year. Deviations and z-scores are then calculated against that fixed baseline for all years, including years that fall within the baseline (the rolling window option only calculates deviations outside the window).
     \end{quote}
 
 In the current version of the package, the user-specified season is invariant across locations. There are applications where the season throughout which we want to calculate temperature and rainfall statistics varies by location. E.g. planting and harvest dates, and therefore growing seasons, can vary across farms. Is it possible to allow users to specify the beginning and end dates of the season based on variables in the dataset? Using the agriculture example, if we observe planting date and harvest date for each farm, this option would allow us to calculate temperature and rainfall summaries throughout farm-specific growing seasons. If implementing this or some version of it is not feasible, the authors should explain why and discuss this as a limitation.
     \begin{quote}
-        We have added an option for the user to define unit-specific windows. Users can do this in one of two ways. The first follows your recommendation. The user specifies a variable that contains the start data and another that contains the end data and uses this window for the ``season.'' The other way to specify a unit-specific window was suggested by the Editor. The user specifies a variable that contains the date of an event (i.e., birth, natural disaster, conflict) and the length of the window in days (i.e., 30 days before the event). Users also have the option to specify a lag that moves the window to a number of days before or after the event. An example would be the user has planting date and wants to calculate rainfall for the flowering stage, which last 15 days, and comes 45 days after planting.
+        We have added an option for the user to define unit-specific windows. Users can do this in one of two ways. The first follows your recommendation. The user specifies a variable that contains the start date and another that contains the end date and uses this window for the ``season.'' The other way to specify a unit-specific window was suggested by the Editor. The user specifies a variable that contains the date of an event (i.e., birth, natural disaster, conflict) and the length of the window in days (i.e., 30 days before the event). Users also have the option to specify a lag that moves the window to a number of days before or after the event. An example would be the user has planting date and wants to calculate rainfall for the flowering stage, which last 15 days, and comes 45 days after planting.
     \end{quote}
 
 I noticed that deviations and z-scores are not calculated for early-, mid-, and late-season dry spells. These should either be calculated or there should be an explanation as to why they are not.   
