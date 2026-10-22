@@ -1,16 +1,31 @@
-"""Copies the examples in examples/wxsum_examples.do into the documentation.
+"""Copies the example commands of examples/wxsum_examples.do into the documentation.
 
 Run from the repository root after changing the examples or README.md:
     python audit/sync_docs.py
 
+The do-file is the source of the commands. Each example starts with a
+bookmark, "**# N - title", and its commands are the lines between -log using-
+and -log close- that are not comments, with /// continuations joined and tabs
+and repeated blanks collapsed to one blank, as wxsum_v6_docs.do reads them.
+
 - wxsum.sthlp gets examples 1-9 and wxprep.sthlp examples 10-12 (those that
-  start with wxprep), each as {phang2}{cmd:. command}{p_end} lines;
-- README.md gets all twelve under "## Examples";
+  start with wxprep), each command as a {phang2}{cmd:. command}{p_end} line;
+- README.md gets all twelve under "## Examples", in ```stata blocks;
 - index.html is rebuilt from README.md, keeping its <head>.
+
+Only the commands are copied. The titles, introductions, and explanatory lines
+of the documentation are kept, because the comments in the do-file are written
+for the do-file. A changed command replaces the old one where it stands, a new
+command goes where it falls among the others, and an example that the
+documentation lacks gets the title of its bookmark. A title is replaced only
+when the bookmark's title differs in more than capitalization. The script lists
+what it changed, so that the explanatory lines next to changed commands can be
+checked.
 
 audit/tests/wxsum_v6_docs.do checks that the do-file, the help files,
 README.md, and index.html hold the same commands and runs them.
 """
+import difflib
 import html
 import re
 import sys
@@ -18,6 +33,7 @@ from pathlib import Path
 
 root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(".")
 WXPREP_FIRST = 10          # examples from here on go to wxprep.sthlp
+changes = []               # what the script changed, listed at the end
 
 
 def read(p):
@@ -27,157 +43,207 @@ def read(p):
 
 
 def write(p, text, nl):
-    (root / p).write_bytes(text.replace("\n", nl).encode("utf-8"))
+    data = text.replace("\n", nl).encode("utf-8")
+    if (root / p).read_bytes() != data:
+        (root / p).write_bytes(data)
+
+
+def clean(line):
+    # tabs and repeated blanks collapse to one blank
+    return " ".join(line.split())
 
 
 # ---------------------------------------------------------------------------
 # 1. the examples in the do-file
 # ---------------------------------------------------------------------------
+BOOKMARK = re.compile(r"\*\*# +(\d+) +- +(.*\S)$")
+
+
 def parse_examples():
     text, _ = read("examples/wxsum_examples.do")
-    lines = text.split("\n")
-    start = next(i for i, l in enumerate(lines) if l.startswith("* Example 1."))
-    end = next(i for i, l in enumerate(lines) if l.startswith("log close"))
-    examples, cur, comment, cmd = [], None, [], []
-    for l in lines[start - 1:end]:
-        s = l.strip()
-        m = re.match(r"\* Example (\d+)\. (.*)", s)
+    lines = [clean(l) for l in text.split("\n")]
+    start = next(i for i, l in enumerate(lines) if l.startswith("log using")) + 1
+    end = next(i for i in range(start, len(lines)) if lines[i].startswith("log close"))
+    examples, cur, cmd = [], None, []
+    for l in lines[start:end]:
+        m = BOOKMARK.match(l)
         if m:
-            cur = dict(num=int(m.group(1)), title=m.group(2), items=[])
+            assert not cmd, ("a /// continuation runs into a bookmark", l)
+            cur = dict(num=int(m.group(1)), title=m.group(2), cmds=[])
             examples.append(cur)
             continue
-        if not s or s.startswith("* ===="):
-            if comment:
-                cur["items"].append(("comment", " ".join(comment)))
-                comment = []
+        if not l or l.startswith("*"):
             continue
-        if s.startswith("*"):
-            comment.append(s.lstrip("* ").strip())
+        assert cur is not None, ("a command before the first example bookmark", l)
+        if l.endswith("///"):
+            cmd.append(l[:-3].rstrip())
             continue
-        if comment:
-            cur["items"].append(("comment", " ".join(comment)))
-            comment = []
-        cmd.append(s[:-3].rstrip() if s.endswith("///") else s)
-        if not s.endswith("///"):
-            cur["items"].append(("cmd", " ".join(cmd)))
-            cmd = []
-    assert [e["num"] for e in examples] == list(range(1, 13)), [e["num"] for e in examples]
+        cur["cmds"].append(" ".join(cmd + [l]))
+        cmd = []
+    # sections without commands, such as the end matter, are not examples
+    examples = [e for e in examples if e["cmds"]]
+    nums = [e["num"] for e in examples]
+    assert nums == list(range(1, len(nums) + 1)), nums
     for e in examples:
-        for kind, t in e["items"]:
-            assert "{" not in t and "}" not in t, ("braces cannot go in a help file", t)
+        for c in e["cmds"]:
+            assert "{" not in c and "}" not in c, ("braces cannot go in a help file", c)
     return examples
 
 
 # ---------------------------------------------------------------------------
-# 2. help files
+# 2. one example: the do-file's commands in place of the old ones
 # ---------------------------------------------------------------------------
-def smcl(text):
-    # Stata names and options in prose stay as typed
-    return text
+def sync_items(items, cmds):
+    """items are the lines of an example after its title, as ("cmd", command)
+    or ("text", line). Returns the items with cmds as the commands, the text
+    lines kept before the commands they preceded, and what changed (None if
+    the commands are the same)."""
+    pos = [i for i, (kind, _) in enumerate(items) if kind == "cmd"]
+    old = [items[i][1] for i in pos]
+    if old == cmds:
+        return items, None
+    before, prev = [], 0
+    for i in pos:
+        before.append(items[prev:i])
+        prev = i + 1
+    after = items[prev:]
+    out, done = [], set()
+
+    def text_before(j):
+        if j not in done:
+            out.extend(before[j])
+            done.add(j)
+
+    n = dict(replaced=0, inserted=0, deleted=0)
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, old, cmds, autojunk=False).get_opcodes():
+        if tag == "insert":
+            if i1 < len(old):
+                text_before(i1)
+            out.extend(("cmd", c) for c in cmds[j1:j2])
+            n["inserted"] += j2 - j1
+            continue
+        for k in range(max(i2 - i1, j2 - j1)):
+            if i1 + k < i2:
+                text_before(i1 + k)
+            if j1 + k < j2:
+                out.append(("cmd", cmds[j1 + k]))
+        if tag == "replace":
+            n["replaced"] += min(i2 - i1, j2 - j1)
+            n["inserted"] += max(0, (j2 - j1) - (i2 - i1))
+            n["deleted"] += max(0, (i2 - i1) - (j2 - j1))
+        elif tag == "delete":
+            n["deleted"] += i2 - i1
+    assert len(done) == len(old)
+    out.extend(after)
+    return out, ", ".join("%d %s" % (v, k) for k, v in n.items() if v)
 
 
-def help_block(examples):
-    out = []
+def sync_examples(doc, blocks, examples):
+    """blocks: {number: (title, items)} of the examples in doc; examples: the
+    do-file's examples that belong there. Returns the synced blocks in order."""
+    new = {}
     for e in examples:
-        out.append("{pstd}{bf:Example %d.} %s{p_end}" % (e["num"], smcl(e["title"])))
-        for kind, t in e["items"]:
-            if kind == "comment":
-                out.append("{pstd}" + smcl(t[0].upper() + t[1:]) + "{p_end}")
-            else:
-                out.append("{phang2}{cmd:. " + t + "}{p_end}")
-        out.append("")
-    return out
+        num, title = e["num"], e["title"][:1].upper() + e["title"][1:]
+        if num not in blocks:
+            new[num] = (title, [("cmd", c) for c in e["cmds"]])
+            changes.append("%s, example %d: new" % (doc, num))
+            continue
+        old_title, items = blocks[num]
+        if clean(old_title).lower() == clean(title).lower():
+            title = old_title
+        else:
+            changes.append("%s, example %d: title from the do-file" % (doc, num))
+        items, what = sync_items(items, e["cmds"])
+        if what:
+            changes.append("%s, example %d: commands %s" % (doc, num, what))
+        new[num] = (title, items)
+    for num in sorted(set(blocks) - set(new)):
+        changes.append("%s, example %d: removed" % (doc, num))
+    return new
 
 
-SETUP = ["{pstd}Setup: the sample data have about 7,700 daily variables, more than",
-         "the default {cmd:maxvar}{p_end}",
-         "{phang2}{cmd:. clear all}{p_end}",
-         "{phang2}{cmd:. set maxvar 20000}{p_end}",
-         ""]
-
-WXSUM_INTRO = """{pstd}
-These are the examples of the article. The do-file {cmd:wxsum_examples.do}
-runs all twelve and {cmd:wxsum_examples.log} shows their output;
-{cmd:net get wxsum} copies them, the sample data, and the example datasets
-into the current folder, where the examples run. Examples 1-9 are below;
-examples 10-12, which start with {cmd:wxprep}, are in
-{help wxprep##examples:help wxprep}. The example datasets
-{cmd:hh_panel.dta}, {cmd:births.dta}, and {cmd:weather_hourly.dta} are
-simulated: they illustrate the commands and are not observed data.
-"""
-
-WXPREP_INTRO = """{pstd}
-These are examples 10-12 of the article; examples 1-9 are in
-{help wxsum##examples:help wxsum}. The do-file {cmd:wxsum_examples.do} runs
-all twelve; {cmd:net get wxsum} copies it, the sample data, and the example
-datasets into the current folder. {cmd:weather_hourly.dta} is simulated.
-"""
-
-WXPREP_OTHER = """{pstd}Other uses, with hypothetical variable names{p_end}
-
-{pstd}Rename variables {cmd:rain1}-{cmd:rain365} that start on 1 January 2020{p_end}
-{phang2}{cmd:. wxprep rename rain1-rain365, stub(rf_) firstdate(01jan2020)}{p_end}
-
-{pstd}Rename variables such as {cmd:rain_01jan2020}{p_end}
-{phang2}{cmd:. wxprep rename rain_*, stub(rf_) from(rain_) dateformat(DMY)}{p_end}
-
-{pstd}Daily rain from hourly readings, with the visit time (a {cmd:%tc} id()
-variable) turned into a daily date{p_end}
-{phang2}{cmd:. wxprep towide rain, id(site visit) date(time) stub(rf_) daily(sum) convert(visit) clear}{p_end}
-"""
+def splice(doc, lines, spans, out):
+    """replaces the lines from the first example to the end of the last with
+    out; the examples must be one blank line apart"""
+    for (_, _, _, j), (_, _, i, _) in zip(spans, spans[1:]):
+        assert lines[j:i] == [""], ("%s: the examples are not one blank line apart" % doc, lines[j:i])
+    return lines[:spans[0][2]] + out + lines[spans[-1][3]:]
 
 
-def replace_examples(path, body):
-    text, nl = read(path)
-    a = text.index("{marker examples}{...}\n{title:Examples}\n")
-    b = text.index("{marker results}{...}")
-    head = "{marker examples}{...}\n{title:Examples}\n\n"
-    write(path, text[:a] + head + body.rstrip("\n") + "\n\n\n" + text[b:], nl)
+# ---------------------------------------------------------------------------
+# 3. help files
+# ---------------------------------------------------------------------------
+HELP_TITLE = re.compile(r"\{pstd\}\{bf:Example (\d+)\.\} (.*)\{p_end\}$")
+HELP_CMD = re.compile(r"\{phang2\}\{cmd:\. (.*)\}\{p_end\}$")
 
 
 def update_help(examples):
-    wx = [e for e in examples if e["num"] < WXPREP_FIRST]
-    wp = [e for e in examples if e["num"] >= WXPREP_FIRST]
-    replace_examples("wxsum.sthlp", WXSUM_INTRO + "\n" + "\n".join(SETUP + help_block(wx)))
-    replace_examples("wxprep.sthlp", WXPREP_INTRO + "\n" + "\n".join(SETUP + help_block(wp)) + "\n" + WXPREP_OTHER)
+    for doc, mine in (("wxsum.sthlp", lambda n: n < WXPREP_FIRST),
+                      ("wxprep.sthlp", lambda n: n >= WXPREP_FIRST)):
+        text, nl = read(doc)
+        lines = text.split("\n")
+        a = lines.index("{marker examples}{...}")
+        b = lines.index("{marker results}{...}")
+        # an example runs from its title to the next blank line
+        spans, blocks = [], {}
+        for i in range(a, b):
+            m = HELP_TITLE.match(lines[i])
+            if not m:
+                continue
+            j = i + 1
+            while lines[j].strip():
+                j += 1
+            spans.append((int(m.group(1)), m.group(2), i, j))
+            items = []
+            for l in lines[i + 1:j]:
+                c = HELP_CMD.match(l)
+                items.append(("cmd", c.group(1)) if c else ("text", l))
+            blocks[int(m.group(1))] = (m.group(2), items)
+        assert spans, "%s: no examples" % doc
+        out = []
+        for num, (title, items) in sync_examples(doc, blocks, [e for e in examples if mine(e["num"])]).items():
+            if out:
+                out.append("")
+            out.append("{pstd}{bf:Example %d.} %s{p_end}" % (num, title))
+            out += ["{phang2}{cmd:. %s}{p_end}" % v if kind == "cmd" else v for kind, v in items]
+        write(doc, "\n".join(splice(doc, lines, spans, out)), nl)
 
 
 # ---------------------------------------------------------------------------
-# 3. README.md
+# 4. README.md
 # ---------------------------------------------------------------------------
-README_INTRO = """These are the examples of the article. `examples/wxsum_examples.do` runs all twelve, and `examples/wxsum_examples.log` shows their output. Run them in the folder where `net get wxsum` copied the files (help `wxsum` has examples 1-9 and help `wxprep` examples 10-12). Besides `rain.dta` and `temp.dta`, the examples use three datasets:
-
-- `hh_panel.dta`: 10 households, 2013-2023, with planting and harvest dates and crop yields
-- `births.dta`: 300 births, 2014-2023, with birth weights
-- `weather_hourly.dta`: hourly temperature (kelvin) and relative humidity for 2022
-
-These three datasets are simulated (`examples/make_example_data.do` creates them from `rain.dta` and `temp.dta`); they illustrate the commands and are not observed data.
-
-```stata
-clear all
-set maxvar 20000
-```
-"""
+README_TITLE = re.compile(r"### Example (\d+)\. (.*)$")
 
 
 def update_readme(examples):
     text, nl = read("README.md")
-    a = text.index("## Examples\n")
-    b = text.index("\n## ", a + 3)
-    out = ["## Examples", "", README_INTRO]
-    for e in examples:
-        out.append("### Example %d. %s" % (e["num"], e["title"]))
-        out.append("")
-        out.append("```stata")
-        for kind, t in e["items"]:
-            out.append("* " + t if kind == "comment" else t)
-        out.append("```")
-        out.append("")
-    write("README.md", text[:a] + "\n".join(out).rstrip("\n") + "\n" + text[b:], nl)
+    lines = text.split("\n")
+    a = lines.index("## Examples")
+    b = next(i for i in range(a + 1, len(lines)) if lines[i].startswith("## "))
+    # an example is its title, a blank line, and a ```stata block
+    spans, blocks = [], {}
+    for i in range(a, b):
+        m = README_TITLE.match(lines[i])
+        if not m:
+            continue
+        assert lines[i + 1:i + 3] == ["", "```stata"], ("README.md: no ```stata block under", lines[i])
+        j = i + 3
+        while lines[j] != "```":
+            j += 1
+        spans.append((int(m.group(1)), m.group(2), i, j + 1))
+        items = [("text", l) if l.startswith("*") else ("cmd", l) for l in lines[i + 3:j]]
+        blocks[int(m.group(1))] = (m.group(2), items)
+    assert spans, "README.md: no examples"
+    out = []
+    for num, (title, items) in sync_examples("README.md", blocks, examples).items():
+        if out:
+            out.append("")
+        out += ["### Example %d. %s" % (num, title), "", "```stata"] + [v for _, v in items] + ["```"]
+    write("README.md", "\n".join(splice("README.md", lines, spans, out)), nl)
 
 
 # ---------------------------------------------------------------------------
-# 4. index.html from README.md (the Markdown used there: headings, paragraphs,
+# 5. index.html from README.md (the Markdown used there: headings, paragraphs,
 #    lists, tables, quotes, code blocks, inline code, links)
 # ---------------------------------------------------------------------------
 def inline(t):
@@ -264,5 +330,12 @@ def update_index():
 examples = parse_examples()
 update_help(examples)
 update_readme(examples)
+index_before = (root / "index.html").read_bytes()
 update_index()
-print("synced %d examples into wxsum.sthlp, wxprep.sthlp, README.md, and index.html" % len(examples))
+if (root / "index.html").read_bytes() != index_before:
+    changes.append("index.html: rebuilt from README.md")
+if changes:
+    print("\n".join(changes))
+    print("Check the explanatory lines next to any changed commands.")
+else:
+    print("The documentation has the commands of all %d examples; nothing changed." % len(examples))

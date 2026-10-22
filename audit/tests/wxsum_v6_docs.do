@@ -3,12 +3,14 @@
 *       index.html are the same, and they run
 * created on: 16 oct 2026
 * created by: claude
-* edited on: 20 oct 2026
+* edited on: 22 oct 2026
+* edited by: claude
 * Stata v.15.1
 *
 * The example commands are read from each source:
 *   examples/wxsum_examples.do: the commands between -log using- and
-*     -log close-, with /// continuations joined
+*     -log close-, with /// continuations joined (the do-file indents
+*     with tabs and aligns its arguments)
 *   wxsum.sthlp, wxprep.sthlp: the {phang2}{cmd:. command}{p_end} lines of
 *     the Examples section, up to "hypothetical variable names" (examples
 *     with variables that the sample data do not have)
@@ -16,7 +18,8 @@
 *   index.html: the <pre><code> blocks under <h2>Examples</h2>
 * After whitespace is collapsed and comments and the setup commands
 * (clear all, set maxvar) are dropped, all five must hold the same commands
-* in the same order (audit/sync_docs.py copies the do-file into the others).
+* in the same order (audit/sync_docs.py copies the do-file's commands into
+* the others).
 * The README and help-file commands then run in a folder laid out like the
 * one -net get wxsum- creates.
 
@@ -40,6 +43,13 @@
 	discard
 
 mata:
+// a line with tabs made blanks and the blanks collapsed (strtrim() and
+// stritrim() leave tabs)
+string scalar _docs_clean(string scalar s)
+{
+	return(stritrim(strtrim(subinstr(s, char(9), " ", .))))
+}
+
 // whitespace collapsed; comments, blank lines, and setup commands dropped
 string colvector _docs_norm(string colvector raw)
 {
@@ -49,7 +59,7 @@ string colvector _docs_norm(string colvector raw)
 
 	out = J(0, 1, "")
 	for (i = 1; i <= rows(raw); i++) {
-		s = stritrim(strtrim(raw[i]))
+		s = _docs_clean(raw[i])
 		if (s == "" | substr(s, 1, 1) == "*") continue
 		if (s == "clear all" | s == "set maxvar 20000") continue
 		out = out \ s
@@ -75,7 +85,7 @@ string colvector _docs_dofile()
 	on = 0
 	cur = ""
 	for (i = 1; i <= rows(L); i++) {
-		s = strtrim(L[i])
+		s = _docs_clean(L[i])
 		if (substr(s, 1, 9) == "log using") {
 			on = 1
 			continue
@@ -145,6 +155,29 @@ string colvector _docs_blocks(string scalar fn, string scalar heading,
 	return(out)
 }
 
+// the same commands in the same order; Mata evaluates both sides of &&, so
+// the lengths are compared before the commands
+real scalar _docs_same(string colvector X, string colvector D)
+{
+	if (rows(X) != rows(D)) return(0)
+	return(all(X :== D))
+}
+
+// where a source first differs from the do-file
+void _docs_diff(string scalar name, string colvector X, string colvector D)
+{
+	real scalar i
+
+	if (_docs_same(X, D)) return
+	for (i = 1; i <= min((rows(X), rows(D))); i++) {
+		if (X[i] != D[i]) {
+			printf("%s: first difference at command %f:\n  do-file: %s\n  %s: %s\n", name, i, D[i], name, X[i])
+			return
+		}
+	}
+	printf("%s: %f commands, do-file: %f commands\n", name, rows(X), rows(D))
+}
+
 void _docs_collect(string scalar outfile)
 {
 	string colvector D, H, R, I, run
@@ -159,17 +192,12 @@ void _docs_collect(string scalar outfile)
 	st_local("n_help", strofreal(rows(H)))
 	st_local("n_readme", strofreal(rows(R)))
 	st_local("n_index", strofreal(rows(I)))
-	st_local("same_help", strofreal(rows(H) == rows(D) && all(H :== D)))
-	st_local("same_readme", strofreal(rows(R) == rows(D) && all(R :== D)))
-	st_local("same_index", strofreal(rows(I) == rows(D) && all(I :== D)))
-	if (rows(H) != rows(D) || !all(H :== D)) {
-		for (i = 1; i <= min((rows(H), rows(D))); i++) {
-			if (H[i] != D[i]) {
-				printf("first difference at command %f:\n  do-file: %s\n  help:    %s\n", i, D[i], H[i])
-				break
-			}
-		}
-	}
+	st_local("same_help", strofreal(_docs_same(H, D)))
+	st_local("same_readme", strofreal(_docs_same(R, D)))
+	st_local("same_index", strofreal(_docs_same(I, D)))
+	_docs_diff("help", H, D)
+	_docs_diff("README", R, D)
+	_docs_diff("index.html", I, D)
 	// the README commands, then the help-file commands (with their setup)
 	run = "version 15.1" \ "clear all" \ "set maxvar 20000" \
 		_docs_blocks("README.md", "## Examples", "## ", "```stata", "```") \

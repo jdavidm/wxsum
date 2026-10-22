@@ -10,7 +10,7 @@ Everything used to test the package lives in this folder, which is not part of t
 | `tests/run_all.do` | Runs the 15 test suites: `do audit/tests/run_all.do` from the root, or batch mode from `audit/tests`. |
 | `tests/reference/` | Frozen version 5 output on the sample data (`v5_*.dta`, made by `make_v5_reference.do` with `wxsum_v5.ado`) and the independent reference implementation `wxsum_ref.ado` used by the equivalence suite. |
 | `run_examples.do` | Rebuilds `examples/wxsum_examples.log` (and, with the argument `data`, the example datasets) in a folder laid out like the one `net get wxsum` creates. |
-| `sync_docs.py` | Copies the twelve examples of `examples/wxsum_examples.do` into `wxsum.sthlp` (1-9), `wxprep.sthlp` (10-12), and `README.md`, and rebuilds `index.html` from `README.md`: `python audit/sync_docs.py` from the root after changing the examples or the README. |
+| `sync_docs.py` | Copies the commands of the twelve examples of `examples/wxsum_examples.do` (each starts with a `**# N - title` bookmark) into `wxsum.sthlp` (1-9), `wxprep.sthlp` (10-12), and `README.md`, keeping the titles and explanatory lines already there, and rebuilds `index.html` from `README.md`: `python audit/sync_docs.py` from the root after changing the examples or the README. It lists what it changed. |
 
 To rerun the audit, export the package to an empty folder and point the runner at it (Python 3 standard library and a licensed Stata; the runner never changes the folder it audits):
 
