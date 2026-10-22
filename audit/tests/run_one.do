@@ -2,10 +2,16 @@
 * task: run one test suite
 * created on: 16 oct 2026
 * created by: claude
+* edited on: 22 oct 2026
+* edited by: alj
 * Stata v.15.1
 *
 * From audit/tests (batch mode keeps the batch log there) or the root:
 *     do run_one.do wxsum_v6_core
+
+**********************************************************************
+**# 0 - setup and run test suite
+**********************************************************************
 
 	args            suite
 	capture confirm file "wxsum.ado"
@@ -15,5 +21,9 @@
 	}
 	confirm file    "audit/tests/`suite'.do"
 	do              "audit/tests/`suite'.do"
+
+**********************************************************************
+**# 1 - end matter
+**********************************************************************
 
 /* END */

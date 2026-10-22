@@ -2,6 +2,8 @@
 * task: rebuild the example datasets and the example log
 * created on: 16 oct 2026
 * created by: claude
+* edited on: 22 oct 2026
+* edited by: alj
 * Stata v.15.1
 *
 * The examples run in a folder laid out like the one -net get wxsum- creates:
