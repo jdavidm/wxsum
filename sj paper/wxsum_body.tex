@@ -589,27 +589,16 @@ Using either \texttt{lr\_years()} or \texttt{baeline()}, the reference period of
 
 \noindent Both require that $w_{it}$ be nonmissing and that the observation have at least $\rho$ reference values, $r_{it} \geq \rho$, where $\rho$ is the value supplied in \texttt{ref\_min()}. By default, $\rho$ equals the number of reference years, $|\mathcal{Y}_t|$, so every reference year must have a value. The $z$-score is also missing when the reference values do not vary, so that $s_{it} = 0$. With the default \texttt{lr\_years(10)}, for example, the first windows of the data have no deviations, because fewer than 10 earlier windows lie within the date range of the data.
 
-\section{Examples}
-\label{sec:examples}
+\section{Examples} \label{sec:examples}
 
-The package includes two sample datasets with one row for each of 10 households, identified by \texttt{hhid}, and one variable for each day from January 1, 2003: \texttt{rain.dta} holds daily rainfall in millimeters through December 31, 2023, and \texttt{temp.dta} holds daily mean temperature in degrees Celsius through November 30, 2023. Three further datasets were simulated from them for the examples: \texttt{hh\_panel.dta}, a panel of the same 10 households from 2013 through 2023 with planting and harvest dates and crop yields; \texttt{births.dta}, with the birth dates and birth weights of 300 children born from 2014 through 2023; and \texttt{weather\_hourly.dta}, with hourly temperature and relative humidity for 2022. The simulated datasets illustrate the commands and are not observed data. The ancillary files of the package, which \texttt{net get} copies into the current folder, include the five datasets, the do-file \texttt{make\_example\_data.do} that simulated three of them, and the do-file \texttt{wxsum\_examples.do}, which reproduces the output shown below, with its log file.
+We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{rain.dta}) and daily temperature in Celsius (\texttt{temp.dta}), both of which come from \cite{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11, and we show only the first part of example 4 and the second part of example 11.}
 
-The do-file contains 12 examples, all of which are also in the help files. We present seven of them, examples 1, 4, 5, 8, 9, 10, and 11 of the do-file, in sections~\ref{sec:ex-rain} through~\ref{sec:ex-hourly}. The other examples cover the stored results and characteristics of the output, degree days and heat spells, missing days, rainfall and temperature statistics in one dataset and in wide form, and \texttt{wxprep tolong}. Each example begins by loading its data. Because the sample datasets have more than 7,600 variables, the do-file first sets \texttt{maxvar} to 20,000.
+\subsection{Rainfall in a growing season} \label{sec:ex-rain}
 
-\subsection{Rainfall in a growing season}
-\label{sec:ex-rain}
-
-Our first example calculates rainfall statistics for a growing season that runs from May 15 through October 15 of each year. The daily rainfall variables are named \texttt{rf\_20030101} through \texttt{rf\_20231231}, so the stub is \texttt{rf\_}. After loading the rainfall data, we specify the calendar window with \texttt{ini\_month()}, \texttt{ini\_day()}, \texttt{fin\_month()}, and \texttt{fin\_day()}. Because the default long output contains only the generated statistics and \texttt{year}, we retain the household identifier with \texttt{keep(hhid)}:
+The data in \texttt{rain.dta} contain \texttt{hhid} and 7,670 daily variables, running from 2003 to 2023, named with the prefix \texttt{rf\_}. The following example calculates seasonal rainfall statistics for a May 15 through October 15 window. Because the default long output contains only the generated statistics and \texttt{year}, we retain the household identifier with \texttt{keep(hhid)}:
 
 \begin{stlog}
 . use rain, clear
-{\smallskip}
-. describe, short
-{\smallskip}
-Contains data from rain.dta
- Observations:            10
-    Variables:         7,671                  12 Jun 2026 13:52
-Sorted by:
 {\smallskip}
 . wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
 > keep(hhid)
@@ -626,7 +615,7 @@ wxsum summary
   Stored results: type return list
 \end{stlog}
 
-\noindent The data contain \texttt{hhid} and 7,670 daily variables. The summary displayed after the calculation describes the output. The \texttt{Data} and \texttt{Thresholds} lines identify the daily variables and the rainy-day threshold, here the default of 1~mm. The \texttt{Window} line reports 21 windows, one for each season from 2003 through 2023, and the \texttt{Output} line reports 210 rows, one for each household and season, with 26 new variables: the 14 statistics in Table~\ref{tab:rainout} and a deviation and a $z$-score for 6 of them. The \texttt{Reference} line describes the default rolling reference period, the 10 preceding seasons, all of which must have values (\texttt{ref\_min(10)}). Deviations and $z$-scores therefore begin in 2013, the first season with 10 earlier seasons in the data. The last lines report that no household-season has a missing day, so none falls below the \texttt{minobs()} requirement, and that the details are stored in \texttt{r()} (Tables~\ref{tab:wxsumscalars} and~\ref{tab:wxsummacros}). We list some of the new variables for the first five seasons of household 101:
+\noindent The summary displayed after the calculation describes the output. The \texttt{Data} and \texttt{Thresholds} lines identify the daily variables and the rainy-day threshold, here the default of 1~mm. The \texttt{Window} line reports 21 windows, one for each season, and the \texttt{Output} line reports 210 rows, one for each household and season, with 26 new variables: the 14 statistics in Table~\ref{tab:rainout} and a deviation and a $z$-score for 6 of them. The \texttt{Reference} line describes the default rolling reference period, the 10 preceding seasons, all of which must have values (\texttt{ref\_min(10)}). Deviations and $z$-scores therefore begin in 2013, the first season with 10 earlier seasons in the data. The last lines report that no household-season has a missing day, so none falls below the \texttt{minobs()} requirement, and that the details are stored in \texttt{r()}. We list some of the new variables for the first five seasons of household 101:
 
 \begin{stlog}
 . list hhid year nobs total raindays dry_start dry dry_end in 1/5, noobs
@@ -643,12 +632,47 @@ wxsum summary
   +-------------------------------------------------------------------+
 \end{stlog}
 
-\noindent All 154 days from May 15 through October 15 are observed in each season (\texttt{nobs}). In 2003, household 101 received 899~mm of rain on 106 rainy days. The season began with a dry spell of 16 days and ended with one of 12 days, and the longest dry spell between them lasted 4 days. The 2006 season began on a rainy day, so \texttt{dry\_start} is 0. Seasons with similar totals can differ in the timing of their dry spells: the 2005 and 2007 seasons received 824 and 860~mm, but the 2005 season ended with a dry spell of 21 days, whereas the 2007 season began with one of 14 days.
+\noindent All 154 days from May 15 through October 15 are observed in each season (\texttt{nobs}). In 2003, household 101 received 899~mm of rain on 106 rainy days. The season began with a dry spell of 16 days and ended with one of 12 days, and the longest dry spell between them lasted 4 days.
 
-\subsection{Temperature bins and GDD categories}
-\label{sec:ex-bins}
+\subsection{Degree days and heat spells} \label{sec:ex-heat}
 
-Daily bins count the days on which the weather falls within given intervals. With \texttt{cuts()}, the user sets the boundaries of the intervals. The next command counts the days in four temperature bands, below 24$^{\circ}$C, from 24 to 27$^{\circ}$C, from 27 to 30$^{\circ}$C, and 30$^{\circ}$C or above, over the hot, dry season from November through April. Because the final month precedes the initial month, each window crosses the end of the calendar year and is assigned to the year in which it starts:
+Temperature statistics need three thresholds: the lower and upper bounds for GDD and the heat threshold, which defines heat days and heat spells and, unless \texttt{kdd\_base()} is specified, the base for KDD. The next example calculates temperature statistics for the growing season of section~\ref{sec:ex-rain}, with GDD bounds of 10 and 30$^{\circ}$C and a heat threshold of 29$^{\circ}$C:
+
+\begin{stlog}
+. use temp, clear
+{\smallskip}
+. wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
+> gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          temp, stub tmp_
+  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(29)
+  Window:        calendar, 15may-15oct; 21 windows, 2003-2023
+  Output:        long, 210 rows (21 per observation); 24 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    from 2013
+  Missing days:  0 of 210 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
+{\smallskip}
+. summarize gdd kdd heatdays heat_start heat heat_end
+{\smallskip}
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+         gdd |        210    2165.947    126.3271     2035.1     2592.2
+         kdd |        210    14.70191    12.28996          0       38.9
+    heatdays |        210    12.78095    9.100167          0         31
+  heat_start |        210     5.77619    6.443156          0         24
+        heat |        210    3.995238    4.799818          0         17
+-------------+---------------------------------------------------------
+    heat_end |        210    .6666667    2.988548          0         14
+\end{stlog}
+
+\noindent The summary has the same form as for rainfall. The \texttt{Thresholds} line reports the three thresholds, and the 24 new variables are the 14 statistics in Table~\ref{tab:tempout} and a deviation and a $z$-score for 5 of them. Over the 154 days of the season, the households accumulated between 2,035 and 2,592 GDD, about 14 a day. KDD are much smaller, 14.7 on average, because they accumulate only the degrees above 29$^{\circ}$C, which the daily mean temperature reached on 12.8 days of the season on average and on as many as 31. Heat spells were longest at the start of the season: the leading spell averaged 5.8 days, the mid-season spell 4.0 days, and the trailing spell 0.7 days.
+
+\subsection{Temperature bins} \label{sec:ex-bins}
+
+The next example counts the days in four temperature bands: $< 24^{\circ}$C, 24--27$^{\circ}$C, 27--30$^{\circ}$C, and $\geq 30^{\circ}$C, from November through April. Because the final month precedes the initial month, each window crosses the end of the calendar year and is assigned to the year in which it starts:
 
 \begin{stlog}
 . use temp, clear
@@ -676,57 +700,9 @@ cut01           byte    %12.0g                Days with temp < 24
 cut02           int     %12.0g                Days with 24 <= temp < 27
 cut03           byte    %12.0g                Days with 27 <= temp < 30
 cut04           byte    %12.0g                Days with temp >= 30
-{\smallskip}
-. summarize cut*
-{\smallskip}
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-       cut01 |        200      36.715    19.78715          2         78
-       cut02 |        200      82.775    16.81631         47        113
-       cut03 |        200      46.195    8.640036         34         68
-       cut04 |        200      15.565    7.980238          4         36
 \end{stlog}
 
-\noindent There are 20 windows rather than 21 because the window that would start in November 2023 extends beyond the end of the data. The variable labels record the boundaries of each bin. Bins count days, so the four counts of a window sum to its number of observed days, 181, or 182 when the window includes February 29. The means sum to 181.25 because 5 of the 20 windows include February 29.
-
-The \texttt{tmp\_bin()} option instead divides the range between two endpoints into bins of equal width, and \texttt{gdd\_bin()} classifies the GDD total of each window. The next command returns to the season of section~\ref{sec:ex-rain}, May 15 through October 15, and creates eight temperature bins: days below 20$^{\circ}$C, six bins of 2 degrees from 20 to 32$^{\circ}$C, and days at or above 32$^{\circ}$C. It also assigns the GDD total of each household and season to one of the intervals of 100 degree days from 2,000 to 2,400, with a top category for totals of 2,400 or more. We suppress the summary with \texttt{quietly}:
-
-\begin{stlog}
-. use temp, clear
-{\smallskip}
-. quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10)
-> fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20)
-> tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)
-{\smallskip}
-. summarize tmpbin*
-{\smallskip}
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-    tmpbin01 |        210    .6142857    .7569681          0          2
-    tmpbin02 |        210    31.74286    15.88929          1         60
-    tmpbin03 |        210    59.68095    16.50745         11        103
-    tmpbin04 |        210    27.02857    11.89263         10         60
-    tmpbin05 |        210    16.97143    10.76318          3         58
--------------+---------------------------------------------------------
-    tmpbin06 |        210    11.49048    6.314895          0         28
-    tmpbin07 |        210    5.880952     5.24702          0         18
-    tmpbin08 |        210    .5904762    1.288115          0          5
-{\smallskip}
-. tabulate gddcat
-{\smallskip}
-   GDD category |
-(bin width 100) |      Freq.     Percent        Cum.
-----------------+-----------------------------------
-GDD [2000,2100) |         69       32.86       32.86
-GDD [2100,2200) |         90       42.86       75.71
-GDD [2200,2300) |         21       10.00       85.71
-GDD [2300,2400) |         20        9.52       95.24
-    GDD >= 2400 |         10        4.76      100.00
-----------------+-----------------------------------
-          Total |        210      100.00
-\end{stlog}
-
-\noindent The interior bins, \texttt{tmpbin02} through \texttt{tmpbin07}, cover the intervals $[20, 22)$ through $[30, 32)$, and the means of all eight bins sum to the 154 days of the season. The value labels of \texttt{gddcat} identify the intervals in the tabulation. No season accumulated fewer than 2,000 degree days, so there is no bottom category, and the 10 household-seasons with 2,400 degree days or more fall into the top category. In a regression, factor-variable notation such as \texttt{i.gddcat} creates an indicator for each category.
+\noindent There are 20 windows rather than 21 because the window that would start in November 2023 extends beyond the end of the data. The variable labels record the boundaries of each bin.
 
 \subsection{Deviations from a fixed baseline}
 \label{sec:ex-baseline}
@@ -777,75 +753,24 @@ wxsum summary
 \subsection{Farm-specific growing seasons}
 \label{sec:ex-panel}
 
-Calendar windows apply the same dates to every observation. In many applications, the window differs across observations: a growing season runs from planting to harvest, and planting and harvest dates vary across farms and years. The simulated panel \texttt{hh\_panel.dta} records these dates and a crop yield for each household and year. We load the panel and attach the daily weather data to it:
+Calendar windows apply the same dates to every observation, but planting and harvest dates vary across farms and years. The simulated \texttt{hh\_panel.dta} records them, with crop yields, for 10 households from 2013 through 2023. We attach the daily weather data and let \texttt{start()} and \texttt{end()} define one window per observation:
 
 \begin{stlog}
 . use hh_panel, clear
 (Simulated household panel for the wxsum examples)
 {\smallskip}
-. describe
-{\smallskip}
-Contains data from hh_panel.dta
- Observations:           110                  Simulated household panel for
-                                                the wxsum examples
-    Variables:             5                  16 Oct 2026 15:35
-                                              (_dta has notes)
---------------------------------------------------------------------------------
-Variable      Storage   Display    Value
-    name         type    format    label      Variable label
---------------------------------------------------------------------------------
-hhid            int     %8.0g                 Household ID
-year            int     %9.0g                 Year
-plant           int     %td                   Planting date
-harvest         int     %td                   Harvest date
-yield           int     %8.0g                 Crop yield, kg/ha (simulated)
---------------------------------------------------------------------------------
-Sorted by: hhid  year
-{\smallskip}
-. list in 1/3, noobs
-{\smallskip}
-  +---------------------------------------------+
-  | hhid   year       plant     harvest   yield |
-  |---------------------------------------------|
-  |  101   2013   20jun2013   13oct2013    1761 |
-  |  101   2014   29may2014   28sep2014    1637 |
-  |  101   2015   09may2015   15sep2015    1140 |
-  +---------------------------------------------+
-{\smallskip}
 . merge m:1 hhid using rain, nogenerate
 {\smallskip}
-    Result                      Number of obs
-    -----------------------------------------
-    Not matched                             0
-    Matched                               110
-    -----------------------------------------
+\oom
 {\smallskip}
 . merge m:1 hhid using temp, nogenerate
 {\smallskip}
-    Result                      Number of obs
-    -----------------------------------------
-    Not matched                             0
-    Matched                               110
-    -----------------------------------------
-\end{stlog}
-
-\noindent Because the weather data have one row per household, \texttt{merge m:1} attaches the complete daily rainfall and temperature series of a household to each of its years. Each of the 110 observations then has more than 15,000 daily variables, of which \texttt{wxsum} uses only those between its planting and harvest dates. The options \texttt{start(plant)} and \texttt{end(harvest)} define one window for each observation:
-
-\begin{stlog}
+\oom
+{\smallskip}
 . wxsum rf_, type(rain) start(plant) end(harvest) outstub(r_)
 > keep(hhid year plant harvest yield tmp_*)
 {\smallskip}
-wxsum summary
-  Data:          rain, stub rf_
-  Thresholds:    rain_threshold(1)
-  Window:        unit-specific, start(plant) to end(harvest)
-  Output:        110 rows, one per observation; 26 new variables
-  Reference:     rolling, 10 years before each window; ref_min(10)
-  Deviations:    for 110 of 110 observations
-  Missing days:  0 of 110 unit-windows; 0 have no observed day
-  Below minobs:  0 unit-windows (minobs(1))
-  Outside data:  0 windows run past the data
-  Stored results: type return list
+\oom
 {\smallskip}
 . quietly wxsum tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30)
 > heat_threshold(29) outstub(t_) keep(hhid year plant harvest yield r_*)
@@ -864,31 +789,17 @@ wxsum summary
   +----------------------------------------------------------------+
 \end{stlog}
 
-\noindent The output has one row for each of the 110 observations. The second command uses the output of the first. Without \texttt{keep()}, the output for unit-specific windows retains every input variable. Here \texttt{keep()} drops the daily series once they are no longer needed: the first command retains the temperature series, \texttt{tmp\_*}, for the second command, and the second retains the rainfall statistics, \texttt{r\_*}, created by the first. The prefixes set by \texttt{outstub()} keep the names of the two sets of statistics distinct, as in \texttt{r\_total} and \texttt{t\_gdd}. The \texttt{Deviations} line reports that every observation has deviations and $z$-scores. For a unit-specific window, the reference values come from the same dates in each of the 10 preceding years, and the weather data begin in 2003, 10 years before the panel.
-
-The resulting dataset is ready for analysis. As an illustration, we regress yield on seasonal rainfall, GDD, and KDD with household fixed effects:
+\noindent Because the weather data have one row per household, \texttt{merge m:1} attaches a household's daily series to each of its years. Without \texttt{keep()}, unit-specific output retains every input variable; here the first \texttt{wxsum} keeps \texttt{tmp\_*} for the second, which keeps \texttt{r\_*}, and the prefixes from \texttt{outstub()} keep the two sets apart. A fixed-effects regression recovers the coefficients used to simulate the yields, 1.0, 0.25, and $-15$ (see \texttt{notes} in \texttt{hh\_panel.dta}):
 
 \begin{stlog}
 . xtset hhid year
 {\smallskip}
-Panel variable: hhid (strongly balanced)
- Time variable: year, 2013 to 2023
-         Delta: 1 unit
+\oom
 {\smallskip}
 . xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)
 {\smallskip}
-Fixed-effects (within) regression               Number of obs     =        110
-Group variable: hhid                            Number of groups  =         10
+\oom
 {\smallskip}
-R-squared:                                      Obs per group:
-     Within  = 0.6791                                         min =         11
-     Between = 0.0112                                         avg =       11.0
-     Overall = 0.4174                                         max =         11
-{\smallskip}
-                                                F(3, 9)           =      75.67
-corr(u_i, Xb) = 0.0027                          Prob > F          =     0.0000
-{\smallskip}
-                                  (Std. err. adjusted for 10 clusters in hhid)
 ------------------------------------------------------------------------------
              |               Robust
        yield | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
@@ -898,68 +809,27 @@ corr(u_i, Xb) = 0.0027                          Prob > F          =     0.0000
        t_kdd |  -15.30946   2.841257    -5.39   0.000    -21.73683   -8.882093
        _cons |   419.9244   340.8354     1.23   0.249    -351.0989    1190.948
 -------------+----------------------------------------------------------------
-     sigma_u |  187.83646
-     sigma_e |  134.93272
-         rho |  .65961766   (fraction of variance due to u_i)
-------------------------------------------------------------------------------
+{\smallskip}
+\oom
 \end{stlog}
-
-\noindent The yields were simulated from the weather of each household's own season as $300 + \text{household effect} + 1.0 \times \text{rainfall} + 0.25 \times \text{GDD} - 15 \times \text{KDD} + \text{noise}$ (see \texttt{notes} in \texttt{hh\_panel.dta}). The estimates, 0.90, 0.22, and $-15.3$, are close to these values. The regression only illustrates that the output of \texttt{wxsum} is ready for analysis; with observed data, the research design would determine the window and the weather measures.
 
 \subsection{Heat exposure during pregnancy}
 \label{sec:ex-births}
 
-An event-based window ends the day before an event and extends back a given number of days. The simulated data \texttt{births.dta} record the birth date and birth weight of 300 children born from 2014 through 2023, and the household that locates each birth in the weather data:
+An event-based window ends the day before an event and extends back a given number of days. The simulated \texttt{births.dta} records the birth date and birth weight of 300 children born from 2014 through 2023 and the household that locates each birth in the temperature data. We approximate each trimester by 91 days: \texttt{event\_date(birthdate)} with \texttt{days(91)} gives the third, and \texttt{lag(91)} and \texttt{lag(182)} move that window back to the second and first. A heat day has a mean temperature of 30$^{\circ}$C or more:
 
 \begin{stlog}
 . use births, clear
 (Simulated births for the wxsum examples)
 {\smallskip}
-. describe
-{\smallskip}
-Contains data from births.dta
- Observations:           300                  Simulated births for the wxsum
-                                                examples
-    Variables:             4                  16 Oct 2026 15:35
-                                              (_dta has notes)
---------------------------------------------------------------------------------
-Variable      Storage   Display    Value
-    name         type    format    label      Variable label
---------------------------------------------------------------------------------
-childid         int     %8.0g                 Child ID
-hhid            int     %8.0g                 Household ID (location of the
-                                                weather data)
-birthdate       int     %td                   Date of birth
-bweight         int     %8.0g                 Birth weight, grams (simulated)
---------------------------------------------------------------------------------
-Sorted by: childid
-{\smallskip}
 . merge m:1 hhid using temp, nogenerate
 {\smallskip}
-    Result                      Number of obs
-    -----------------------------------------
-    Not matched                             0
-    Matched                               300
-    -----------------------------------------
-\end{stlog}
-
-\noindent We approximate each trimester by 91 days, so the three trimesters cover the 273 days, or 39 weeks, before birth. With \texttt{event\_date(birthdate)} and \texttt{days(91)}, the window of the third trimester is the 91 days before the birth date. The options \texttt{lag(91)} and \texttt{lag(182)} move the same window 91 and 182 days earlier for the second and first trimesters. A heat day is a day with a mean temperature of 30$^{\circ}$C or more:
-
-\begin{stlog}
+\oom
+{\smallskip}
 . wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30)
 > heat_threshold(30) outstub(t3_) keep(childid hhid birthdate bweight tmp_*)
 {\smallskip}
-wxsum summary
-  Data:          temp, stub tmp_
-  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(30)
-  Window:        unit-specific, event_date(birthdate), days(91), lag(0)
-  Output:        300 rows, one per observation; 24 new variables
-  Reference:     rolling, 10 years before each window; ref_min(10)
-  Deviations:    for 300 of 300 observations
-  Missing days:  0 of 300 unit-windows; 0 have no observed day
-  Below minobs:  0 unit-windows (minobs(1))
-  Outside data:  0 windows run past the data
-  Stored results: type return list
+\oom
 {\smallskip}
 . quietly wxsum tmp_, type(temp) event_date(birthdate) days(91) lag(91)
 > gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t2_)
@@ -970,7 +840,7 @@ wxsum summary
 > keep(childid hhid birthdate bweight t3_* t2_*)
 \end{stlog}
 
-\noindent The three commands differ only in \texttt{lag()}, \texttt{outstub()}, and \texttt{keep()}. Each \texttt{keep()} retains the statistics created before it and, until the last command, the daily temperatures. The \texttt{gdd\_lo()} and \texttt{gdd\_hi()} options are required with \texttt{type(temp)}, although this analysis does not use GDD. When gestational age is recorded, \texttt{start()} and \texttt{end()} can define each trimester exactly. We summarize the heat days and regress birth weight on them:
+\noindent The three commands differ only in \texttt{lag()}, \texttt{outstub()}, and \texttt{keep()}; each \texttt{keep()} retains the statistics created before it and, until the last command, the daily temperatures. When gestational age is recorded, \texttt{start()} and \texttt{end()} can define each trimester exactly. We summarize the heat days and regress birth weight on them:
 
 \begin{stlog}
 . summarize t1_heatdays t2_heatdays t3_heatdays
@@ -983,13 +853,8 @@ wxsum summary
 {\smallskip}
 . regress bweight t1_heatdays t2_heatdays t3_heatdays, vce(cluster hhid)
 {\smallskip}
-Linear regression                               Number of obs     =        300
-                                                F(3, 9)           =      12.84
-                                                Prob > F          =     0.0013
-                                                R-squared         =     0.1330
-                                                Root MSE          =     397.33
+\oom
 {\smallskip}
-                                  (Std. err. adjusted for 10 clusters in hhid)
 ------------------------------------------------------------------------------
              |               Robust
      bweight | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
@@ -1001,7 +866,7 @@ Linear regression                               Number of obs     =        300
 ------------------------------------------------------------------------------
 \end{stlog}
 
-\noindent On average, the children were exposed to between 6.8 and 8.2 heat days per trimester, and some to as many as 53. The birth weights were simulated to fall by 4~grams for each heat day in the second trimester and by 9~grams for each heat day in the third, with no effect of heat in the first (see \texttt{notes} in \texttt{births.dta}). The regression attributes the largest effect to the third trimester, $-14.0$~grams per heat day, with a 95\% confidence interval that contains the simulated value, and smaller, imprecise coefficients to the earlier trimesters.
+\noindent The birth weights were simulated to fall by 4~grams for each heat day in the second trimester and by 9~grams for each heat day in the third (see \texttt{notes} in \texttt{births.dta}). The regression attributes the largest effect to the third trimester, $-14.0$~grams per heat day, with a 95\% confidence interval that contains the simulated value.
 
 \subsection{Renaming daily variables}
 \label{sec:ex-rename}
@@ -1038,74 +903,7 @@ rf_20231231     byte    %8.0g
 \subsection{From hourly readings to daily series}
 \label{sec:ex-hourly}
 
-Reanalysis products such as ERA5 \citep{ERA5} provide hourly readings, which are often extracted in long form, one row per location and hour, with temperature in kelvin. The simulated data \texttt{weather\_hourly.dta} have this form for the 10 households in 2022. We convert temperature to degrees Celsius, combine the hourly readings into daily maxima with \texttt{wxprep towide}, and count the days from March through May on which the maximum reached 38$^{\circ}$C:
-
-\begin{stlog}
-. use weather_hourly, clear
-(Synthetic hourly weather for the wxsum examples, 2022)
-{\smallskip}
-. describe
-{\smallskip}
-Contains data from weather_hourly.dta
- Observations:        87,600                  Synthetic hourly weather for the
-                                                wxsum examples, 2022
-    Variables:             4                  16 Oct 2026 15:35
-                                              (_dta has notes)
---------------------------------------------------------------------------------
-Variable      Storage   Display    Value
-    name         type    format    label      Variable label
---------------------------------------------------------------------------------
-hhid            int     %8.0g                 Household ID
-time            double  %tc                   Date and hour
-t2m             float   %9.0g                 2-metre temperature, kelvin
-                                                (synthetic)
-rh              float   %9.0g                 Relative humidity, percent
-                                                (synthetic)
---------------------------------------------------------------------------------
-Sorted by: hhid  time
-{\smallskip}
-. list in 1/3, noobs
-{\smallskip}
-  +-------------------------------------------------+
-  | hhid                 time        t2m         rh |
-  |-------------------------------------------------|
-  |  101   01jan2022 00:00:00   290.8513   41.61339 |
-  |  101   01jan2022 01:00:00   289.9642    44.9032 |
-  |  101   01jan2022 02:00:00   289.0461   48.79327 |
-  +-------------------------------------------------+
-{\smallskip}
-. generate tempc = t2m - 273.15
-{\smallskip}
-. wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear
-wxprep towide: 10 units, 365 daily variables tmax_20220101 to tmax_20221231
-  83950 readings were combined into daily values with daily(max)
-{\smallskip}
-. wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30)
-> heat_threshold(38) keep(hhid)
-{\smallskip}
-wxsum summary
-  Data:          temp, stub tmax_
-  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(38)
-  Window:        calendar, 01mar-31may; 1 window, 2022
-  Output:        long, 10 rows (1 per observation); 14 new variables
-  Reference:     rolling, 10 years before each window; ref_min(10)
-  Deviations:    none (not enough reference years)
-  Missing days:  0 of 10 unit-windows; 0 have no observed day
-  Below minobs:  0 unit-windows (minobs(1))
-  Stored results: type return list
-{\smallskip}
-. summarize max heatdays heat
-{\smallskip}
-    Variable |        Obs        Mean    Std. dev.       Min        Max
--------------+---------------------------------------------------------
-         max |         10    38.99806    .1305225   38.86337   39.31802
-    heatdays |         10        12.9    2.233582         10         17
-        heat |         10           5    1.825742          3          8
-\end{stlog}
-
-\noindent The \texttt{date(time)} option accepts the \texttt{\%tc} datetime and retains its day, and \texttt{daily(max)} takes the maximum of the 24 readings of each household and day. The message reports that 83,950 readings were combined: the 87,600 hourly readings became 3,650 daily maxima, one for each household and day. Because the data cover a single year, the window has no reference years, and the summary reports that no deviations or $z$-scores were created. Each household had between 10 and 17 days with a maximum temperature of 38$^{\circ}$C or more, and its mid-window heat spell lasted between 3 and 8 days.
-
-Humid heat is often measured by the wet-bulb temperature, which combines temperature and humidity. The next commands calculate the hourly wet-bulb temperature from temperature and relative humidity with the empirical formula of \citet{Stull11}, take the daily maximum, and count the days from April through September on which it reached 26$^{\circ}$C, an illustrative threshold:
+Reanalysis products such as ERA5 \citep{ERA5} provide hourly readings, often in long form and with temperature in kelvin. The simulated \texttt{weather\_hourly.dta} has one row for each household and hour of 2022, with temperature, \texttt{t2m}, and relative humidity, \texttt{rh}. From these, we calculate the hourly wet-bulb temperature, a measure of humid heat, with the formula of \citet{Stull11}, take its daily maximum with \texttt{wxprep towide}, and count the days from April through September on which the maximum reached 26$^{\circ}$C, an illustrative threshold:
 
 \begin{stlog}
 . use weather_hourly, clear
@@ -1123,7 +921,16 @@ wxprep towide: 10 units, 365 daily variables tw_20220101 to tw_20221231
 . wxsum tw_, type(temp) ini_month(4) fin_month(9) gdd_lo(10) gdd_hi(30)
 > heat_threshold(26) keep(hhid)
 {\smallskip}
-\oom
+wxsum summary
+  Data:          temp, stub tw_
+  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(26)
+  Window:        calendar, 01apr-30sep; 1 window, 2022
+  Output:        long, 10 rows (1 per observation); 14 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    none (not enough reference years)
+  Missing days:  0 of 10 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
 {\smallskip}
 . summarize max heatdays heat_start heat heat_end
 {\smallskip}
@@ -1136,7 +943,7 @@ wxprep towide: 10 units, 365 daily variables tw_20220101 to tw_20221231
     heat_end |         10           0           0          0          0
 \end{stlog}
 
-\noindent The formula applies at sea-level pressure to relative humidities between 5\% and 99\% and temperatures between $-20$ and 50$^{\circ}$C, except when low humidity and cold temperatures occur together. The output of \texttt{wxsum}, omitted here, has the same form as in the previous example. The commands accept any daily series, but not every statistic is meaningful for every series: the GDD of wet-bulb temperature has no agronomic interpretation, although \texttt{gdd\_lo()} and \texttt{gdd\_hi()} are still required with \texttt{type(temp)}. The households had, on average, 19 days with a maximum wet-bulb temperature of 26$^{\circ}$C or more, and no heat spell was under way on the first or last day of the window (\texttt{heat\_start} and \texttt{heat\_end} are 0).
+\noindent The \texttt{date(time)} option keeps the day of each \texttt{\%tc} datetime, and \texttt{daily(max)} takes the maximum of the 24 readings of each household and day, so the 87,600 hourly readings become 3,650 daily maxima. Because the data cover a single year, the window has no reference years, and \texttt{wxsum} creates no deviations or $z$-scores. Stull's formula applies at sea-level pressure to relative humidities between 5\% and 99\% and temperatures between $-20$ and 50$^{\circ}$C. The GDD of wet-bulb temperature has no agronomic interpretation, although \texttt{gdd\_lo()} and \texttt{gdd\_hi()} are still required with \texttt{type(temp)}. The households had, on average, 19 days with a maximum wet-bulb temperature of 26$^{\circ}$C or more, and none was in a heat spell on the first or last day of the window.
 
 
 \section{Conclusions}
