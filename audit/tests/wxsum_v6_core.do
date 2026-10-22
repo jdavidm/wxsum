@@ -444,6 +444,78 @@ end
 		_assert_rc      _rc 111 "no `v' with unit-specific windows"
 	}
 
+**## 1.21 - a day on an edge of tmp_bin() falls in exactly one bin
+* lo + (J - 2) * w can differ from tmp_binhi() in the last bit: with
+* tmp_binlo(-10) tmp_binhi(-4.7) a day at -4.7 was counted in two bins for
+* J = 7, 12, 22, 39, and 42, and with tmp_binlo(-5) tmp_binhi(-1.8) a day at
+* lo + (J - 2) * w was counted in none for J = 21 and 40; the last interior
+* bin now ends at tmp_binhi() itself
+	foreach ends in "-10 -4.7" "-5 -1.8" {
+		local           lo : word 1 of `ends'
+		local           hi : word 2 of `ends'
+		forvalues J = 3/42 {
+			clear
+			set obs         1
+			gen             id = 1
+		* a day on each edge lo + k * w (k = 0, ..., J - 2), then one at hi
+			forvalues k = 0/41 {
+				local           d = mdy(1, 1, 2020) + `k'
+				local           v = "tmp_" + string(year(`d')) + string(month(`d'), "%02.0f") + string(day(`d'), "%02.0f")
+				if `k' <= `J' - 2       quietly gen double `v' = `lo' + `k' * ((`hi' - (`lo')) / (`J' - 2))
+				else if `k' == `J' - 1  quietly gen double `v' = `hi'
+				else                    quietly gen double `v' = .
+			}
+			quietly wxsum   tmp_, type(temp) ini_month(1) fin_month(2) fin_day(11) gdd_lo(0) ///
+			    gdd_hi(1) heat_threshold(0) tmp_bin(`J') tmp_binlo(`lo') tmp_binhi(`hi') keep(id)
+			quietly egen    binsum = rowtotal(tmpbin*)
+			assert          nobs == `J' & binsum == nobs
+			assert          tmpbin`: di %02.0f `J'' >= 1
+		}
+	}
+
+**## 1.22 - a GDD total just below gdd_binhi() has a category
+* with gdd_bin(0.3) and gdd_binhi(0.9), 3 * 0.3 is 0.8999999999999999: a total
+* just below 0.9 had no category; the last regular interval now ends at
+* gdd_binhi() itself
+	clear
+	set obs         2
+	gen             id = _n
+	gen double      tmp_20200101 = cond(id == 1, 0 + 3 * 0.3 - 1e-12, 0.45)
+	wxsum           tmp_, type(temp) ini_month(1) fin_month(1) fin_day(1) gdd_lo(0) ///
+	    gdd_hi(10) heat_threshold(30) gdd_bin(0.3) gdd_binhi(0.9) keep(id)
+	assert          gddcat == 3 if id == 1
+	assert          gddcat == 2 if id == 2
+
+**## 1.23 - z-scores are missing when the reference values do not vary
+* pct_raindays is 0.3 in each of the 10 reference years: ten 0.3s do not add
+* up to exactly 3, which gave a tiny sd and a z-score of about 1e15; the mean
+* is now 0.3 and the sd 0, so z is missing, and a current value of 0.3 has a
+* deviation of exactly 0
+	clear
+	set obs         2
+	gen             id = _n
+	forvalues y = 2000/2010 {
+		forvalues d = 1/10 {
+			local           dd = string(`d', "%02.0f")
+			gen             rf_`y'01`dd' = cond(`d' <= 3 + (`y' == 2010 & id == 1), 5, 0)
+		}
+	}
+	tempfile        flat
+	quietly save    `flat'
+
+* calendar windows
+	wxsum           rf_, type(rain) ini_month(1) fin_month(1) fin_day(10) keep(id)
+	assert          abs(dev_pct_raindays - 0.1) < 1e-6 & missing(z_pct_raindays) if year == 2010 & id == 1
+	assert          dev_pct_raindays == 0 & missing(z_pct_raindays) if year == 2010 & id == 2
+
+* unit-specific windows
+	use             `flat', clear
+	gen             s = mdy(1, 1, 2010)
+	gen             e = mdy(1, 10, 2010)
+	wxsum           rf_, type(rain) start(s) end(e) keep(id)
+	assert          abs(dev_pct_raindays - 0.1) < 1e-6 & missing(z_pct_raindays) if id == 1
+	assert          dev_pct_raindays == 0 & missing(z_pct_raindays) if id == 2
+
 **********************************************************************
 **# 2 - end matter
 **********************************************************************

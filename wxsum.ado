@@ -1,4 +1,4 @@
-*! version 6.3.0  20oct2026
+*! version 6.3.1  22oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -454,7 +454,7 @@ program define wxsum, rclass
 	* [wxsum_window])
 	char _dta[wxsum_cmdline] `"`cmdline'"'
 	* the version on the *! line at the top of this file
-	char _dta[wxsum_version] "6.3.0"
+	char _dta[wxsum_version] "6.3.1"
 	char _dta[wxsum_type] "`type'"
 	char _dta[wxsum_shape] "`=cond("`mode'" == "unit", "unit", "`shape'")'"
 	char _dta[wxsum_window] "`window_char'"
@@ -825,7 +825,7 @@ void _wx_unitwindows(struct _wx_state scalar S)
 // Bin edges and labels for tmp_bin() or cuts().
 void _wx_bins(struct _wx_state scalar S)
 {
-	real rowvector cv
+	real rowvector cv, ed
 	real scalar    nJ, lo, hi, w, b, k
 	string scalar  v
 
@@ -860,12 +860,17 @@ void _wx_bins(struct _wx_state scalar S)
 			S.bindesc = ("Days with temp < " + _wx_fmt(w)) \ ("Days with temp >= " + _wx_fmt(w))
 		}
 		else {
+			// edges lo, lo + w, ..., ending at hi itself: lo + (nJ - 2) * w
+			// can differ from hi in the last bit, which would count a day
+			// equal to hi in two bins, or a day just below it in none
 			w = (hi - lo) / (nJ - 2)
+			ed = lo :+ (0..(nJ - 2)) :* w
+			ed[nJ - 1] = hi
 			S.bins = (mindouble(), lo)
 			S.bindesc = "Days with temp < " + _wx_fmt(lo)
 			for (b = 2; b <= nJ - 1; b++) {
-				S.bins = S.bins \ (lo + (b - 2) * w, lo + (b - 1) * w)
-				S.bindesc = S.bindesc \ ("Days with " + _wx_fmt(lo + (b - 2) * w) + " <= temp < " + _wx_fmt(lo + (b - 1) * w))
+				S.bins = S.bins \ (ed[b - 1], ed[b])
+				S.bindesc = S.bindesc \ ("Days with " + _wx_fmt(ed[b - 1]) + " <= temp < " + _wx_fmt(ed[b]))
 			}
 			S.bins = S.bins \ (hi, maxdouble())
 			S.bindesc = S.bindesc \ ("Days with temp >= " + _wx_fmt(hi))
@@ -1309,11 +1314,31 @@ real colvector _wx_months(real matrix M, real colvector s, real colvector len, r
 	return(cnt)
 }
 
+// Number, mean, and standard deviation of the nonmissing reference values in
+// each row of Rr. When the values of a row are all equal, the mean is that
+// value: their sum can be off in the last bit (three 0.1s add up to
+// 0.30000000000000004), which would give a tiny positive sd, and a huge
+// z-score instead of a missing one.
+void _wx_refmoments(real matrix Rr, real colvector cnt, real colvector mu,
+	real colvector sdv)
+{
+	real matrix    Rc
+	real colvector lo, same
+
+	cnt = rownonmissing(Rr)
+	mu = rowsum(Rr) :/ cnt
+	lo = rowmin(Rr)
+	same = _wx_which((cnt :> 0) :& (lo :== rowmax(Rr)))
+	if (rows(same) > 0) mu[same] = lo[same]
+	Rc = (editmissing(Rr, 0) :- editmissing(mu, 0)) :* (Rr :< .)
+	sdv = sqrt(rowsum(Rc :^ 2) :/ (cnt :- 1))
+}
+
 // Deviations and z-scores for calendar windows.
 void _wx_refcal(struct _wx_state scalar S)
 {
 	real scalar    nd, j, w, N
-	real matrix    V, Rr, Rc
+	real matrix    V, Rr
 	real colvector idx, cnt, mu, sdv, ok, dv, qi
 
 	N = S.N
@@ -1328,10 +1353,7 @@ void _wx_refcal(struct _wx_state scalar S)
 			if (!S.wqual[w]) continue
 			idx = _wx_refidx(S, w)
 			Rr = V[., idx]
-			cnt = rownonmissing(Rr)
-			mu = rowsum(Rr) :/ cnt
-			Rc = (editmissing(Rr, 0) :- editmissing(mu, 0)) :* (Rr :< .)
-			sdv = sqrt(rowsum(Rc :^ 2) :/ (cnt :- 1))
+			_wx_refmoments(Rr, cnt, mu, sdv)
 			ok = (cnt :>= S.refmin)
 			dv = (V[., w] - mu) :/ ok
 			(*S.DP[j])[., w] = dv
@@ -1354,7 +1376,7 @@ void _wx_unitcompute(struct _wx_state scalar S, real matrix V)
 	real scalar    K, k, nd, j, nref, r, N
 	real colvector n, ys, ye, valid, idx, s, e, cnt, mu, sdv, ok, wl
 	pointer(real matrix) rowvector REF
-	real matrix    Rr, Rc
+	real matrix    Rr
 
 	N = S.N
 	K = cols(S.stems)
@@ -1385,10 +1407,7 @@ void _wx_unitcompute(struct _wx_state scalar S, real matrix V)
 	S.ZP = J(1, nd, NULL)
 	for (j = 1; j <= nd; j++) {
 		Rr = *REF[j]
-		cnt = rownonmissing(Rr)
-		mu = rowsum(Rr) :/ cnt
-		Rc = (editmissing(Rr, 0) :- editmissing(mu, 0)) :* (Rr :< .)
-		sdv = sqrt(rowsum(Rc :^ 2) :/ (cnt :- 1))
+		_wx_refmoments(Rr, cnt, mu, sdv)
 		ok = (cnt :>= S.refmin)
 		// &(expression) points to a new matrix; a pointer to a local variable
 		// (&dv) would point every stem at the same matrix, which the next
@@ -1524,7 +1543,10 @@ void _wx_gddcat(struct _wx_state scalar S)
 	}
 	for (r = 1; r <= nreg; r++) {
 		elo = lo + (r - 1) * w
-		ehi = lo + r * w
+		// the last regular interval ends at hi itself: lo + nreg * w can
+		// differ from gdd_binhi() in the last bit, which would leave a total
+		// just below it without a category
+		ehi = (r == nreg ? hi : lo + r * w)
 		S.gcvals = S.gcvals \ (r + bot)
 		S.gctexts = S.gctexts \ ("GDD [" + _wx_fmt(elo) + "," + _wx_fmt(ehi) + ")")
 		sel = (G :< .) :& (G :>= elo - 1e-12) :& (G :< ehi - 1e-12) :& (C :== 0)
