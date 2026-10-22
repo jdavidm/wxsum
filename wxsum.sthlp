@@ -44,7 +44,7 @@ Unit-specific window (dates taken from variables, one window per observation)
 {synopthdr}
 {synoptline}
 {syntab:Required}
-{synopt:{opt type(rain|temp)}}type of daily data; other daily series use {cmd:temp}{p_end}
+{synopt:{opt type(rain|temp)}}type of daily data{p_end}
 
 {syntab:Calendar window}
 {synopt:{opt ini_month(#)}}first month of the window (1-12){p_end}
@@ -80,7 +80,7 @@ Unit-specific window (dates taken from variables, one window per observation)
 
 {syntab:Reference period}
 {synopt:{opt lr_years(#)}}rolling window of the {it:#} preceding years; default is 10{p_end}
-{synopt:{opt baseline(# #)}}fixed reference period, e.g. {cmd:baseline(1981 2010)}{p_end}
+{synopt:{opt baseline(# #)}}fixed reference period, e.g., {cmd:baseline(1981 2010)}{p_end}
 {synopt:{opt ref_min(#)}}minimum number of nonmissing reference years; default is all{p_end}
 
 {syntab:Missing data}
@@ -99,19 +99,12 @@ Unit-specific window (dates taken from variables, one window per observation)
 {title:Description}
 
 {pstd}
-{cmd:wxsum} turns daily weather data into statistics for a window of days: a
-season that repeats every year (a calendar window) or a window that differs by
-observation, such as a farm's growing season or the months before a birth (a
-unit-specific window). It computes the distribution of daily values, totals,
-counts of rainy or hot days, dry and heat spells, growing and killing degree
-days, optional bins, and deviations and z-scores relative to a rolling or fixed
-reference period.
+{cmd:wxsum} summarizes daily weather data over user-defined windows that follow the same calendar dates each year or vary by observation. Outputs include distributional summaries, rainfall totals, rainy- and hot-day counts, dry and heat spells, growing and killing degree days, and optional bins. It also calculates deviations and z-scores relative to a rolling or fixed reference period.
 
 {pstd}
 The data must be wide: one observation per location (or household, plot,
-person, ...) and one numeric variable per day, named {it:stub}{it:yyyymmdd}.
-Daily data in long form (one row per location-day), or wide data with other
-variable names, can be converted with {helpb wxprep}.
+person, etc.) and one numeric variable per day, named {it:stub}{it:yyyymmdd}.
+Daily data in long form (one row per location-day), or wide data, can be converted with {helpb wxprep}.
 
 {pstd}
 {cmd:wxsum} replaces the data in memory with the results. If anything fails,
@@ -184,9 +177,7 @@ degree days. Both are required with {cmd:type(temp)}.
 {phang}
 {opt heat_threshold(#)} defines a heat day as temp >= {it:#} and is used
 for heat days, heat spells, and, unless {opt kdd_base()} is given, killing
-degree days. Required with {cmd:type(temp)}. The meaning of the threshold
-depends on the daily series supplied: 30 degrees reached by daily means is much
-rarer than 30 degrees reached by daily maxima.
+degree days. Required with {cmd:type(temp)}.
 
 {phang}
 {opt kdd_base(#)} sets a different base for killing degree days. Without it,
@@ -416,7 +407,7 @@ integers. Output variables are compressed.
 {title:Examples}
 
 {pstd}
-These are the examples of the article. The do-file {cmd:wxsum_examples.do}
+The do-file {cmd:wxsum_examples.do} 
 runs all twelve and {cmd:wxsum_examples.log} shows their output;
 {cmd:net get wxsum} copies them, the sample data, and the example datasets
 into the current folder, where the examples run. Examples 1-9 are below;
@@ -552,9 +543,9 @@ the default {cmd:maxvar}{p_end}
 {synopt:{cmd:r(outstub)}}{opt outstub()}{p_end}
 {synopt:{cmd:r(mode)}}{cmd:calendar} or {cmd:unit}{p_end}
 {synopt:{cmd:r(shape)}}{cmd:long}, {cmd:wide}, or {cmd:unit}{p_end}
-{synopt:{cmd:r(window)}}window, e.g. {cmd:15may-15oct}{p_end}
+{synopt:{cmd:r(window)}}window, e.g., {cmd:15may-15oct}{p_end}
 {synopt:{cmd:r(years)}}window years (calendar){p_end}
-{synopt:{cmd:r(ref)}}reference period, e.g. {cmd:rolling 10} or {cmd:baseline 1981-2010}{p_end}
+{synopt:{cmd:r(ref)}}reference period, e.g., {cmd:rolling 10} or {cmd:baseline 1981-2010}{p_end}
 {synopt:{cmd:r(varlist)}}variables created{p_end}
 
 {p2col 5 24 28 2: Matrices}{p_end}
