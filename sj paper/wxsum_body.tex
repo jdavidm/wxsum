@@ -707,20 +707,20 @@ cut04           byte    %12.0g                Days with temp >= 30
 \subsection{Deviations from a fixed baseline}
 \label{sec:ex-baseline}
 
-By default, deviations and $z$-scores compare each season with the 10 preceding seasons, so the reference period moves with the season. A fixed baseline instead compares every season with the same reference period. The next command uses the seasons from 2003 through 2012 as the baseline for the growing season of section~\ref{sec:ex-rain}:
+By default, deviations and $z$-scores compare each season with the 10 preceding seasons, so the reference period moves with the season. A fixed baseline instead compares every season with the same reference period. The next command uses the 20 seasons from 2003 through 2022 as the baseline for the growing season of section~\ref{sec:ex-rain}:
 
 \begin{stlog}
 . use rain, clear
 {\smallskip}
 . wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
-> baseline(2003 2012) keep(hhid)
+> baseline(2003 2022) keep(hhid)
 {\smallskip}
 wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
   Output:        long, 210 rows (21 per observation); 26 new variables
-  Reference:     fixed baseline 2003-2012; ref_min(10)
+  Reference:     fixed baseline 2003-2022; ref_min(20)
   Deviations:    from 2003
   Missing days:  0 of 210 unit-windows; 0 have no observed day
   Below minobs:  0 unit-windows (minobs(1))
@@ -736,19 +736,19 @@ wxsum summary
   +--------------------------------------------------+
   | year   total   dev_total   z_total   dry   z_dry |
   |--------------------------------------------------|
-  | 2016     829        16.0      0.16    13    0.66 |
-  | 2017     738       -75.0     -0.73     4   -0.69 |
-  | 2018     881        68.0      0.66    15    0.95 |
-  | 2019    1053       240.0      2.33     2   -0.98 |
-  | 2020     717       -96.0     -0.93    10    0.21 |
+  | 2016     829        47.7      0.33    13    0.60 |
+  | 2017     738       -43.3     -0.30     4   -0.94 |
+  | 2018     881        99.7      0.69    15    0.94 |
+  | 2019    1053       271.6      1.88     2   -1.28 |
+  | 2020     717       -64.3     -0.44    10    0.09 |
   |--------------------------------------------------|
-  | 2021     488      -325.0     -3.16    13    0.66 |
-  | 2022     576      -237.0     -2.30     4   -0.69 |
-  | 2023     289      -524.0     -5.09     8   -0.09 |
+  | 2021     488      -293.4     -2.03    13    0.60 |
+  | 2022     576      -205.4     -1.42     4   -0.94 |
+  | 2023     289      -492.4     -3.40     8   -0.26 |
   +--------------------------------------------------+
 \end{stlog}
 
-\noindent The \texttt{Reference} line now reports the fixed baseline, and deviations begin in 2003, the first season of the data, because seasons inside the baseline are compared with a baseline that includes them. As before, all 10 reference seasons must have values. The listing shows the last eight seasons of household 101. Its baseline mean is 813~mm (829 minus 16.0), so the 289~mm of 2023 was 524~mm below the mean, a $z$-score of $-5.09$, and 2021, 2022, and 2023 were three dry seasons in a row. The $z$-scores of \texttt{dry}, the mid-season dry spell, do not move with those of \texttt{total}: in 2023, the mid-season dry spell was close to its baseline mean ($z = -0.09$). A rainfall deficit need not show up as a long mid-season dry spell, which is one reason to examine more than one measure.
+\noindent The \texttt{Reference} line now reports the fixed baseline, and deviations begin in 2003, the first season of the data, because seasons inside the baseline are compared with a baseline that includes them. By default, all 20 baseline seasons must have values (\texttt{ref\_min(20)}). The listing shows the last eight seasons of household 101. Its baseline mean is 781~mm (829 minus 47.7), so the 289~mm of 2023 was 492~mm below the mean, a $z$-score of $-3.40$, and 2021 was also unusually dry ($z = -2.03$). Because the baseline includes the dry seasons of 2021 and 2022, these deficits are smaller than they would be against a baseline of earlier, wetter seasons. The $z$-scores of \texttt{dry}, the mid-season dry spell, do not move with those of \texttt{total}: in 2023, the mid-season dry spell was close to its baseline mean ($z = -0.26$). A rainfall deficit need not show up as a long mid-season dry spell, which is one reason to examine more than one measure.
 
 \subsection{Farm-specific growing seasons}
 \label{sec:ex-panel}

@@ -452,7 +452,7 @@ the default {cmd:maxvar}{p_end}
 
 {pstd}{bf:Example 5.} Deviations and z-scores against a fixed baseline{p_end}
 {phang2}{cmd:. use rain, clear}{p_end}
-{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2012) keep(hhid)}{p_end}
+{phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2022) keep(hhid)}{p_end}
 {phang2}{cmd:. format dev_total %7.1f}{p_end}
 {phang2}{cmd:. format z_total z_dry %5.2f}{p_end}
 {phang2}{cmd:. list year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016, noobs abbreviate(9)}{p_end}

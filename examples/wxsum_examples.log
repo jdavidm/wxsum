@@ -261,19 +261,19 @@ GDD [2300,2400) |         20        9.52       95.24
 . **# 5 - deviations and z-scores against a fixed baseline
 . **********************************************************************
 . 
-. * calculate deviations against a 2003-2012 baseline
+. * calculate deviations against a 2003-2022 baseline
 .         use             rain, clear
 
 .         wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10)
 >  fin_day(15) ///
->                         baseline(2003 2012) keep(hhid)
+>                         baseline(2003 2022) keep(hhid)
 
 wxsum summary
   Data:          rain, stub rf_
   Thresholds:    rain_threshold(1)
   Window:        calendar, 15may-15oct; 21 windows, 2003-2023
   Output:        long, 210 rows (21 per observation); 26 new variables
-  Reference:     fixed baseline 2003-2012; ref_min(10)
+  Reference:     fixed baseline 2003-2022; ref_min(20)
   Deviations:    from 2003
   Missing days:  0 of 210 unit-windows; 0 have no observed day
   Below minobs:  0 unit-windows (minobs(1))
@@ -290,15 +290,15 @@ wxsum summary
   +--------------------------------------------------+
   | year   total   dev_total   z_total   dry   z_dry |
   |--------------------------------------------------|
-  | 2016     829        16.0      0.16    13    0.66 |
-  | 2017     738       -75.0     -0.73     4   -0.69 |
-  | 2018     881        68.0      0.66    15    0.95 |
-  | 2019    1053       240.0      2.33     2   -0.98 |
-  | 2020     717       -96.0     -0.93    10    0.21 |
+  | 2016     829        47.7      0.33    13    0.60 |
+  | 2017     738       -43.3     -0.30     4   -0.94 |
+  | 2018     881        99.7      0.69    15    0.94 |
+  | 2019    1053       271.6      1.88     2   -1.28 |
+  | 2020     717       -64.3     -0.44    10    0.09 |
   |--------------------------------------------------|
-  | 2021     488      -325.0     -3.16    13    0.66 |
-  | 2022     576      -237.0     -2.30     4   -0.69 |
-  | 2023     289      -524.0     -5.09     8   -0.09 |
+  | 2021     488      -293.4     -2.03    13    0.60 |
+  | 2022     576      -205.4     -1.42     4   -0.94 |
+  | 2023     289      -492.4     -3.40     8   -0.26 |
   +--------------------------------------------------+
 
 . 

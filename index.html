@@ -183,7 +183,7 @@ summarize tmpbin*
 tabulate gddcat</code></pre>
 <h3>Example 5. Deviations and z-scores against a fixed baseline</h3>
 <pre><code>use rain, clear
-wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2012) keep(hhid)
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2022) keep(hhid)
 format dev_total %7.1f
 format z_total z_dry %5.2f
 list year total dev_total z_total dry z_dry if hhid == 101 &amp; year &gt;= 2016, noobs abbreviate(9)</code></pre>

@@ -1,8 +1,8 @@
 * project: wxsum
 * created on: oct 2026
 * created by: jdm
-* edited on: 22 oct 2026
-* edited by: jdm
+* edited on: 23 oct 2026
+* edited by: claude
 * Stata v.15.1
 *
 * The examples in the article, for wxsum and wxprep version 6.
@@ -121,10 +121,10 @@
 **# 5 - deviations and z-scores against a fixed baseline
 **********************************************************************
 
-* calculate deviations against a 2003-2012 baseline
+* calculate deviations against a 2003-2022 baseline
 	use             rain, clear
 	wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
-	                baseline(2003 2012) keep(hhid)
+	                baseline(2003 2022) keep(hhid)
 	format          dev_total %7.1f
 	format          z_total z_dry %5.2f
 	list            year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016, ///
