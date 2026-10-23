@@ -44,4 +44,14 @@ What changed since the rerun of 22 October (commit `50725b1`):
 
 All audit cases pass, as on 21 and 22 October.
 
+## After the version bump: wxsum 7.0.0
+
+Because everything passed, the version was set to 7.0.0 (commit `bb2e084`). The calculations did not change; the commit changes only:
+- the version stamps;
+- the first line of `wxsum.pkg` and `stata.toc`, which is now `v 3`, the file-format version that [R] net asks for;
+- the Distribution-Date;
+- the one line of the example log that shows `_dta[wxsum_version]`.
+
+The same runner, on `bb2e084` exported the same way (results in `audit/rerun_20261023_v7/`), passes 165 of 165 checks. They include `stored_results_and_metadata`, which checks that `_dta[wxsum_version]` is 7.0.0, the version on the `*!` line. All 15 test suites pass again (equivalence 288 s, performance 123 s, docs 44 s, install 31 s, the others under 20 s). Among them, `wxsum_v6_install` installs the package from the repository through the new `v 3` lines.
+
 The review of the text files (article, letters, help files, README) is in `audit/review_20261023.md`.
