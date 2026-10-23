@@ -1,4 +1,4 @@
-*! version 6.3.1  22oct2026
+*! version 7.0.0  23oct2026
 *********************************************************************************
 *  wxsum                                                                        *
 *  v 1.0  17may2017 by Oscar Barriga Cabanillas - obarriga@ucdavis.edu          *
@@ -20,6 +20,7 @@
 *  v 6.1  15oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *  v 6.2  16oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *  v 6.3  20oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
+*  v 7.0  23oct2026 by Anna Josephson - aljosephson@arizona.edu                 *
 *********************************************************************************
 
 program define wxsum, rclass
@@ -454,7 +455,7 @@ program define wxsum, rclass
 	* [wxsum_window])
 	char _dta[wxsum_cmdline] `"`cmdline'"'
 	* the version on the *! line at the top of this file
-	char _dta[wxsum_version] "6.3.1"
+	char _dta[wxsum_version] "7.0.0"
 	char _dta[wxsum_type] "`type'"
 	char _dta[wxsum_shape] "`=cond("`mode'" == "unit", "unit", "`shape'")'"
 	char _dta[wxsum_window] "`window_char'"

@@ -5,7 +5,7 @@
 * edited by: claude
 * Stata v.15.1
 *
-* The examples in the article, for wxsum and wxprep version 6.
+* The examples in the article, for wxsum version 7 and wxprep version 1.
 *
 * Run it in the folder where -net get wxsum- copied the sample data (rain.dta,
 * temp.dta) and the example datasets (hh_panel.dta, births.dta,

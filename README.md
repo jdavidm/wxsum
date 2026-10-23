@@ -288,7 +288,7 @@ summarize heatdays heat_start heat heat_end z_heatdays
 
 ## Testing
 
-Version 6 was tested against hand-computed cases, an independent reference implementation on random data, frozen version 5 output on the sample data, and an external audit with independently computed expected values. The tests are kept outside the distributed package.
+Version 7 was tested against hand-computed cases, an independent reference implementation on random data, frozen version 5 output on the sample data, and an external audit with independently computed expected values. The tests are kept outside the distributed package.
 
 ## Reporting bugs
 
@@ -298,7 +298,7 @@ Please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum
 
 If you use `wxsum` in your research, please cite:
 
-> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 6.0.
+> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 7.0.
 
 ## Authors
 

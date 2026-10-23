@@ -1,4 +1,4 @@
-v 6.0
+v 3
 d 'wxsum': A command for processing temperature and precipitation data
 d
 d wxsum computes seasonal (calendar) or unit-specific window statistics from
@@ -7,7 +7,8 @@ d spells, growing and killing degree days, bins, and deviations and z-scores
 d relative to a rolling or fixed reference period. wxprep converts long daily
 d data, or wide data with other variable names, to the layout wxsum needs.
 d
-d Distribution-Date: 20261016
+d Version: wxsum 7.0.0, wxprep 1.0.0
+d Distribution-Date: 20261023
 d
 d Author: Jeffrey D. Michler
 d Support: jdmichler@arizona.edu
