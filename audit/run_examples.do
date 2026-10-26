@@ -2,14 +2,14 @@
 * task: rebuild the example datasets and the example log
 * created on: 16 oct 2026
 * created by: claude
-* edited on: 22 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 *
 * The examples run in a folder laid out like the one -net get wxsum- creates:
-* rain.dta, temp.dta, and the files in examples/ side by side. This do-file
-* copies those files into a temporary folder, runs the examples there with the
-* repository's ado-files, and copies the results back to examples/.
+* wxsum_rain.dta, wxsum_temp.dta, and the files in examples/ side by side. This
+* do-file copies those files into a temporary folder, runs the examples there
+* with the repository's ado-files, and copies the results back to examples/.
 *
 * Run from the repository root or from audit/ (batch mode from audit/ keeps
 * the batch log out of the repository root):
@@ -50,7 +50,7 @@
 	foreach f of local old {
 		erase           "`work'/`f'"
 	}
-	foreach f in rain.dta temp.dta {
+	foreach f in wxsum_rain.dta wxsum_temp.dta {
 		copy            "`root'/`f'" "`work'/`f'"
 	}
 	local           exfiles : dir "`root'/examples" files "*"

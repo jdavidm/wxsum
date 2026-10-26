@@ -99,13 +99,13 @@ Definitions:
 
 ## Examples
 
-These are the examples of the article. `examples/wxsum_examples.do` runs all twelve, and `examples/wxsum_examples.log` shows their output. Run them in the folder where `net get wxsum` copied the files (help `wxsum` has examples 1-9 and help `wxprep` examples 10-12). Besides `rain.dta` and `temp.dta`, the examples use three datasets:
+These are the examples of the article. `examples/wxsum_examples.do` runs all twelve, and `examples/wxsum_examples.log` shows their output. Run them in the folder where `net get wxsum` copied the files (help `wxsum` has examples 1-9 and help `wxprep` examples 10-12). Besides `wxsum_rain.dta` and `wxsum_temp.dta`, the examples use three datasets:
 
 - `hh_panel.dta`: 10 households, 2013-2023, with planting and harvest dates and crop yields
 - `births.dta`: 300 births, 2014-2023, with birth weights
 - `weather_hourly.dta`: hourly temperature (kelvin) and relative humidity for 2022
 
-These three datasets are simulated (`examples/make_example_data.do` creates them from `rain.dta` and `temp.dta`); they illustrate the commands and are not observed data.
+These three datasets are simulated (`examples/make_example_data.do` creates them from `wxsum_rain.dta` and `wxsum_temp.dta`); they illustrate the commands and are not observed data.
 
 ```stata
 clear all
@@ -115,7 +115,7 @@ set maxvar 20000
 ### Example 1. Rainfall in a growing season (15 May - 15 October)
 
 ```stata
-use rain, clear
+use wxsum_rain, clear
 describe, short
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)
 list hhid year nobs total raindays dry_start dry dry_end in 1/5, noobs abbreviate(9)
@@ -133,7 +133,7 @@ char list _dta[]
 ### Example 3. Growing degree days, killing degree days, and heat spells
 
 ```stata
-use temp, clear
+use wxsum_temp, clear
 wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)
 summarize gdd kdd heatdays heat_start heat heat_end
 ```
@@ -142,12 +142,12 @@ summarize gdd kdd heatdays heat_start heat heat_end
 
 ```stata
 * days in temperature bands over the hot, dry season, November to April; the season crosses the end of the year and takes the year in which it starts
-use temp, clear
+use wxsum_temp, clear
 wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30) heat_threshold(30) cuts(24 27 30) keep(hhid)
 describe cut*
 summarize cut*
 * equal-width temperature bins and categories of seasonal GDD
-use temp, clear
+use wxsum_temp, clear
 quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)
 summarize tmpbin*
 tabulate gddcat
@@ -156,7 +156,7 @@ tabulate gddcat
 ### Example 5. Deviations and z-scores against a fixed baseline
 
 ```stata
-use rain, clear
+use wxsum_rain, clear
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2022) keep(hhid)
 format dev_total %7.1f
 format z_total z_dry %5.2f
@@ -167,7 +167,7 @@ list year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016, noobs
 
 ```stata
 * suppose that the rainfall of household 103 is missing in June and July 2015
-use rain, clear
+use wxsum_rain, clear
 quietly recode rf_201506* rf_201507* (nonmissing = .) if hhid == 103
 preserve
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) minobs(140) keep(hhid)
@@ -183,16 +183,16 @@ list year nobs total dev_total if hhid == 103 & inrange(year, 2014, 2017), noobs
 ### Example 7. Rain and temperature together; wide output
 
 ```stata
-use rain, clear
+use wxsum_rain, clear
 wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) outstub(r_) keep(hhid) save(rain_season, replace)
-use temp, clear
+use wxsum_temp, clear
 quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid)
 merge 1:1 hhid year using rain_season, nogenerate
 describe, short
 format t_gdd t_kdd %7.1f
 list hhid year r_total r_dry t_gdd t_kdd in 1/3, noobs
 * the rainfall statistics in wide form: one row per household
-use rain, clear
+use wxsum_rain, clear
 quietly wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid) shape(wide)
 describe, short
 ds *_2023, varwidth(21)
@@ -204,8 +204,8 @@ ds *_2023, varwidth(21)
 use hh_panel, clear
 describe
 list in 1/3, noobs
-merge m:1 hhid using rain, nogenerate
-merge m:1 hhid using temp, nogenerate
+merge m:1 hhid using wxsum_rain, nogenerate
+merge m:1 hhid using wxsum_temp, nogenerate
 wxsum rf_, type(rain) start(plant) end(harvest) outstub(r_) keep(hhid year plant harvest yield tmp_*)
 quietly wxsum tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid year plant harvest yield r_*)
 format t_gdd t_kdd %7.1f
@@ -219,7 +219,7 @@ xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)
 ```stata
 use births, clear
 describe
-merge m:1 hhid using temp, nogenerate
+merge m:1 hhid using wxsum_temp, nogenerate
 * third trimester: the 91 days before birth
 wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t3_) keep(childid hhid birthdate bweight tmp_*)
 * second and first trimesters: the same window moved 91 and 182 days earlier
@@ -233,7 +233,7 @@ regress bweight t1_heatdays t2_heatdays t3_heatdays, vce(cluster hhid)
 
 ```stata
 * one year of rainfall in variables named day1, day2, ..., day365
-use hhid rf_2023* using rain, clear
+use hhid rf_2023* using wxsum_rain, clear
 rename rf_2023* day#, renumber
 describe, short
 wxprep rename day1-day365, stub(rf_) firstdate(01jan2023)
@@ -263,9 +263,9 @@ summarize max heatdays heat_start heat heat_end
 ### Example 12. wxprep tolong: compound hot and dry days
 
 ```stata
-use rain, clear
+use wxsum_rain, clear
 wxprep tolong rf_, id(hhid) generate(rain) clear save(rain_long, replace)
-use temp, clear
+use wxsum_temp, clear
 wxprep tolong tmp_, id(hhid) generate(temp) clear
 merge 1:1 hhid date using rain_long, keep(match) nogenerate
 * a hot and dry day: less than 1 mm of rain and a mean temperature of 29 degrees C or more
@@ -292,7 +292,7 @@ Version 7 was tested against hand-computed cases, an independent reference imple
 
 ## Reporting bugs
 
-Please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues) with your Stata version, the command you ran, and a small example, ideally using `rain.dta` or `temp.dta`.
+Please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues) with your Stata version, the command you ran, and a small example, ideally using `wxsum_rain.dta` or `wxsum_temp.dta`.
 
 ## Citation
 

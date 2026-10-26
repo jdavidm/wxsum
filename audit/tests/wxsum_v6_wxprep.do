@@ -2,8 +2,8 @@
 * task: wxprep companion command validation checks
 * created on: oct 2026
 * created by: jdm
-* edited on: 15 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 
 **********************************************************************
@@ -41,7 +41,7 @@ end
 
 **## 1.1 - round trip on bundled data
 * load and prepare bundled rain data
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	sort            hhid
 	tempfile        orig
 	quietly save    `orig'
@@ -272,19 +272,19 @@ end
 
 **## 3.1 - tolong options and safety checks
 * test basic tolong execution
-	use             temp.dta, clear
+	use             wxsum_temp.dta, clear
 	wxprep          tolong tmp_, id(hhid) generate(temp) date(day)
 	confirm variable hhid day temp
 	assert          r(n_days) == 7639
 
 * test unique id check failure
-	use             temp.dta, clear
+	use             wxsum_temp.dta, clear
 	expand          2
 	capture noisily wxprep tolong tmp_, id(hhid) clear
 	_assert_rc      _rc 459 "id() must identify the observations"
 
 * test variable name conflict
-	use             temp.dta, clear
+	use             wxsum_temp.dta, clear
 	capture noisily wxprep tolong tmp_, id(hhid) generate(hhid)
 	_assert_rc      _rc 198 "generate() must not be an id() variable"
 
@@ -315,13 +315,13 @@ end
 
 **## 4.1 - end-to-end long to wide to wxsum workflow
 * execute direct wxsum on wide data
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	quietly wxsum   rf_, type(rain) ini_month(05) ini_day(15) fin_month(10) fin_day(15) keep(hhid) shape(wide)
 	tempfile        direct
 	quietly save    `direct'
 
 * execute round-trip via long with transformations
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	wxprep          tolong rf_, id(hhid)
 	replace         rf = rf / 10
 	replace         rf = rf * 10

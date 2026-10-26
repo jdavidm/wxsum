@@ -2,8 +2,8 @@
 * task: test package installation and ancillary file workflow
 * created on: oct 2026
 * created by: jdm
-* edited on: 15 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 
 **********************************************************************
@@ -74,7 +74,7 @@
 		erase           "`f'"
 	}
 	net get         wxsum, replace
-	foreach f in rain.dta temp.dta hh_panel.dta births.dta weather_hourly.dta ///
+	foreach f in wxsum_rain.dta wxsum_temp.dta hh_panel.dta births.dta weather_hourly.dta ///
 	    wxsum_examples.do wxsum_examples.log make_example_data.do {
 		confirm file    "`f'"
 	}

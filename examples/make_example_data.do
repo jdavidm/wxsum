@@ -2,23 +2,24 @@
 * task: generate simulated example datasets for wxsum
 * created on: oct 2026
 * created by: jdm
-* edited on: 22 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 *
 * Creates the three example datasets used by wxsum_examples.do from the
-* sample data rain.dta and temp.dta. All three are SIMULATED for the examples;
-* none of them are observed data.
+* sample data wxsum_rain.dta and wxsum_temp.dta. All three are SIMULATED for
+* the examples; none of them are observed data.
 *
 *   hh_panel.dta         10 households, 2013-2023: planting and harvest dates
 *                        and a simulated crop yield
 *   births.dta           300 simulated births, 2014-2023, with birth weights
 *   weather_hourly.dta   hourly 2-metre temperature (kelvin) and relative
 *                        humidity for 2022, made by adding a daily cycle and
-*                        noise to the daily data in temp.dta and rain.dta
+*                        noise to the daily data in wxsum_temp.dta and
+*                        wxsum_rain.dta
 *
-* Run it in the folder with rain.dta and temp.dta (for example, the folder
-* where you typed -net get wxsum-). It needs wxsum and wxprep, and about
+* Run it in the folder with wxsum_rain.dta and wxsum_temp.dta (for example,
+* the folder where you typed -net get wxsum-). It needs wxsum and wxprep, and about
 * 16,000 variables (set maxvar). With the same seed it reproduces the
 * datasets distributed with wxsum exactly.
 
@@ -38,7 +39,7 @@
 **********************************************************************
 
 * load rainfall data and reshape to long
-	use             rain, clear
+	use             wxsum_rain, clear
 	quietly wxprep tolong rf_, id(hhid) generate(rain) clear
 	generate        year = year(date)
 	keep if         inrange(year, 2013, 2023)
@@ -57,8 +58,8 @@
 	drop            onset
 
 * weather of each household's own season
-	merge m:1       hhid using rain, assert(match) nogenerate
-	merge m:1       hhid using temp, assert(match) nogenerate
+	merge m:1       hhid using wxsum_rain, assert(match) nogenerate
+	merge m:1       hhid using wxsum_temp, assert(match) nogenerate
 	quietly wxsum   rf_, type(rain) start(plant) end(harvest) outstub(r_) ///
 	                keep(hhid year plant harvest tmp_*)
 	quietly wxsum   tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) ///
@@ -98,7 +99,7 @@
 	generate int    hhid = 100 + ceil(10 * runiform())
 	generate        birthdate = td(01jan2014) + floor((td(29nov2023) - td(01jan2014) + 1) * runiform())
 	format          birthdate %td
-	merge m:1       hhid using temp, keep(match) nogenerate
+	merge m:1       hhid using wxsum_temp, keep(match) nogenerate
 
 * heat days in trimesters 2 and 3
 	quietly wxsum   tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) ///
@@ -129,11 +130,11 @@
 **********************************************************************
 
 * reshape 2022 rainfall and temperature data to long
-	use             hhid rf_2022* using rain, clear
+	use             hhid rf_2022* using wxsum_rain, clear
 	quietly wxprep tolong rf_, id(hhid) generate(rain) clear
 	tempfile        rain22
 	save            `rain22'
-	use             hhid tmp_2022* using temp, clear
+	use             hhid tmp_2022* using wxsum_temp, clear
 	quietly wxprep tolong tmp_, id(hhid) generate(temp) clear
 	merge 1:1       hhid date using `rain22', assert(match) nogenerate
 
@@ -164,7 +165,7 @@
 	label var       rh "Relative humidity, percent (synthetic)"
 	label data      "Synthetic hourly weather for the wxsum examples, 2022"
 	notes _dta:     Synthetic for the wxsum examples by make_example_data.do; not observed data.
-	notes _dta:     Each day's hourly values add a daily cycle (warmest and driest at 15:00) and noise to the daily mean temperature in temp.dta; humidity is higher in the rainy months and on rainy days (rain.dta).
+	notes _dta:     Each day's hourly values add a daily cycle (warmest and driest at 15:00) and noise to the daily mean temperature in wxsum_temp.dta; humidity is higher in the rainy months and on rainy days (wxsum_rain.dta).
 
 * save weather dataset
 	compress

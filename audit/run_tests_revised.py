@@ -2,7 +2,7 @@
 Only the supplied folder defines expected behavior. Never modifies that folder.
 
 REVISED COPY (16 Oct 2026) of the auditor's run_tests.py, which is kept unchanged
-next to this file. Seven changes, all following decisions made after the audit:
+next to this file. Eight changes, all following decisions made after the audit:
   1. spells(): the mid-window spell is the longest run that is neither the
      leading nor the trailing spell when there are at least two break days
      (audit finding B3), so max(start, mid, end) is the longest spell. The
@@ -27,6 +27,10 @@ next to this file. Seven changes, all following decisions made after the audit:
   7. (21 Oct 2026) The manuscript_example_* cases are dropped: the article and
      the review correspondence are not part of the package, so the audit checks
      only the code and the data shipped with it.
+  8. (26 Oct 2026) The bundled data are now wxsum_rain.dta and wxsum_temp.dta,
+     renamed from rain.dta and temp.dta at the Stata Journal's request because
+     the ancillary data of another package (Roodman's extreme) use the same
+     names. The cases keep their names (bundled_rain_dta_oracle, ...).
 Everything else, including all other cases and tolerances, is the auditor's.
 Usage: python run_tests.py --source "C:/Users/annal/Downloads/wxsum" --stata "C:/Program Files/StataNow19/StataMP-64.exe"
 """
@@ -395,15 +399,17 @@ def make_extended(source, run):
     # stored (float temperatures included), so no rounding to the input
     # precision is needed.
     for typ,stub in [('rain','rf_'),('temp','tmp_')]:
-        names,raw=read_dta(source/(typ+'.dta'))
+        # revised (change 8): the bundled files are wxsum_rain.dta and wxsum_temp.dta
+        data=source/('wxsum_'+typ+'.dta')
+        names,raw=read_dta(data)
         datecols={c:dt.datetime.strptime(c[-8:],'%Y%m%d').date() for c in names if c.startswith(stub) and len(c)==len(stub)+8}
         units={}
         for row in raw:
             row=dict(zip(names,row))
             units[row['hhid']]={d:row[c] for c,d in datecols.items()}
-        assert units and datecols, f'{typ}.dta has no hhid rows or {stub} variables'
+        assert units and datecols, f'{data.name} has no hhid rows or {stub} variables'
         opts='type(rain)' if typ=='rain' else 'type(temp) gdd_lo(10) gdd_hi(30) heat_threshold(30) kdd_base(32)'
-        text='use '+q(source/(typ+'.dta'))+', clear\n'+f'wxsum {stub}, {opts} ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)\nassert _N>0\nisid hhid year\nassert nobs>=0 & nobs<=154\n'
+        text='use '+q(data)+', clear\n'+f'wxsum {stub}, {opts} ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)\nassert _N>0\nisid hhid year\nassert nobs>=0 & nobs<=154\n'
         for ident,a in units.items():
             for y in sorted({d.year for d in a if d.year>=2003}):
                 s,e=dt.date(y,5,15),dt.date(y,10,15)
@@ -411,7 +417,7 @@ def make_extended(source, run):
                 for k,v in core(a,s,e,typ).items(): text+=eq(k,v,f'hhid=={ident:.17g} & year=={y}')
         case('bundled_'+typ+'_dta_oracle',text,'bundled')
         # revised (change 5): the sample data only; the _full files are not shipped
-        text='use '+q(source/(typ+'.dta'))+', clear\nassert _N>0\n'+f'timer clear 1\ntimer on 1\nwxsum {stub}, {opts} ini_month(11) fin_month(2) keep(hhid)\ntimer off 1\ntimer list 1\nisid hhid year\nassert nobs>=0 & nobs<=121\n'
+        text='use '+q(data)+', clear\nassert _N>0\n'+f'timer clear 1\ntimer on 1\nwxsum {stub}, {opts} ini_month(11) fin_month(2) keep(hhid)\ntimer off 1\ntimer list 1\nisid hhid year\nassert nobs>=0 & nobs<=121\n'
         case('bundled_'+typ+'_sample_cross_year',text,'bundled')
         for rows in [1000,10000]:
             text=wide([[1]*6])+f'expand {rows}\nreplace id=_n\ntimer clear 1\ntimer on 1\n'+(RAIN if typ=='rain' else TEMP)+'\ntimer off 1\ntimer list 1\nassert _N=='+str(rows)+'\nassert nobs==6\n'

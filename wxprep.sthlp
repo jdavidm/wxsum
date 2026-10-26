@@ -198,7 +198,7 @@ the default {cmd:maxvar}{p_end}
 
 {pstd}{bf:Example 10.} wxprep rename: daily variables with other names{p_end}
 {pstd}One year of rainfall in variables named day1, day2, ..., day365{p_end}
-{phang2}{cmd:. use hhid rf_2023* using rain, clear}{p_end}
+{phang2}{cmd:. use hhid rf_2023* using wxsum_rain, clear}{p_end}
 {phang2}{cmd:. rename rf_2023* day#, renumber}{p_end}
 {phang2}{cmd:. describe, short}{p_end}
 {phang2}{cmd:. wxprep rename day1-day365, stub(rf_) firstdate(01jan2023)}{p_end}
@@ -222,9 +222,9 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. summarize max heatdays heat_start heat heat_end}{p_end}
 
 {pstd}{bf:Example 12.} wxprep tolong: compound hot and dry days{p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. wxprep tolong rf_, id(hhid) generate(rain) clear save(rain_long, replace)}{p_end}
-{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. use wxsum_temp, clear}{p_end}
 {phang2}{cmd:. wxprep tolong tmp_, id(hhid) generate(temp) clear}{p_end}
 {phang2}{cmd:. merge 1:1 hhid date using rain_long, keep(match) nogenerate}{p_end}
 {pstd}A hot and dry day: less than 1 mm of rain and a mean temperature of 29 degrees C or more{p_end}

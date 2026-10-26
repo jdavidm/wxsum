@@ -422,7 +422,7 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. set maxvar 20000}{p_end}
 
 {pstd}{bf:Example 1.} Rainfall in a growing season (15 May - 15 October){p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. describe, short}{p_end}
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)}{p_end}
 {phang2}{cmd:. list hhid year nobs total raindays dry_start dry dry_end in 1/5, noobs abbreviate(9)}{p_end}
@@ -434,24 +434,24 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. char list _dta[]}{p_end}
 
 {pstd}{bf:Example 3.} Growing degree days, killing degree days, and heat spells{p_end}
-{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. use wxsum_temp, clear}{p_end}
 {phang2}{cmd:. wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)}{p_end}
 {phang2}{cmd:. summarize gdd kdd heatdays heat_start heat heat_end}{p_end}
 
 {pstd}{bf:Example 4.} Exposure bins and GDD categories{p_end}
 {pstd}Days in temperature bands over the hot, dry season, November to April; the season crosses the end of the year and takes the year in which it starts{p_end}
-{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. use wxsum_temp, clear}{p_end}
 {phang2}{cmd:. wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30) heat_threshold(30) cuts(24 27 30) keep(hhid)}{p_end}
 {phang2}{cmd:. describe cut*}{p_end}
 {phang2}{cmd:. summarize cut*}{p_end}
 {pstd}Equal-width temperature bins and categories of seasonal GDD{p_end}
-{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. use wxsum_temp, clear}{p_end}
 {phang2}{cmd:. quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)}{p_end}
 {phang2}{cmd:. summarize tmpbin*}{p_end}
 {phang2}{cmd:. tabulate gddcat}{p_end}
 
 {pstd}{bf:Example 5.} Deviations and z-scores against a fixed baseline{p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2022) keep(hhid)}{p_end}
 {phang2}{cmd:. format dev_total %7.1f}{p_end}
 {phang2}{cmd:. format z_total z_dry %5.2f}{p_end}
@@ -459,7 +459,7 @@ the default {cmd:maxvar}{p_end}
 
 {pstd}{bf:Example 6.} Missing days: minobs() and ref_min(){p_end}
 {pstd}Suppose that the rainfall of household 103 is missing in June and July 2015{p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. quietly recode rf_201506* rf_201507* (nonmissing = .) if hhid == 103}{p_end}
 {phang2}{cmd:. preserve}{p_end}
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) minobs(140) keep(hhid)}{p_end}
@@ -472,16 +472,16 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. list year nobs total dev_total if hhid == 103 & inrange(year, 2014, 2017), noobs abbreviate(9)}{p_end}
 
 {pstd}{bf:Example 7.} Rain and temperature together; wide output{p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) outstub(r_) keep(hhid) save(rain_season, replace)}{p_end}
-{phang2}{cmd:. use temp, clear}{p_end}
+{phang2}{cmd:. use wxsum_temp, clear}{p_end}
 {phang2}{cmd:. quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid)}{p_end}
 {phang2}{cmd:. merge 1:1 hhid year using rain_season, nogenerate}{p_end}
 {phang2}{cmd:. describe, short}{p_end}
 {phang2}{cmd:. format t_gdd t_kdd %7.1f}{p_end}
 {phang2}{cmd:. list hhid year r_total r_dry t_gdd t_kdd in 1/3, noobs}{p_end}
 {pstd}The rainfall statistics in wide form: one row per household{p_end}
-{phang2}{cmd:. use rain, clear}{p_end}
+{phang2}{cmd:. use wxsum_rain, clear}{p_end}
 {phang2}{cmd:. quietly wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid) shape(wide)}{p_end}
 {phang2}{cmd:. describe, short}{p_end}
 {phang2}{cmd:. ds *_2023, varwidth(21)}{p_end}
@@ -490,8 +490,8 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. use hh_panel, clear}{p_end}
 {phang2}{cmd:. describe}{p_end}
 {phang2}{cmd:. list in 1/3, noobs}{p_end}
-{phang2}{cmd:. merge m:1 hhid using rain, nogenerate}{p_end}
-{phang2}{cmd:. merge m:1 hhid using temp, nogenerate}{p_end}
+{phang2}{cmd:. merge m:1 hhid using wxsum_rain, nogenerate}{p_end}
+{phang2}{cmd:. merge m:1 hhid using wxsum_temp, nogenerate}{p_end}
 {phang2}{cmd:. wxsum rf_, type(rain) start(plant) end(harvest) outstub(r_) keep(hhid year plant harvest yield tmp_*)}{p_end}
 {phang2}{cmd:. quietly wxsum tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid year plant harvest yield r_*)}{p_end}
 {phang2}{cmd:. format t_gdd t_kdd %7.1f}{p_end}
@@ -502,7 +502,7 @@ the default {cmd:maxvar}{p_end}
 {pstd}{bf:Example 9.} Heat exposure in each trimester of pregnancy{p_end}
 {phang2}{cmd:. use births, clear}{p_end}
 {phang2}{cmd:. describe}{p_end}
-{phang2}{cmd:. merge m:1 hhid using temp, nogenerate}{p_end}
+{phang2}{cmd:. merge m:1 hhid using wxsum_temp, nogenerate}{p_end}
 {pstd}Third trimester: the 91 days before birth{p_end}
 {phang2}{cmd:. wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t3_) keep(childid hhid birthdate bweight tmp_*)}{p_end}
 {pstd}Second and first trimesters: the same window moved 91 and 182 days earlier{p_end}

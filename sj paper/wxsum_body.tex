@@ -591,14 +591,14 @@ Using either \texttt{lr\_years()} or \texttt{baseline()}, the reference period o
 
 \section{Examples} \label{sec:examples}
 
-We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{rain.dta}) and daily temperature in Celsius (\texttt{temp.dta}) both of which come from ERA5 \citep{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11.}
+We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{wxsum\_rain.dta}) and daily temperature in Celsius (\texttt{wxsum\_temp.dta}) both of which come from ERA5 \citep{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11.}
 
 \subsection{Rainfall in a calendar window} \label{sec:ex-rain}
 
-The data in \texttt{rain.dta} contain \texttt{hhid} and 7,670 daily variables, running from 2003 to 2023, named with the prefix rf\_. The following example calculates rainfall statistics for a May 15 through October 15 window and saves the resulting dataset. Because the default long output contains only the generated statistics and \texttt{year}, we retain the household identifier with \texttt{keep(hhid)}:
+The data in \texttt{wxsum\_rain.dta} contain \texttt{hhid} and 7,670 daily variables, running from 2003 to 2023, named with the prefix rf\_. The following example calculates rainfall statistics for a May 15 through October 15 window and saves the resulting dataset. Because the default long output contains only the generated statistics and \texttt{year}, we retain the household identifier with \texttt{keep(hhid)}:
 
 \begin{stlog}
-. use rain, clear
+. use wxsum_rain, clear
 {\smallskip}
 . wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
 > keep(hhid)
@@ -640,7 +640,7 @@ wxsum summary
 Temperature statistics need three thresholds: the lower and upper bounds for GDD and the heat threshold, which defines heat days and heat spells and, unless \texttt{kdd\_base()} is specified, the base for KDD. The next example calculates temperature statistics for the same May to October window, with GDD bounds of 10 and 30$^{\circ}$C and a heat threshold of 29$^{\circ}$C:
 
 \begin{stlog}
-. use temp, clear
+. use wxsum_temp, clear
 {\smallskip}
 . wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
 > gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)
@@ -676,7 +676,7 @@ wxsum summary
 In agriculture as well as other setting, temperature tends to have a nonlinear effect on outcomes. To capture this, \texttt{wxsum} can calculate a variety of temperature bins. The following example counts the days in four temperature bands: $< 24^{\circ}$C, 24--27$^{\circ}$C, 27--30$^{\circ}$C, and $\geq 30^{\circ}$C, from November through April. Because the final month precedes the initial month, each window crosses the end of the calendar year and is assigned to the year in which it starts:
 
 \begin{stlog}
-. use temp, clear
+. use wxsum_temp, clear
 {\smallskip}
 . wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30)
 > heat_threshold(30) cuts(24 27 30) keep(hhid)
@@ -714,7 +714,7 @@ cut04           byte    %12.0g                Days with temp >= 30
 By default, deviations and $z$-scores compare each window with the 10 preceding windows, so the reference period moves with each passing year. A fixed baseline instead compares every window with the same reference period. The next command uses the windows from 2003 through 2022 as a climatic baseline:
 
 \begin{stlog}
-. use rain, clear
+. use wxsum_rain, clear
 {\smallskip}
 . wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
 > baseline(2003 2022) keep(hhid)
@@ -758,11 +758,11 @@ Calendar windows apply the same dates to every observation, but many application
 . use hh_panel, clear
 (Simulated household panel for the wxsum examples)
 {\smallskip}
-. merge m:1 hhid using rain, nogenerate
+. merge m:1 hhid using wxsum_rain, nogenerate
 {\smallskip}
 \oom
 {\smallskip}
-. merge m:1 hhid using temp, nogenerate
+. merge m:1 hhid using wxsum_temp, nogenerate
 {\smallskip}
 \oom
 {\smallskip}
@@ -821,7 +821,7 @@ An event-based window ends the day before an event and extends back a given numb
 . use births, clear
 (Simulated births for the wxsum examples)
 {\smallskip}
-. merge m:1 hhid using temp, nogenerate
+. merge m:1 hhid using wxsum_temp, nogenerate
 {\smallskip}
 \oom
 {\smallskip}
@@ -872,13 +872,13 @@ An event-based window ends the day before an event and extends back a given numb
 Daily weather data do not always arrive with variable names that combine a stub and a date. When the daily variables are in date order, \texttt{wxprep rename} names them from a stub and the date of the first variable. To illustrate, we load the rainfall of 2023 and rename its 365 daily variables \texttt{day1}, \texttt{day2}, \ldots, \texttt{day365}:
 
 \begin{stlog}
-. use hhid rf_2023* using rain, clear
+. use hhid rf_2023* using wxsum_rain, clear
 {\smallskip}
 . rename rf_2023* day#, renumber
 {\smallskip}
 . describe, short
 {\smallskip}
-Contains data from rain.dta
+Contains data from wxsum_rain.dta
  Observations:            10
     Variables:           366                  12 Jun 2026 13:52
 Sorted by:

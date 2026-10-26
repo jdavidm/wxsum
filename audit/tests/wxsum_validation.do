@@ -2,8 +2,8 @@
 * task: core validation checks
 * created on: oct 2026
 * created by: jdm
-* edited on: 15 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 
 **********************************************************************
@@ -233,7 +233,7 @@ end
 
 **## 1.13 - bundled rainfall sample execution
 * load bundled rain dataset
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	tempfile        rainout
 	wxsum           rf_, ini_month(05) fin_month(10) ini_day(15) fin_day(15) ///
 	                    type(rain) shape(wide) save("`rainout'")
@@ -246,7 +246,7 @@ end
 
 **## 1.14 - bundled temperature sample execution
 * load bundled temperature dataset
-	use             temp.dta, clear
+	use             wxsum_temp.dta, clear
 	wxsum           tmp_, ini_month(11) fin_month(02) type(temp) heat_threshold(0) ///
 	                    gdd_lo(8) gdd_hi(32) keep(hhid) shape(wide)
 	capture confirm variable tempbin01_2003

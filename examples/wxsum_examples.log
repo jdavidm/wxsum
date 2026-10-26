@@ -5,11 +5,11 @@
 . **********************************************************************
 . 
 . * load rainfall data and inspect
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         describe,       short
 
-Contains data from rain.dta
+Contains data from wxsum_rain.dta
  Observations:            10                  
     Variables:         7,671                  12 Jun 2026 13:52
 Sorted by: 
@@ -139,7 +139,7 @@ dry_start       byte    %12.0g                Leading dry spell, days (rain < 1)
 . **********************************************************************
 . 
 . * load temperature data
-.         use             temp, clear
+.         use             wxsum_temp, clear
 
 . 
 . * calculate degree days and heat spells
@@ -180,7 +180,7 @@ wxsum summary
 . **## 4.1 - days in temperature bands
 . * days in temperature bands over the hot, dry season, november to april; the
 . * season crosses the end of the year and takes the year in which it starts
-.         use             temp, clear
+.         use             wxsum_temp, clear
 
 .         wxsum           tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10)
 >  gdd_hi(30) ///
@@ -219,7 +219,7 @@ cut04           byte    %12.0g                Days with temp >= 30
 . 
 . **## 4.2 - equal-width temperature bins and categories of seasonal gdd
 . * equal-width temperature bins and categories of seasonal gdd
-.         use             temp, clear
+.         use             wxsum_temp, clear
 
 .         quietly wxsum   tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10
 > ) ///
@@ -262,7 +262,7 @@ GDD [2300,2400) |         20        9.52       95.24
 . **********************************************************************
 . 
 . * calculate deviations against a 2003-2022 baseline
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10)
 >  fin_day(15) ///
@@ -308,7 +308,7 @@ wxsum summary
 . 
 . **## 6.1 - missing days with minobs()
 . * suppose that the rainfall of household 103 is missing in june and july 2015
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         quietly recode  rf_201506* rf_201507* (nonmissing = .) if hhid == 103
 
@@ -375,7 +375,7 @@ wxsum summary
 . 
 . **## 7.1 - combining rain and temperature
 . * calculate rainfall metrics and save
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10)
 >  fin_day(15) ///
@@ -395,7 +395,7 @@ wxsum summary
 
 . 
 . * calculate temperature metrics
-.         use             temp, clear
+.         use             wxsum_temp, clear
 
 .         quietly wxsum   tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10
 > ) ///
@@ -415,7 +415,7 @@ wxsum summary
 
 .         describe,       short
 
-Contains data from temp.dta
+Contains data from wxsum_temp.dta
  Observations:           210                  
     Variables:            52                  12 Jun 2026 13:53
 Sorted by: hhid  year
@@ -436,7 +436,7 @@ Sorted by: hhid  year
 . 
 . **## 7.2 - rainfall statistics in wide form
 . * the rainfall statistics in wide form: one row per household
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         quietly wxsum   rf_, type(rain) ini_month(5) ini_day(15) fin_month(10)
 >  ///
@@ -444,7 +444,7 @@ Sorted by: hhid  year
 
 .         describe,       short
 
-Contains data from rain.dta
+Contains data from wxsum_rain.dta
  Observations:            10                  
     Variables:           427                  12 Jun 2026 13:52
 Sorted by: 
@@ -475,7 +475,7 @@ z_mean_mo_2023         z_norain_2023
 Contains data from hh_panel.dta
  Observations:           110                  Simulated household panel for
                                                 the wxsum examples
-    Variables:             5                  16 Oct 2026 15:35
+    Variables:             5                  26 Oct 2026 09:22
                                               (_dta has notes)
 --------------------------------------------------------------------------------
 Variable      Storage   Display    Value
@@ -499,7 +499,7 @@ Sorted by: hhid  year
   |  101   2015   09may2015   15sep2015    1140 |
   +---------------------------------------------+
 
-.         merge m:1       hhid using rain, nogenerate
+.         merge m:1       hhid using wxsum_rain, nogenerate
 
     Result                      Number of obs
     -----------------------------------------
@@ -507,7 +507,7 @@ Sorted by: hhid  year
     Matched                               110  
     -----------------------------------------
 
-.         merge m:1       hhid using temp, nogenerate
+.         merge m:1       hhid using wxsum_temp, nogenerate
 
     Result                      Number of obs
     -----------------------------------------
@@ -602,7 +602,7 @@ corr(u_i, Xb) = 0.0027                          Prob > F          =     0.0000
 Contains data from births.dta
  Observations:           300                  Simulated births for the wxsum
                                                 examples
-    Variables:             4                  16 Oct 2026 15:35
+    Variables:             4                  26 Oct 2026 09:22
                                               (_dta has notes)
 --------------------------------------------------------------------------------
 Variable      Storage   Display    Value
@@ -616,7 +616,7 @@ bweight         int     %8.0g                 Birth weight, grams (simulated)
 --------------------------------------------------------------------------------
 Sorted by: childid
 
-.         merge m:1       hhid using temp, nogenerate
+.         merge m:1       hhid using wxsum_temp, nogenerate
 
     Result                      Number of obs
     -----------------------------------------
@@ -693,13 +693,13 @@ Linear regression                               Number of obs     =        300
 . **********************************************************************
 . 
 . * one year of rainfall in variables named day1, day2, ..., day365
-.         use             hhid rf_2023* using rain, clear
+.         use             hhid rf_2023* using wxsum_rain, clear
 
 .         rename          rf_2023* day#, renumber
 
 .         describe,       short
 
-Contains data from rain.dta
+Contains data from wxsum_rain.dta
  Observations:            10                  
     Variables:           366                  12 Jun 2026 13:52
 Sorted by: 
@@ -731,7 +731,7 @@ rf_20231231     byte    %8.0g
 Contains data from weather_hourly.dta
  Observations:        87,600                  Synthetic hourly weather for the
                                                 wxsum examples, 2022
-    Variables:             4                  16 Oct 2026 15:35
+    Variables:             4                  26 Oct 2026 09:22
                                               (_dta has notes)
 --------------------------------------------------------------------------------
 Variable      Storage   Display    Value
@@ -835,7 +835,7 @@ wxsum summary
 . **********************************************************************
 . 
 . * convert rainfall to long form and save
-.         use             rain, clear
+.         use             wxsum_rain, clear
 
 .         wxprep tolong   rf_, id(hhid) generate(rain) clear save(rain_long, rep
 > lace)
@@ -845,7 +845,7 @@ wxprep tolong: 10 units x 7670 days = 76700 observations
 
 . 
 . * convert temperature to long form and merge
-.         use             temp, clear
+.         use             wxsum_temp, clear
 
 .         wxprep tolong   tmp_, id(hhid) generate(temp) clear
 wxprep tolong: 10 units x 7639 days = 76390 observations

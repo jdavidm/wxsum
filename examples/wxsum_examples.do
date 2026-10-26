@@ -1,15 +1,15 @@
 * project: wxsum
 * created on: oct 2026
 * created by: jdm
-* edited on: 23 oct 2026
+* edited on: 26 oct 2026
 * edited by: claude
 * Stata v.15.1
 *
 * The examples in the article, for wxsum version 7 and wxprep version 1.
 *
-* Run it in the folder where -net get wxsum- copied the sample data (rain.dta,
-* temp.dta) and the example datasets (hh_panel.dta, births.dta,
-* weather_hourly.dta):
+* Run it in the folder where -net get wxsum- copied the sample data
+* (wxsum_rain.dta, wxsum_temp.dta) and the example datasets (hh_panel.dta,
+* births.dta, weather_hourly.dta):
 *
 *     net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
 *     net get wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
@@ -20,10 +20,10 @@
 *
 * hh_panel.dta, births.dta, and weather_hourly.dta are SIMULATED: they
 * illustrate the commands and are not observed data (make_example_data.do
-* creates them from rain.dta and temp.dta).
+* creates them from wxsum_rain.dta and wxsum_temp.dta).
 *
-* rain.dta and temp.dta have one variable per day (about 7,700 each), so the
-* examples set maxvar above the default of 5,000. Stata/BE allows at most
+* wxsum_rain.dta and wxsum_temp.dta have one variable per day (about 7,700
+* each), so the examples set maxvar above the default of 5,000. Stata/BE allows at most
 * 2,048 variables and can run only example 11, which starts from hourly data
 * for one year.
 
@@ -41,8 +41,9 @@
 * confirm required sample files exist
 	capture confirm file "hh_panel.dta"
 	if _rc {
-		di as error     "Run wxsum_examples.do in a folder with rain.dta, temp.dta,"
-		di as error     "and the example datasets: type -net get wxsum- there first."
+		di as error     "Run wxsum_examples.do in a folder with wxsum_rain.dta,"
+		di as error     "wxsum_temp.dta, and the example datasets: type -net get wxsum-"
+		di as error     "there first."
 		exit            601
 	}
 
@@ -55,7 +56,7 @@
 **********************************************************************
 
 * load rainfall data and inspect
-	use             rain, clear
+	use             wxsum_rain, clear
 	describe,       short
 
 * calculate rainfall metrics for growing season
@@ -85,7 +86,7 @@
 **********************************************************************
 
 * load temperature data
-	use             temp, clear
+	use             wxsum_temp, clear
 
 * calculate degree days and heat spells
 	wxsum           tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
@@ -101,7 +102,7 @@
 **## 4.1 - days in temperature bands
 * days in temperature bands over the hot, dry season, november to april; the
 * season crosses the end of the year and takes the year in which it starts
-	use             temp, clear
+	use             wxsum_temp, clear
 	wxsum           tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30) ///
 	                heat_threshold(30) cuts(24 27 30) keep(hhid)
 	describe        cut*
@@ -109,7 +110,7 @@
 
 **## 4.2 - equal-width temperature bins and categories of seasonal gdd
 * equal-width temperature bins and categories of seasonal gdd
-	use             temp, clear
+	use             wxsum_temp, clear
 	quietly wxsum   tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) ///
 	                fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) ///
 	                tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) ///
@@ -122,7 +123,7 @@
 **********************************************************************
 
 * calculate deviations against a 2003-2022 baseline
-	use             rain, clear
+	use             wxsum_rain, clear
 	wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
 	                baseline(2003 2022) keep(hhid)
 	format          dev_total %7.1f
@@ -136,7 +137,7 @@
 
 **## 6.1 - missing days with minobs()
 * suppose that the rainfall of household 103 is missing in june and july 2015
-	use             rain, clear
+	use             wxsum_rain, clear
 	quietly recode  rf_201506* rf_201507* (nonmissing = .) if hhid == 103
 	preserve
 	wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
@@ -160,12 +161,12 @@
 
 **## 7.1 - combining rain and temperature
 * calculate rainfall metrics and save
-	use             rain, clear
+	use             wxsum_rain, clear
 	wxsum           rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) ///
 	                outstub(r_) keep(hhid) save(rain_season, replace)
 
 * calculate temperature metrics
-	use             temp, clear
+	use             wxsum_temp, clear
 	quietly wxsum   tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) ///
 	                fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) ///
 	                keep(hhid)
@@ -178,7 +179,7 @@
 
 **## 7.2 - rainfall statistics in wide form
 * the rainfall statistics in wide form: one row per household
-	use             rain, clear
+	use             wxsum_rain, clear
 	quietly wxsum   rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) ///
 	                fin_day(15) keep(hhid) shape(wide)
 	describe,       short
@@ -192,8 +193,8 @@
 	use             hh_panel, clear
 	describe
 	list            in 1/3, noobs
-	merge m:1       hhid using rain, nogenerate
-	merge m:1       hhid using temp, nogenerate
+	merge m:1       hhid using wxsum_rain, nogenerate
+	merge m:1       hhid using wxsum_temp, nogenerate
 
 * calculate household-specific seasonal weather metrics
 	wxsum           rf_, type(rain) start(plant) end(harvest) outstub(r_) ///
@@ -215,7 +216,7 @@
 * load births data and merge temperature data
 	use             births, clear
 	describe
-	merge m:1       hhid using temp, nogenerate
+	merge m:1       hhid using wxsum_temp, nogenerate
 
 * third trimester: the 91 days before birth
 	wxsum           tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) ///
@@ -239,7 +240,7 @@
 **********************************************************************
 
 * one year of rainfall in variables named day1, day2, ..., day365
-	use             hhid rf_2023* using rain, clear
+	use             hhid rf_2023* using wxsum_rain, clear
 	rename          rf_2023* day#, renumber
 	describe,       short
 	wxprep rename   day1-day365, stub(rf_) firstdate(01jan2023)
@@ -277,11 +278,11 @@
 **********************************************************************
 
 * convert rainfall to long form and save
-	use             rain, clear
+	use             wxsum_rain, clear
 	wxprep tolong   rf_, id(hhid) generate(rain) clear save(rain_long, replace)
 
 * convert temperature to long form and merge
-	use             temp, clear
+	use             wxsum_temp, clear
 	wxprep tolong   tmp_, id(hhid) generate(temp) clear
 	merge 1:1       hhid date using rain_long, keep(match) nogenerate
 

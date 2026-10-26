@@ -2,8 +2,8 @@
 * task: performance benchmarks on bundled and scaled data
 * created on: oct 2026
 * created by: jdm
-* edited on: 15 oct 2026
-* edited by: alj
+* edited on: 26 oct 2026
+* edited by: claude
 * Stata v.15.1
 
 **********************************************************************
@@ -29,17 +29,17 @@
 
 * define test configurations
 	local           n_cfg = 4
-	local           d1 "rain.dta"
+	local           d1 "wxsum_rain.dta"
 	local           c1 `"rf_, type(rain) ini_month(05) ini_day(15) fin_month(10) fin_day(15) keep(hhid)"'
-	local           d2 "rain.dta"
+	local           d2 "wxsum_rain.dta"
 	local           c2 `"rf_, type(rain) ini_month(11) fin_month(02) keep(hhid) shape(wide)"'
-	local           d3 "temp.dta"
+	local           d3 "wxsum_temp.dta"
 	local           c3 `"tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) heat_threshold(30) gdd_bin(100) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid)"'
-	local           d4 "temp.dta"
+	local           d4 "wxsum_temp.dta"
 	local           c4 `"tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) heat_threshold(27) keep(hhid) baseline(2003 2012)"'
 
 * load programs once to exclude ado-file disk read overhead
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	quietly wxsum   rf_, type(rain) ini_month(1) fin_month(1) fin_day(2) keep(hhid)
 
 **********************************************************************
@@ -71,8 +71,8 @@
 **# 3 - performance of wxprep operations
 **********************************************************************
 
-* benchmark wxprep towide on long data (made from rain.dta with tolong)
-	use             rain.dta, clear
+* benchmark wxprep towide on long data (made from wxsum_rain.dta with tolong)
+	use             wxsum_rain.dta, clear
 	quietly wxprep  tolong rf_, id(hhid) generate(rain) clear
 	timer clear     2
 	timer on        2
@@ -90,7 +90,7 @@
 	local           tl = r(t3)
 
 * benchmark wxprep rename on 7,670 daily variables
-	use             rain.dta, clear
+	use             wxsum_rain.dta, clear
 	quietly ds      rf_*
 	local           old `r(varlist)'
 	local           k : word count `old'

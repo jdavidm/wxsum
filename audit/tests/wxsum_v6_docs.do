@@ -3,7 +3,7 @@
 *       index.html are the same, and they run
 * created on: 16 oct 2026
 * created by: claude
-* edited on: 22 oct 2026
+* edited on: 26 oct 2026
 * edited by: claude
 * Stata v.15.1
 *
@@ -216,7 +216,7 @@ end
 	foreach f of local old {
 		erase           "`work'/`f'"
 	}
-	foreach f in rain.dta temp.dta {
+	foreach f in wxsum_rain.dta wxsum_temp.dta {
 		copy            "`f'" "`work'/`f'"
 	}
 	local           exdata : dir "examples" files "*.dta"
