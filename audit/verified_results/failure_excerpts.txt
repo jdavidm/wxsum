@@ -1,0 +1,239 @@
+=== save_failure_atomic_wxsum ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/124_save_failure_atomic_wxsum.do"
+. version 15.1
+. set type double
+. clear
+. input double (id x_20200101 x_20200102 x_20200103 x_20200104 x_20200105 x_20200
+> 106)
+             id  x_20200101  x_20200102  x_20200103  x_20200104  x_20200105  x_20
+> 200106
+  1. 1 1 2 3 4 5 6
+  2. end
+. datasignature
+  1:7(36378):2885999714:2533436749
+. local before `r(datasignature)'
+. capture wxsum x_, type(rain) ini_month(1) fin_month(1) fin_day(6) keep(id) save
+> ("C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum_audit/verified_re
+> sults/does_not_exist/out.dta", replace)
+. local rc=_rc
+. assert `rc'!=0
+. datasignature
+  1:16(68574):1202357911:3252320801
+. assert "`before'"=="`r(datasignature)'"
+assertion is false
+r(9);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "save_failure_atomic_wxsum,io,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== save_failure_atomic_prep_tolong ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/125_save_failure_atomic_prep_tolong.do"
+. version 15.1
+. set type double
+. clear
+. input double (id x_20200101 x_20200102 x_20200103 x_20200104 x_20200105 x_20200
+> 106)
+             id  x_20200101  x_20200102  x_20200103  x_20200104  x_20200105  x_20
+> 200106
+  1. 1 1 2 3 4 5 6
+  2. end
+. datasignature
+  1:7(36378):2885999714:2533436749
+. local before `r(datasignature)'
+. capture wxprep tolong x_, id(id) clear save("C:/Users/annal/Documents/Codex/202
+> 6-10-15/rea/outputs/wxsum_audit/verified_results/does_not_exist/out.dta", repla
+> ce)
+. local rc=_rc
+. assert `rc'!=0
+. datasignature
+  6:3(67194):440099066:1927493393
+. assert "`before'"=="`r(datasignature)'"
+assertion is false
+r(9);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "save_failure_atomic_prep_tolong,io,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== save_failure_atomic_prep_towide ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/126_save_failure_atomic_prep_towide.do"
+. version 15.1
+. set type double
+. clear
+. input id long d v
+             id             d           v
+  1. 1 20200101 5
+  2. 1 20200102 6
+  3. end
+. datasignature
+  2:3(107350):3000685638:2104265314
+. local before `r(datasignature)'
+. capture wxprep towide v, id(id) date(d) stub(x_) clear save("C:/Users/annal/Doc
+> uments/Codex/2026-10-15/rea/outputs/wxsum_audit/verified_results/does_not_exist
+> /out.dta", replace)
+. local rc=_rc
+. assert `rc'!=0
+. datasignature
+  1:3(93961):2422895522:678901729
+. assert "`before'"=="`r(datasignature)'"
+assertion is false
+r(9);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "save_failure_atomic_prep_towide,io,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== documented_longest_heat_formula ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/127_documented_longest_heat_formula.do"
+. version 15.1
+. set type double
+. clear
+. input double (id x_20200101 x_20200102 x_20200103 x_20200104 x_20200105 x_20200
+> 106)
+             id  x_20200101  x_20200102  x_20200103  x_20200104  x_20200105  x_20
+> 200106
+  1. 1 35 . 35 35 20 20
+  2. end
+. wxsum x_, type(temp) ini_month(1) fin_month(1) fin_day(6) gdd_lo(10) gdd_hi(30)
+>  heat_threshold(30) keep(id)
+wxsum summary
+  Data:          temp (stub x_), gdd_lo(10) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01jan-06jan; 1 window(s), 2020-2020
+  Output:        long, 1 rows (1 per input observation); 14 variables created
+  Reference:     rolling 10 years before each window, ref_min(10); no deviations 
+> or z-scores (not enough reference years)
+  Missing data:  1 of 1 unit-windows have missing days; 0 have no data; 0 below m
+> inobs(1)
+  Stored results: type return list
+. * Help says max(heat_start,heat,heat_end) is the longest heat run.
+. * The two consecutive 35s on days 3 and 4 are the longest run.
+. assert max(heat_start,heat,heat_end)==2
+assertion is false
+r(9);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "documented_longest_heat_formula,documentation,`status',`rc'
+> " _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== prep_early_year_eight_digit_names ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/128_prep_early_year_eight_digit_names.do"
+. version 15.1
+. set type double
+. clear
+. set obs 1
+Number of observations (_N) was 0, now 1.
+. gen id=1
+. gen double d=mdy(1,1,999)
+. assert !missing(d)
+. format d %td
+. gen v=7
+. wxprep towide v, id(id) date(d) stub(x_) clear
+wxprep towide: 1 unit, 1 daily variable x_9990101 to x_9990101
+. confirm variable x_09990101
+variable x_09990101 not found
+r(111);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "prep_early_year_eight_digit_names,behavior,`status',`rc'" _
+> n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== prep_rename_early_year ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/129_prep_rename_early_year.do"
+. version 15.1
+. set type double
+. clear
+. set obs 1
+Number of observations (_N) was 0, now 1.
+. gen a=7
+. wxprep rename a, stub(x_) firstdate(09990101)
+wxprep rename: 1 variables renamed, x_9990101 to x_9990101
+. confirm variable x_09990101
+variable x_09990101 not found
+r(111);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "prep_rename_early_year,behavior,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== manuscript_example_2 ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/155_manuscript_example_2.do"
+. version 15.1
+. set type double
+. tempfile paper_save
+. use "C:/Users/annal/Downloads/wxsum/temp.dta", clear
+. wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8)  ///
+>     gdd_hi(32) kdd_base(32) keep(hhid)
+heat_threshold() is required for type(temp) in wxsum 6.
+In wxsum 5, kdd_base() set the KDD threshold. Use heat_threshold(#), and add
+kdd_base(#) only if the KDD base should differ from heat_threshold().
+r(198);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "manuscript_example_2,documentation,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== manuscript_example_3 ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/156_manuscript_example_3.do"
+. version 15.1
+. set type double
+. tempfile paper_save
+. use "C:/Users/annal/Downloads/wxsum/temp.dta", clear
+. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) ///
+>     fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) ///
+>     gdd_binlo(50) gdd_binhi(950) keep(hhid)
+heat_threshold() is required for type(temp) in wxsum 6.
+In wxsum 5, kdd_base() set the KDD threshold. Use heat_threshold(#), and add
+kdd_base(#) only if the KDD base should differ from heat_threshold().
+r(198);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "manuscript_example_3,documentation,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "
+
+=== manuscript_example_4 ===
+. capture noisily do "C:/Users/annal/Documents/Codex/2026-10-15/rea/outputs/wxsum
+> _audit/verified_results/cases/157_manuscript_example_4.do"
+. version 15.1
+. set type double
+. tempfile paper_save
+. use "C:/Users/annal/Downloads/wxsum/temp.dta", clear
+. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) ///
+>     fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15)  ///
+>     tmp_binlo(0) tmp_binhi(39) keep(hhid)
+heat_threshold() is required for type(temp) in wxsum 6.
+In wxsum 5, kdd_base() set the KDD threshold. Use heat_threshold(#), and add
+kdd_base(#) only if the KDD base should differ from heat_threshold().
+r(198);
+end of do-file
+. local rc = _rc
+. local status = cond(`rc'==0,"PASS","FAIL")
+. file write results "manuscript_example_4,documentation,`status',`rc'" _n
+. global WXSUM_TEST_FAIL
+. display "

@@ -1,0 +1,55 @@
+\documentclass{article}[11pt]
+% Set the document class to "article" with 12pt font size
+
+\input{preamble}
+
+\title{SJ R \& R}
+\author{}
+\date{}
+
+\begin{document}
+
+\setlength{\parindent}{0pt} % For some reason doesn't work in the preamble but works if I put it here
+\setlength{\parskip}{\smallskipamount}
+
+\pagestyle{fancy}
+\fancyhead{} % clear header fields
+\fancyhead[L]{\texttt{-wxsum-}   \hfill Response to Reviewer}
+% \fancyhead[R]{\nouppercase{\leftmark}}
+\renewcommand{\thetable}{E-\arabic{table}}
+\renewcommand{\thefigure}{E-\arabic{figure}}
+
+\onehalfspacing
+\section*{Reviewer's Comments}
+
+This paper is well-written, transparent, and the Stata package it introduces is useful for the kinds of applications the authors discuss. Based on my verification exercise, the package works correctly. That is, it calculates the summary variables listed above correctly for both temperature and rainfall data. I do have some concerns and recommendations, which I outline below.
+    \begin{quote}
+        Thank you for your encouraging comments and the chance to revise and improve the manuscript for re-consideration. \\ 
+        
+        Below we respond to each comment/recommendation from the reviewer. In brief, we have implemented all but 1 recommendation, regarding deviations in early and late dry/heat spells. Besides incorporating the reviewer's recommendations, we have added a number of other features at the request of the Editor. 
+    \end{quote}
+    
+\emph{A “reshape wide” Option} \\
+The package requires daily temperature and rainfall data to be shaped in wide format with a specific naming convention. As the authors already point out, the main limitation of this requirement is that it will preclude some Stata users from loading temperature/rainfall datasets that span very long periods into Stata to run wxsum. There is, however, an additional limitation: requiring a wide format with a specific naming convention increases the pre-processing burden on users who (i) need to implement transformations of the daily temperature/rainfall observations (e.g. converting Kelvin to Celsius or taking averages of temperature across sub-daily observations); (ii) have access to long-format datasets.
+
+In light of this limitation, I recommend that the authors incorporate an option into the package that allows users to convert long-format data to the wide format and naming convention required by wxsum. This option would require the user to specify an ID variable, the weather variable (temperature/rainfall), and the date variable from which the yyyymmdd suffix would be extracted. Adding this feature to the package would benefit (i) users with access to wide-format data who want to implement transformations to the daily weather variables before proceeding with wxsum (they would simply need to reshape the data long, implement the transformations, and then reshape it wide again); (ii) users with access to long-format data who want to use wxsum.
+    \begin{quote}
+        To address this recommendation, we have developed a small companion package to \texttt{wxsum} called \texttt{wxprep}. This new package accepts long or wide data. If the data is long, it converts the data to wide and uses a user-supplied date variable to generate variables with the necessary naming convention of stubyyyymmdd. If the data is already wide the package can rename daily variables if they do not follow the stubyyyymmdd convention. There is also a tolong option in case the data is wide but the user wants to calculate new variables that are easier to create in long data.
+    \end{quote}
+
+\emph{Deviations and z-Scores Relative to a Fixed Baseline} \\
+In the current version of the package, deviations and z-scores are calculated relative to a lagged rolling window. This is useful for some applications. However, in other applications, researchers might want to calculate deviations and z-scores relative to a fixed climate baseline (e.g. 1900 to 1950). I think this option should be incorporated into the package.
+    \begin{quote}
+        We have added an option to \texttt{wxsum} that allows users to specify a fixed baseline by providing a start and end year. Deviations and z-scores are then calculated against that fixed baseline for all years, including years that fall within the baseline (the rolling window option only calculates deviations outside the window).
+    \end{quote}
+
+In the current version of the package, the user-specified season is invariant across locations. There are applications where the season throughout which we want to calculate temperature and rainfall statistics varies by location. E.g. planting and harvest dates, and therefore growing seasons, can vary across farms. Is it possible to allow users to specify the beginning and end dates of the season based on variables in the dataset? Using the agriculture example, if we observe planting date and harvest date for each farm, this option would allow us to calculate temperature and rainfall summaries throughout farm-specific growing seasons. If implementing this or some version of it is not feasible, the authors should explain why and discuss this as a limitation.
+    \begin{quote}
+        We have added an option for the user to define unit-specific windows. Users can do this in one of two ways. The first follows your recommendation. The user specifies a variable that contains the start date and another that contains the end date and uses this window for the ``season.'' The other way to specify a unit-specific window was suggested by the Editor. The user specifies a variable that contains the date of an event (i.e., birth, natural disaster, conflict) and the length of the window in days (i.e., 30 days before the event). Users also have the option to specify a lag that moves the window to a number of days before or after the event. An example would be the user has planting date and wants to calculate rainfall for the flowering stage, which last 15 days, and comes 45 days after planting.
+    \end{quote}
+
+I noticed that deviations and z-scores are not calculated for early-, mid-, and late-season dry spells. These should either be calculated or there should be an explanation as to why they are not.   
+    \begin{quote}
+        We have added deviation and z-scores for mid-season dry spells and heat spells. We have not added deviation and z-scores for early- and late-season dry/heat spells. Our reasons are twofold. First, while a deviation from a summer heat spell or from a drought makes sense, we struggled to think of occasions when this would be particularly useful. Given that the command already calculates 26 rainfall and 24 temperature variables, calculating 8 more that would be rarely used seemed unnecessary and so we focused on adding what we believe are more useful features. The second reason was that, in weather data we have from a variety of sources and for a variety of locations, the early- and late-season variables were frequently zero. The sparsity of early- and late-season spells means calculating long run means and standard deviations include many zeros, meaning deviations and z-scores would frequently be zero.
+    \end{quote}
+\end{document}

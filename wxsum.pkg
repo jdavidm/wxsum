@@ -1,11 +1,27 @@
-v 5.0
-d
+v 3
 d 'wxsum': A command for processing temperature and precipitation data
 d
-d Distribution-Date: 20260613
+d wxsum computes seasonal (calendar) or unit-specific window statistics from
+d daily weather data: distributions, totals, rainy and heat days, dry and heat
+d spells, growing and killing degree days, bins, and deviations and z-scores
+d relative to a rolling or fixed reference period. wxprep converts long daily
+d data, or wide data with other variable names, to the layout wxsum needs.
+d
+d Version: wxsum 7.0.0, wxprep 1.0.0
+d Distribution-Date: 20261026
 d
 d Author: Jeffrey D. Michler
 d Support: jdmichler@arizona.edu
 d
 f wxsum.ado
 f wxsum.sthlp
+f wxprep.ado
+f wxprep.sthlp
+f wxsum_rain.dta
+f wxsum_temp.dta
+f examples/hh_panel.dta
+f examples/births.dta
+f examples/weather_hourly.dta
+f examples/wxsum_examples.do
+f examples/wxsum_examples.log
+f examples/make_example_data.do

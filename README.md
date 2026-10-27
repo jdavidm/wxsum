@@ -1,167 +1,307 @@
 # `wxsum`: A command for processing temperature and precipitation data
 
-## Installation
+`wxsum` turns daily weather data into statistics for a window of days: a season that repeats every year (a calendar window), or a window that differs by observation, such as a farm's growing season or the months before a birth (a unit-specific window). The companion command `wxprep` converts long daily data, or wide data with other variable names, into the layout `wxsum` needs.
 
-You can install the latest version of `wxsum` directly from this GitHub repository using Stata's `net install` command:
+## Installation
 
 ```stata
 net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/") replace
 ```
 
+The sample data, the example datasets, and the example do-file are ancillary files; `net get` copies them into the current folder:
+
+```stata
+net get wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
+```
+
 ## Requirements
 
-The command requires Stata 15 or later. Users working with long time series in Stata/IC may need to split the data into shorter panels due to variable limits.
+Stata 15 or later. The wide daily layout has one variable per day (40 years are about 14,600 variables), so Stata/SE and Stata/MP need `set maxvar` above the default of 5,000 (`clear all`, then `set maxvar 20000`, then load the data). Stata/BE allows 2,048 variables, about five years of daily data; use `wxprep towide` with `if` to convert part of the years at a time. `wxsum` checks `maxvar` before it starts.
 
-## Description
+## Data layout
 
-The `wxsum` command processes remote sensing rainfall and temperature data and outputs useful statistics. The command can be used with either rainfall or temperature data from any source.
+The data must be wide: one observation per location (or household, plot, person, ...) and one numeric variable per day, named `stub` + `yyyymmdd`. For example, with stub `rf_`, rain on 15 May 1979 is in `rf_19790515`. Calendar days without a daily variable are treated as missing days.
 
-The data must be wide, where each location is a row and each column is a daily reading. Daily weather variable names must be the user-supplied prefix followed by `yyyymmdd`. For example, if the prefix is `rf_`, the variable for May 15, 1979 would be `rf_19790515`.
+Long data (one row per unit-day, possibly with several readings per day) and wide data with other names can be converted with `wxprep`:
 
-Z-scores and deviations from long-run averages are computed strictly against the specified number of preceding `lr_years`. If there is not enough preceding data to satisfy the requested window, deviations and z-scores are skipped for those initial years, though standard variables still generate.
+```stata
+wxprep towide rain, id(hhid) date(date) stub(rf_)            // long -> wide
+wxprep rename rain1-rain365, stub(rf_) firstdate(01jan2020)  // other names -> rf_yyyymmdd
+wxprep tolong rf_, id(hhid)                                  // wide -> long
+```
+
+- `towide` combines several readings per day with `daily(mean|sum|min|max)` (without it, duplicate unit-days are an error), reads string dates with `dateformat()` (e.g. `dateformat(YMD)`), and accepts `%td` dates, `%tc` datetimes, and YYYYMMDD integers. By default it creates a variable for every calendar day from the first to the last date, so days without data become missing days in `wxsum`; `nofill` creates variables only for dates in the data. `if`/`in` convert part of the data, and `save()` saves the result.
+- `rename` takes `firstdate()` for consecutive days, or `from()` and `dateformat()` to read the dates from the old names.
+- All three take `convert(varlist)`, which turns `%tc` and `%tC` datetime variables into `%td` daily dates for `wxsum`'s `start()`, `end()`, and `event_date()`. With `rename`, any other variables can be converted; `towide` and `tolong` keep only the `id()` variables, so there the variables must be `id()` variables.
+- `tolong` names the value and date variables with `generate()` (default: the stub without a trailing `_`) and `date()` (default `date`), and `save()` saves the long data; `id()` must identify the observations.
+- `towide` and `tolong` replace the data in memory: they need `clear` if the data have changed since the last save, and they leave the data unchanged if they fail. The daily values get the narrowest storage type that holds them exactly (`byte`, `int`, or `long` for whole numbers; otherwise `float`, or `double` if the input is `double` or `long`).
 
 ## Syntax
 
 ```stata
-wxsum stubname , type(rain|temp) ini_month(month) fin_month(month) [options]
+* calendar window: the same dates every year
+wxsum stub, type(rain|temp) ini_month(#) fin_month(#) [ini_day(#) fin_day(#) options]
+
+* unit-specific window: dates from variables, one window per observation
+wxsum stub, type(rain|temp) start(varname) end(varname) [partial options]
+wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 ```
 
 ### Options
 
-#### Required
-- `type(rain|temp)`: Specify the data type. Use `rain` for precipitation data or `temp` for temperature data.
-- `ini_month(month)`: Initial month of the season (e.g., 05 for May).
-- `fin_month(month)`: Final month of the season (e.g., 10 for October).
+| Option | Meaning |
+|---|---|
+| `type(rain\|temp)` | Required. Other daily series (humidity, wind speed, wet-bulb temperature) use `temp`, though not every statistic is meaningful for them (GDD for wind speed, for example); `cuts()` is often useful. |
+| `ini_month(#) fin_month(#)` | First and last month of a calendar window, whole numbers from 1 to 12 (`05` is read as 5). A window that crosses the end of the year is labeled with its start year. Only windows that lie entirely within the dates of the daily variables are summarized. |
+| `ini_day(#) fin_day(#)` | First and last day (1-31, and a valid date with its month); by default the window runs from the first day of `ini_month()` to the last day of `fin_month()` (29 February included in leap years). 29 February given here is 28 February in common years. |
+| `start(varname) end(varname)` | Each observation's first and last day (`%td` dates; convert `%tc` datetimes with `dofc()` or `wxprep`'s `convert()` option). A window that ends before it starts is an error; a missing date gives missing statistics. |
+| `event_date(varname) days(#) [lag(#)]` | Window of `#` days ending the day before an event, i.e. from `event_date - days - lag` to `event_date - 1 - lag`; `lag()` (default 0) moves it `#` days earlier, and a negative `lag()` moves it later (after the event). |
+| `partial` | Use the days inside the data when a unit-specific window runs past the first or last daily variable; without it, such windows have missing statistics. |
+| `rain_threshold(#)` | Rainy day if rain >= `#` (nonnegative); default 1. Rain only. |
+| `gdd_lo(#) gdd_hi(#)` | Bounds for growing degree days (`gdd_hi()` > `gdd_lo()`). Required for `temp`. |
+| `heat_threshold(#)` | Heat day if temp >= `#`; also the base for killing degree days. Required for `temp`. |
+| `kdd_base(#)` | KDD base, only if it should differ from `heat_threshold()`. |
+| `gdd_bin(#) gdd_binlo(#) gdd_binhi(#)` | Categories of width `gdd_bin()` of the seasonal GDD total (`gddcat`), starting at `gdd_binlo()` (default 0). Totals below `gdd_binlo()` get a bottom category; with `gdd_binhi()` (which must lie a whole number of widths above `gdd_binlo()`), totals at or above it share a top category, otherwise the categories extend to the largest total. At most 100 categories. Temp only. |
+| `tmp_bin(#) tmp_binlo(#) tmp_binhi(#)` | `#` daily temperature bins (at most 42): below `tmp_binlo()`, `#` - 2 equal-width bins from `tmp_binlo()` to `tmp_binhi()`, and `tmp_binhi()` or above (`tmp_bin(2)` splits at the midpoint, `tmp_bin(1)` counts all observed days). Temp only. |
+| `cuts(numlist)` | Bins at your own cutpoints (at most 41, strictly increasing; each bin includes its lower cutpoint). Rain or temp; cannot be combined with `tmp_bin()`. |
+| `lr_years(#)` | Rolling reference period: the `#` preceding years (2-50; default 10). |
+| `baseline(# #)` | Fixed reference period, e.g. `baseline(1981 2010)`; it must cover at least `ref_min()` windows (calendar) or years (unit-specific) of the data. Cannot be combined with `lr_years()`. |
+| `ref_min(#)` | Nonmissing reference values needed for a deviation, at least 2; default: all reference years. |
+| `minobs(#)` | Observed days a window needs for its statistics (`nobs` is always reported); default 1. |
+| `shape(long\|wide)` | Shape of a calendar-window result; default `long`. Ignored with unit-specific windows. |
+| `outstub(string)` | Prefix for all output names (e.g. to keep rain and temp results in one dataset). |
+| `keep(varlist)` | Variables to keep, typically identifiers; with long output it cannot include `year`. |
+| `save(filename [, replace])` | Save the output (`.dta` is added if the name has no extension); an existing file is overwritten only with `replace`. |
 
-#### General
-- `ini_day(day)`: Start day of the season. Default is 01.
-- `fin_day(day)`: End day of the season. If not specified, it dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
-- `lr_years(#)`: Number of strictly preceding years used to calculate rolling deviations and Z-scores. Default is 10. Max is 50.
-- `rain_threshold(#)`: Threshold for defining a rainy day. Defaults to 1. Missing rainfall values are excluded from calculations.
-- `gdd_lo(#)`: Lower bound for growing degree days calculation. Required if `type(temp)` is used.
-- `gdd_hi(#)`: Upper bound for growing degree days calculation. Required if `type(temp)` is used.
-- `kdd_base(#)`: Temperature threshold for calculating Killing Degree Days (KDD). Required if `type(temp)` is used.
-- `gdd_bin(#)`: Width of fixed-interval seasonal GDD bins. When specified, creates one integer categorical variable `gddcat_YYYY` for each generated GDD season. Requires `type(temp)`.
-- `gdd_binlo(#)`: Lower endpoint for regular fixed-width GDD intervals. Default is 0 when `gdd_bin()` is specified. Values below this threshold are assigned to a bottom-coded category. Requires `gdd_bin()`.
-- `gdd_binhi(#)`: Upper endpoint for regular fixed-width GDD intervals. Values at or above this threshold are assigned to a top-coded category. When omitted, the command automatically extends intervals to cover the empirical maximum. Requires `gdd_bin()`.
-- `tmp_bin(#)`: Total number of daily temperature bin count variables to create per season. Must be a positive integer from 1 to 42. Requires `type(temp)`, `tmp_binlo()`, and `tmp_binhi()`.
-- `tmp_binlo(#)`: Lower bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be in the same units as the daily temperature data.
-- `tmp_binhi(#)`: Upper bound of the temperature range for bin construction. Required with `tmp_bin()`. Must be greater than `tmp_binlo()`.
-- `shape(wide|long)`: Shape of the final output. Default is `wide`. When `long` is specified, output is stacked with one row per retained unit-year and a variable named `year`. It is strongly recommended to use `keep()` with unit identifiers when `shape(long)` is requested.
-- `keep(varlist)`: Variables to keep in the final dataset along with the generated wxsum variables.
-- `save(filename)`: File path to save the resulting dataset.
+## Output
 
-## Generated Variables
+Long output (the default) has one row per observation and window, a variable `year` (the year the window starts), and statistics named `total`, `mean`, ...; wide output has one row per observation and names such as `total_1993`. With unit-specific windows there is one row per observation and no year suffix.
 
-Using data sets as defined above, the wxsum command creates useful statistics in the same fashion for all detected season years. The command handles seasons that span calendar years, such as November to February, and labels the output with the year the season starts.
+| | Statistics |
+|---|---|
+| All | `nobs` (observed days), `mean`, `median`, `var`, `sd`, `skew` |
+| Rain | `total`, `mean_mo` (mean of monthly totals), `raindays`, `norain`, `pct_raindays`, `dry_start`, `dry`, `dry_end` |
+| Temp | `max`, `gdd`, `kdd`, `heatdays`, `pct_heatdays`, `heat_start`, `heat`, `heat_end` |
+| Optional | `gddcat`, `tmpbin01`..., `cut01`... |
+| Reference | `dev_` and `z_` for `mean_mo`, `total`, `raindays`, `norain`, `pct_raindays`, and the mid-window dry spell `dry` (rain), or `gdd`, `kdd`, `heatdays`, `pct_heatdays`, and the mid-window heat spell `heat` (temp) |
 
-### 1. Rainfall Variables
+Definitions:
 
-When `type(rain)` is specified, the command generates the following variables for each season:
+- All statistics use the observed (nonmissing) days of the window. `var` and `sd` need 2 observed days, and `skew` (sample skewness) needs 3 and a nonzero `sd`. `pct_raindays` and `pct_heatdays` are shares (0 to 1) of the observed days. `mean_mo` is `total` divided by the number of calendar months with at least one observed day.
+- Growing degree days are the number of degrees between `gdd_lo()` and `gdd_hi()` each day, summed over the observed days: 0 when T <= `gdd_lo`, T - `gdd_lo` when `gdd_lo` < T < `gdd_hi`, and `gdd_hi` - `gdd_lo` when T >= `gdd_hi`. Killing degree days are the number of degrees above the KDD base `k` each day, summed over the observed days: T - `k` when T > `k`, otherwise 0, where `k` is `kdd_base()` or, without it, `heat_threshold()`.
+- Leading and trailing spells (`dry_start`/`dry_end`, `heat_start`/`heat_end`) count from the first and last observed day of the window; missing days at the edges are skipped, and a missing day ends a run. The mid-window spell (`dry`, `heat`) is the longest run that is neither the leading nor the trailing spell when the window has at least two break days (rainy days, or cooler days); with none or one, it is the longest run anywhere in the window. So the longest spell anywhere is `max(dry_start, dry, dry_end)` (`max(heat_start, heat, heat_end)`): with `heat_threshold(30)`, temperatures 35, ., 35, 35, 20, 20 give `heat_start` = 1, `heat` = 2, and `heat_end` = 0.
+- Windows with fewer than `minobs()` observed days (by default, no observed day) have missing statistics, although `nobs` is reported, and do not enter any reference period. A season inside the data with no daily variables is such a window (`nobs = 0`).
+- A deviation (`dev_`) is the statistic minus the mean of its reference values, and a z-score (`z_`) divides the deviation by their standard deviation; both need `ref_min()` nonmissing reference values, and a z-score is missing when the reference values do not vary. For calendar windows the reference values are the same statistic in the seasons of the reference period that are in the data (the `lr_years()` preceding seasons, or the `baseline()` seasons); a season gets deviations only when at least `ref_min()` such seasons exist, so wide output has `dev_` and `z_` variables only for those seasons. For unit-specific windows the reference values come from the same window (same days of the year) in each of the `lr_years()` preceding years or in each `baseline()` year.
+- Every variable has a label that states its threshold. Characteristics record the statistic and window of each variable (`[wxsum_stat]`, `[wxsum_window]`) and the command and its settings (`_dta[wxsum_cmdline]`, `[wxsum_version]`, `[wxsum_type]`, `[wxsum_shape]`, `[wxsum_window]`, `[wxsum_ref]`, `[wxsum_thresholds]`, `[wxsum_minobs]`; see `char list _dta[]`).
+- An output name that already exists (in `keep()`, or among all variables when wide or unit-specific output has no `keep()`) is an error; use `outstub()`. `wxsum` also checks `maxvar` before computing anything.
 
-- mean daily in a season
-- median daily in a season
-- variance of daily in a season
-- standard deviation of daily in a season
-- skew of daily in a season
-- mean of monthly rainfall totals in a season
-- deviation from long run average of mean monthly rainfall in a season
-- z-score of mean monthly rainfall in a season
-- total seasonal
-- deviation from long run average of total seasonal
-- z-score of total seasonal
-- number of observed days with rain in a season
-- deviation from long run average of rainy days in a season
-- z-score of rainy days in a season
-- number of observed days without rain in a season
-- deviation from long run average of days without rain in a season
-- z-score of days without rain in a season
-- percentage of days with rain in a season
-- deviation from the long run average of percentage of days with rain in a season
-- z-score of percentage of days with rain in a season
-- length of leading dry spell at the start of a season
-- longest mid-season dry spell
-- length of trailing dry spell at the end of a season
-
-### 2. Temperature Variables
-
-When `type(temp)` is specified, the command generates the following variables for each season:
-
-- mean daily in a season
-- median daily in a season
-- variance of daily in a season
-- standard deviation of daily in a season
-- skew of daily in a season
-- max daily in a season
-- gdd in a season
-- deviations from long run average gdd in a season
-- z-score of gdd in a season
-- GDD category variable `gddcat_YYYY` (when `gdd_bin()` is specified)
-- kdd in a season
-- deviations from long run average kdd in a season
-- z-score of kdd in a season
-- Daily temperature bin count variables `tmpbinXX_YYYY` (when `tmp_bin()` is specified)
-
-Growing degree days are calculated as capped degree accumulation between `gdd_lo(number)` and `gdd_hi(number)`: `min(max(temp - gdd_lo, 0), gdd_hi - gdd_lo)`, summed over the season. Killing degree days are calculated above a user specified `kdd_base(number)`. As with the rainfall option, the temperature option also generates deviations in GDD and KDD from the long-term average and the deviation measured as a z-score.
-
-When `gdd_bin(number)` is specified, the command creates an integer categorical variable `gddcat_YYYY` for each season that identifies the fixed-width interval containing the seasonal GDD total. Value labels define the GDD intervals (e.g., `GDD [50,150)`, `GDD [150,250)`). Users can employ Stata's factor-variable notation such as `i.gddcat_YYYY` to create dummies in estimation commands. This follows the fixed-interval seasonal degree-day approach used in Deschênes and Greenstone-style specifications, while remaining unit agnostic. The bin width should be specified in the same units as the generated GDD variable.
-
-When `tmp_bin(number)` is specified, the command creates daily temperature bin count variables `tmpbin01_YYYY` through `tmpbinJJ_YYYY` for each season. These count the number of nonmissing daily temperature readings falling into fixed temperature intervals, in the spirit of Schlenker-Roberts. When only one daily reading is available, the entire day is assigned to the bin containing that reading. The command is unit agnostic; `tmp_binlo()` and `tmp_binhi()` must be in the same units as the daily temperature data. For J >= 3, the lower tail counts days with T < lo, interior bins cover equal-width intervals over [lo, hi), and the upper tail counts days with T >= hi. Missing daily temperatures are not counted.
-
-### 3. Long Output
-
-When `shape(long)` is specified, the final output is stacked long with one row per retained unit-year. Generated variables have their `_YYYY` suffixes stripped and a variable `year` identifies the season. This is a final-output stacking operation; the wide input requirement is unchanged. It can make panel workflows easier and reduce the final number of variables, although it does not yet reduce the peak number of variables created internally.
+`wxsum` is r-class: `return list` shows the number of rows, units (`r(N_units)`, the distinct `keep()` combinations), windows, and variables created (`r(varlist)`), the window and reference period, the thresholds, and a matrix `r(missing)` that summarizes missing data: for calendar windows one row per season with `days`, `mean_nobs`, `any_missing`, `all_missing` (shares of observations), and `below_minobs`; for unit-specific windows one row that adds `outside` (windows that run past the data) and `missing_dates`. If anything fails, the data in memory are left unchanged.
 
 ## Examples
 
-To try the command out on the sample datasets included in this repository:
+These are the examples of the article. `examples/wxsum_examples.do` runs all twelve, and `examples/wxsum_examples.log` shows their output. Run them in the folder where `net get wxsum` copied the files (help `wxsum` has examples 1-9 and help `wxprep` examples 10-12). Besides `wxsum_rain.dta` and `wxsum_temp.dta`, the examples use three datasets:
 
-**Rainfall Example:**
+- `hh_panel.dta`: 10 households, 2013-2023, with planting and harvest dates and crop yields
+- `births.dta`: 300 births, 2014-2023, with birth weights
+- `weather_hourly.dta`: hourly temperature (kelvin) and relative humidity for 2022
+
+These three datasets are simulated (`examples/make_example_data.do` creates them from `wxsum_rain.dta` and `wxsum_temp.dta`); they illustrate the commands and are not observed data.
+
 ```stata
-use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) save(rainfall_stats.dta)
+clear all
+set maxvar 20000
 ```
 
-**Temperature Example:**
+### Example 1. Rainfall in a growing season (15 May - 15 October)
+
 ```stata
-use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8) gdd_hi(32) kdd_base(32) keep(hhid)
+use wxsum_rain, clear
+describe, short
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid)
+list hhid year nobs total raindays dry_start dry dry_end in 1/5, noobs abbreviate(9)
 ```
 
-**GDD Categories Example:**
+### Example 2. What wxsum created: stored results, labels, characteristics
+
 ```stata
-use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) gdd_binlo(50) gdd_binhi(950) keep(hhid)
+return list
+matrix list r(missing)
+describe total dev_total z_total dry_start
+char list _dta[]
 ```
 
-**Daily Temperature Bin Counts Example:**
+### Example 3. Growing degree days, killing degree days, and heat spells
+
 ```stata
-use temp.dta, clear
-wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15) tmp_binlo(0) tmp_binhi(39) keep(hhid)
+use wxsum_temp, clear
+wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)
+summarize gdd kdd heatdays heat_start heat heat_end
 ```
 
-**Changing the Long-Run Benchmark:**
+### Example 4. Exposure bins and GDD categories
+
 ```stata
-use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) lr_years(20) keep(hhid)
+* days in temperature bands over the hot, dry season, November to April; the season crosses the end of the year and takes the year in which it starts
+use wxsum_temp, clear
+wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30) heat_threshold(30) cuts(24 27 30) keep(hhid)
+describe cut*
+summarize cut*
+* equal-width temperature bins and categories of seasonal GDD
+use wxsum_temp, clear
+quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) tmp_bin(8) tmp_binlo(20) tmp_binhi(32) gdd_bin(100) gdd_binlo(2000) gdd_binhi(2400) keep(hhid)
+summarize tmpbin*
+tabulate gddcat
 ```
 
-**Long Output for Panel Workflows:**
+### Example 5. Deviations and z-scores against a fixed baseline
+
 ```stata
-use rain.dta, clear
-wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) fin_day(15) rain_threshold(1) keep(hhid) shape(long)
+use wxsum_rain, clear
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) baseline(2003 2022) keep(hhid)
+format dev_total %7.1f
+format z_total z_dry %5.2f
+list year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016, noobs abbreviate(9)
 ```
 
-## Reporting Bugs
-If you run into any issues or bugs, please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues). Be sure to include your exact Stata version, the command you ran, and a sample of your data (or ideally, reproduce the bug using `rain.dta` or `temp.dta`).
+### Example 6. Missing days: minobs() and ref_min()
+
+```stata
+* suppose that the rainfall of household 103 is missing in June and July 2015
+use wxsum_rain, clear
+quietly recode rf_201506* rf_201507* (nonmissing = .) if hhid == 103
+preserve
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) minobs(140) keep(hhid)
+format dev_total %7.1f
+list year nobs total dev_total if hhid == 103 & inrange(year, 2014, 2017), noobs abbreviate(9)
+restore
+* deviations that need 9 of the 10 reference seasons, not all 10
+quietly wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) minobs(140) ref_min(9) keep(hhid)
+format dev_total %7.1f
+list year nobs total dev_total if hhid == 103 & inrange(year, 2014, 2017), noobs abbreviate(9)
+```
+
+### Example 7. Rain and temperature together; wide output
+
+```stata
+use wxsum_rain, clear
+wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) outstub(r_) keep(hhid) save(rain_season, replace)
+use wxsum_temp, clear
+quietly wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid)
+merge 1:1 hhid year using rain_season, nogenerate
+describe, short
+format t_gdd t_kdd %7.1f
+list hhid year r_total r_dry t_gdd t_kdd in 1/3, noobs
+* the rainfall statistics in wide form: one row per household
+use wxsum_rain, clear
+quietly wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15) keep(hhid) shape(wide)
+describe, short
+ds *_2023, varwidth(21)
+```
+
+### Example 8. Farm-specific growing seasons and an illustrative regression
+
+```stata
+use hh_panel, clear
+describe
+list in 1/3, noobs
+merge m:1 hhid using wxsum_rain, nogenerate
+merge m:1 hhid using wxsum_temp, nogenerate
+wxsum rf_, type(rain) start(plant) end(harvest) outstub(r_) keep(hhid year plant harvest yield tmp_*)
+quietly wxsum tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) heat_threshold(29) outstub(t_) keep(hhid year plant harvest yield r_*)
+format t_gdd t_kdd %7.1f
+list hhid year plant harvest r_total t_gdd t_kdd in 1/4, noobs
+xtset hhid year
+xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)
+```
+
+### Example 9. Heat exposure in each trimester of pregnancy
+
+```stata
+use births, clear
+describe
+merge m:1 hhid using wxsum_temp, nogenerate
+* third trimester: the 91 days before birth
+wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t3_) keep(childid hhid birthdate bweight tmp_*)
+* second and first trimesters: the same window moved 91 and 182 days earlier
+quietly wxsum tmp_, type(temp) event_date(birthdate) days(91) lag(91) gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t2_) keep(childid hhid birthdate bweight t3_* tmp_*)
+quietly wxsum tmp_, type(temp) event_date(birthdate) days(91) lag(182) gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t1_) keep(childid hhid birthdate bweight t3_* t2_*)
+summarize t1_heatdays t2_heatdays t3_heatdays
+regress bweight t1_heatdays t2_heatdays t3_heatdays, vce(cluster hhid)
+```
+
+### Example 10. wxprep rename: daily variables with other names
+
+```stata
+* one year of rainfall in variables named day1, day2, ..., day365
+use hhid rf_2023* using wxsum_rain, clear
+rename rf_2023* day#, renumber
+describe, short
+wxprep rename day1-day365, stub(rf_) firstdate(01jan2023)
+describe rf_20230101 rf_20231231
+```
+
+### Example 11. wxprep towide: hourly temperature and humidity
+
+```stata
+use weather_hourly, clear
+describe
+list in 1/3, noobs
+* daily maximum temperature in degrees Celsius
+generate tempc = t2m - 273.15
+wxprep towide tempc, id(hhid) date(time) stub(tmax_) daily(max) clear
+wxsum tmax_, type(temp) ini_month(3) fin_month(5) gdd_lo(10) gdd_hi(30) heat_threshold(38) keep(hhid)
+summarize max heatdays heat
+* daily maximum wet-bulb temperature, from hourly temperature and relative humidity with the formula of Stull (2011)
+use weather_hourly, clear
+generate tempc = t2m - 273.15
+generate tw = tempc*atan(0.151977*sqrt(rh + 8.313659)) + atan(tempc + rh) - atan(rh - 1.676331) + 0.00391838*rh^1.5*atan(0.023101*rh) - 4.686035
+wxprep towide tw, id(hhid) date(time) stub(tw_) daily(max) clear
+wxsum tw_, type(temp) ini_month(4) fin_month(9) gdd_lo(10) gdd_hi(30) heat_threshold(26) keep(hhid)
+summarize max heatdays heat_start heat heat_end
+```
+
+### Example 12. wxprep tolong: compound hot and dry days
+
+```stata
+use wxsum_rain, clear
+wxprep tolong rf_, id(hhid) generate(rain) clear save(rain_long, replace)
+use wxsum_temp, clear
+wxprep tolong tmp_, id(hhid) generate(temp) clear
+merge 1:1 hhid date using rain_long, keep(match) nogenerate
+* a hot and dry day: less than 1 mm of rain and a mean temperature of 29 degrees C or more
+generate byte hotdry = rain < 1 & temp >= 29 if !missing(rain, temp)
+wxprep towide hotdry, id(hhid) date(date) stub(hd_) clear
+wxsum hd_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15) gdd_lo(0) gdd_hi(1) heat_threshold(1) keep(hhid)
+summarize heatdays heat_start heat heat_end z_heatdays
+```
+
+## Changes from version 5
+
+- `heat_threshold()` is required for `type(temp)`. In version 5, `kdd_base()` set the KDD threshold; add `heat_threshold(#)`, and keep `kdd_base()` only if the KDD base should differ.
+- Results are long unless `shape(wide)` is specified.
+- `save()` overwrites a file only with `replace`.
+- Windows with no observed day give missing statistics instead of 0, so rolling deviations differ where version 5 used those zeros.
+- Dry spells skip missing days at the edges of a window, and a window with 0 or 1 rainy days reports its longest dry run. The mid-window spell is the longest run other than the leading and trailing spells, so a run after a missing day is no longer left out, and the longest spell is `max(dry_start, dry, dry_end)`.
+- Monthly totals are grouped by calendar year and month.
+- A season inside the data with no daily variables is a window with no observed day (`nobs` = 0) instead of being left out, and 29 February in `ini_day()`/`fin_day()` is 28 February in common years instead of skipping those years.
+- New: heat days and spells, `cuts()`, `baseline()`, `ref_min()`, `minobs()`, `nobs`, unit-specific windows, deviations for the mid-window spells, `outstub()`, stored results, `wxprep`, and a Mata engine that is much faster (0.04-0.2 seconds for each bundled example, against 7-52 seconds in version 5).
+
+## Testing
+
+Version 7 was tested against hand-computed cases, an independent reference implementation on random data, frozen version 5 output on the sample data, and an external audit with independently computed expected values. The tests are kept outside the distributed package.
+
+## Reporting bugs
+
+Please open an issue on the [GitHub repository](https://github.com/jdavidm/wxsum/issues) with your Stata version, the command you ran, and a small example, ideally using `wxsum_rain.dta` or `wxsum_temp.dta`.
 
 ## Citation
 
 If you use `wxsum` in your research, please cite:
 
-> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 5.0.
+> Michler, J. D., A. Josephson, O. Barriga-Cabanillas, A. Michuda, and J. C. Oliver. "wxsum: A command for processing temperature and precipitation data." https://github.com/jdavidm/wxsum, version 7.0.
 
 ## Authors
+
 - Jeffrey D. Michler (jdmichler@arizona.edu)
 - Anna Josephson (aljosephson@arizona.edu)
 - Oscar Barriga-Cabanillas (obarriga@worldbank.org)

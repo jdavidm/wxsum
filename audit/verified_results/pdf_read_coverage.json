@@ -1,0 +1,36 @@
+[
+  {
+    "path": "comments/2026.09.11.michler_review_author.pdf",
+    "pages": 2,
+    "extracted_characters_by_page": [
+      3087,
+      2194
+    ],
+    "all_pages_read": true
+  },
+  {
+    "path": "sj paper/wxsum_submission.pdf",
+    "pages": 18,
+    "extracted_characters_by_page": [
+      2648,
+      3569,
+      3136,
+      2858,
+      2018,
+      2381,
+      2842,
+      2125,
+      1647,
+      1684,
+      1549,
+      2260,
+      1625,
+      2227,
+      2402,
+      2482,
+      2449,
+      263
+    ],
+    "all_pages_read": true
+  }
+]

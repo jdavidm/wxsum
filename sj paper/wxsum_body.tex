@@ -1,381 +1,957 @@
 \section{Introduction}
 
-The expanding availability and decreasing cost of use have made weather data, particularly remotely sensed and/or gridded data, a common input into socioeconomic analysis \citep{Dell2014-rf, DonaldsonStoreygard16}. Economists use these ready-made Earth observation products to predict a range of economic outcomes, including agricultural and industrial output, labor productivity, energy demand, health, conflict, human capital, and economic growth. Yet, there are many ways to quantify weather and very little theoretical or systematic guidance on which weather metric is best suited to a given research question and geographic context. The result is that seemingly similar measures of ``rainfall,'' ``temperature,'' or ``shock'' can be based on very different summaries of the underlying weather data \citep{MichlerEtAl21WB}. The variety of metrics used and the size of weather data frames can create data-handling and cleaning problems, increasing the probability of coding errors when calculating any given metric.
+The expanding availability and decreasing cost of use have made weather data, particularly remotely sensed and/or gridded data, a common input into socioeconomic analysis \citep{GortanEtAl24, WuepperEtAl25}. Economists use these ready-made Earth observation products to predict a range of economic outcomes, including agricultural and industrial output, labor productivity, energy demand, health, conflict, human capital, and economic growth. Yet, there are many ways to quantify weather and very little theoretical or systematic guidance on which weather metric is best suited to a given research question and geographic context. The result is that seemingly similar measures of ``rainfall,'' ``temperature,'' or ``shock'' can be based on very different summaries of the underlying weather data \citep{MichlerEtAl26Mining}. The variety of metrics used and the size of weather data frames can create data-handling and cleaning problems, increasing the probability of coding errors when calculating any given metric.
 
-In this article, we introduce the community-contributed command \texttt{wxsum}, which processes daily precipitation and temperature data and produces daily, monthly, seasonal, or annual summary statistics and shock measures. The goal of the command is to enable easy, error-free calculation of the most common weather metrics used in the socioeconomic literature. The \texttt{wxsum} command takes in daily precipitation or temperature data, typically in the form of gridded Earth observation data, and calculates a number of summary statistics for both, such as the mean, median, variance, and skew, as well as phenomenon-specific statistics, such as total seasonal rainfall, maximum seasonal temperature, and growing degree days (GDD), and several measures of shocks, including deviations from long-run averages, z-scores, dry spells, and killing degree days (KDD). 
+In this article, we introduce the community-contributed command \texttt{wxsum}, which processes daily precipitation and temperature data and produces daily, monthly, seasonal, or annual summary statistics and shock measures. The goal of the command is to enable easy, error-free calculation of the most common weather metrics used in the socioeconomic literature. The \texttt{wxsum} command takes in daily precipitation or temperature data, typically in the form of gridded Earth observation data, and calculates a number of summary statistics for both, such as the mean, median, variance, and skew, as well as phenomenon-specific statistics, such as total rainfall, maximum temperature, and growing degree days (GDD), and several measures of shocks, including deviations from long-run averages, z-scores, dry spells, and heat spells. 
 
-The \texttt{wxsum} command allows the user to customize season dates, the rainfall threshold defining a rainy day, GDD bounds, KDD thresholds, daily-temperature bins, the length of the long-run reference window, and the final output shape (long or wide). This flexibility is important because the relevant exposure period, temperature sensitivity, and baseline climate vary across crops, agroecological zones, and research questions. For example, precipitation may matter most during planting and flowering stages, while heat exposure becomes critical during grain filling. The command accommodates these differences without requiring the user to reshape or pre-process the data beyond the standard wide format.
+The \texttt{wxsum} command allows the user to customize the dates and lengths of ``seasonal'' windows, the rainfall threshold defining a rainy day, GDD bounds, extreme heat thresholds, daily-temperature bins, the length of the long-run reference window, and the final output shape (long or wide). This flexibility is important because the relevant exposure period, temperature sensitivity, and baseline climate vary across research questions. For example, a study of crop yields might measure rainfall during the growing season, whereas a study of birth outcomes might measure heat exposure over the nine months preceding birth. The command accommodates these differences. Additionally, a companion command, \texttt{wxprep}, reshapes and pre-processes the data for the user into the needed format for use in \texttt{wxsum}.
 
-The choice of metric should follow from the research question and the mechanism under study. For applications focused on crop yields or agricultural output, growing degree days and killing degree days capture the accumulated heat exposure relevant to plant development and damage. GDD bins \citep{DescheneGreenstone07} or temperature bins \citep{SchlenkerRoberts09} provide a non-parametric approach to estimating the relationship between temperature and output. Total seasonal rainfall and rainy-day counts are natural measures when precipitation levels directly drive outcomes, as in studies of agricultural productivity or water availability. Deviations from long-run averages and z-scores are suited to identifying weather shocks, seasons that are unusual relative to local climate, and are common in studies of consumption, poverty, and conflict. Early, intra-seasonal, or late dry spells capture the timing and persistence of rainfall deficits, which may matter more than total rainfall for rain-fed agriculture. These are not exclusive categories; many applications combine several metrics to capture different dimensions of weather exposure. Additionally, we have developed an implementation for R (\texttt{wxsumR}), extending the same core functionality to users who integrate weather processing into R-based data pipelines.
+The choice of metric should follow from the research question and the mechanism under study \citep{MichlerEtAl26}. For agricultural applications, total seasonal rainfall, rainy-day counts, and the lengths of early, middle, and late dry spells capture different dimensions of water availability, particularly when the timing and persistence of rainfall deficits matter for crop yields \citep{MarcosGarciaEtAl24}. Growing degree days, extreme-heat days (killing degree days, KDD), and temperature bins capture the accumulated heat exposure relevant to plant development and damage \citep{SchlenkerRoberts09}.
+
+Beyond agriculture, rainfall deviations from long-run averages and corresponding z-scores capture weather shocks relative to local climatic conditions which can be relevant for household consumption and poverty \citep{AzzarriSignorelli20} as well as social conflict \citep{HendrixSalehyan12}. Temperature bins, extreme-heat, and heat spells capture heat exposure which can be relevant for prenatal development, \citep{DoyleLeckning25}, student learning \citep{ParkEtAl20}, labor productivity\citep{SomanathanEtAl21}, and residential electricity demand \citep{AuffhammerAroonruengsawat11}. These are not exclusive categories. Many applications combine several metrics to capture different dimensions of weather exposure. Additionally, we have developed an implementation for R (\texttt{wxsumR}), extending the same core functionality to users who integrate weather processing into R-based data pipelines.
 
 While the preceding guidance reflects common practice in the literature, the command itself is agnostic about which of the many weather metrics a researcher uses. In creating the \texttt{wxsum} command, we are not endorsing an atheoretical or ad hoc approach to incorporating weather measures into socioeconomic analysis. A growing body of literature raises concerns about the use (and misuse) of weather data, particularly when weather is used to identify exogenous variation \citep{BenamiEtAl26}. These concerns include how gridded weather data is matched with socioeconomic data \citep{MichlerEtAl22}, measurement error in Earth observation products \citep{ProctorEtAl23, JosephsonEtAl26}, and the validity of the assumption that weather is truly exogenous \citep{Sarsons15, Mellon2023-un}. While incorporating weather data into one's analysis is now relatively low cost, a na\"{\i}ve or unexamined use of that data will continue to carry a high cost in terms of the accuracy of one's analysis and results.
 
 \section{Data considerations}
 
-The \texttt{wxsum} command is designed for a common structure of remotely sensed or gridded Earth observation products after they have been matched to locations in an analysis dataset. Each observation (row) is a location, plot, household, firm, or other spatial unit, and each variable (column) is a daily measurement for that unit. The command begins after the spatial matching step. Before running it, the user should decide which weather product, temporal aggregation, and spatial linking rule are appropriate for the research design. These choices are substantive, not merely computational, as estimates can be sensitive to the source of weather data and to the way gridded observations are linked to socioeconomic observations \citep{AuffhammerEtAl13}.
+The \texttt{wxsum} command is designed for a common structure of remotely sensed or gridded Earth observation products after they have been matched to locations in an analysis dataset. Each observation (row) is a location, plot, household, firm, or other spatial unit, and each variable (column) is a daily measurement for that unit. The command assumes this spatial matching step has been completed. Before running \texttt{wxsum}, the user should decide which weather product, temporal aggregation, and spatial linking rule are appropriate for the research design. These choices are substantive, not merely computational, as estimates can be sensitive to the source of weather data and to the way gridded observations are linked to socioeconomic observations \citep{AuffhammerEtAl13, MichlerEtAl26}.
 
-In a typical workflow, the user extracts daily weather values from a gridded product at the GPS coordinates of each observation (using GIS software, R, or Python) and imports the resulting wide-format dataset into Stata. Users should consult \citet{MichlerEtAl22} and \citet{MichlerEtAl26} for guidance on spatial linking choices
-
-The command requires Stata 15 or later. A dataset with 40 years of daily observations implies roughly 14,600 variables per observation. Stata/IC limits datasets to 2,048 variables, which restricts the command to approximately five years of daily data. Stata/SE supports up to 32,767 variables, and Stata/MP supports up to 120,000. Users working with long time series in Stata/IC may need to split the data into shorter panels, run \texttt{wxsum} on each, and append the results.\footnote{Splitting the data affects the rolling deviations and z-scores, as the command requires \texttt{lr\_years()} of prior seasons to be present in the same dataset. Users who split their data should ensure sufficient overlap to avoid truncating the long-run reference period}
+The \texttt{wxsum} command requires Stata 15 or later and for the data to be in wide format. A dataset with 40 years of daily observations implies roughly 14,600 variables per observation. Stata/BE limits datasets to 2,048 variables, which restricts the command to approximately five years of daily data. Stata/SE supports up to 32,767 variables, and Stata/MP supports up to 120,000. Users working with long time series in Stata/BE may need to split the data into shorter panels, run \texttt{wxsum} on each, and append the results.\footnote{Splitting the data affects the reference period used for calculating deviations and z-scores. Users who split their data should ensure sufficient overlap to avoid truncating the reference period.}
 
 \subsection{Shape and naming convention}
 
-Input data must be in wide form. Daily weather values are stored in separate numeric variables whose names share a common prefix (stub) and end with an eight-digit date in \texttt{yyyymmdd} format. For example, if the precipitation variables are named with the prefix \texttt{rf\_}, then precipitation on May 15, 1979, should appear in a variable named \texttt{rf\_19790515}. A similar approach applies for temperature variable names after the prefix. Variables not beginning with the specified stub are ignored unless they are retained by using the \texttt{keep()} option.
+Daily weather values are stored in separate numeric variables whose names share a common prefix (stub) and end with an eight-digit date in \texttt{yyyymmdd} format. For example, if the precipitation variables are named with the prefix \texttt{rf\_}, then precipitation on May 15, 1979, should appear in a variable named \texttt{rf\_19790515}. A similar approach applies for temperature variable names after the prefix. Variables not beginning with the specified stub are ignored unless they are retained using the \texttt{keep()} option.
 
-The wide format, while memory-intensive, is a natural representation of the gridded Earth observation products common in the climate science literature. The \texttt{wxsum} command is agnostic to the source of the data. It can process data from any product that provides daily or subdaily readings on a regular grid. Widely used products of this type include CHIRPS \citep{CHIRPS}, CPC \citep{CPC08}, ARC2 \citep{ARC2}, TAMSAT \citep{TAMSAT}, ERA5 \citep{ERA5}, and MERRA-2 \citep{MERRA2}. It can also process data from ground-based weather station networks. 
+The companion command \texttt{wxprep} prepares weather data that do not follow this structure. It converts long-format data to the required wide format, renames existing daily variables to follow the date-based naming convention, and aggregates sub-daily readings into daily summaries. It can also convert wide-format data back to long form when users need to perform additional transformations before calculating weather metrics. Data that already satisfy the input requirements can be passed directly to \texttt{wxsum}.
 
-The required naming convention for the input data makes the calendar explicit. The command parses the date suffix of each weather variable, identifies the days that belong to each user-defined season, and computes statistics separately for each location and each season. As all computations are based on the dates in variable names, users should check that the date suffixes are complete, unique, and measured consistently on the intended calendar and time zone. The command can accommodate seasons that cross calendar years. For example, when a season spans two calendar years, it is assigned to the year in which it begins — a season running from November 2001 to February 2002 is labeled 2001 in the command's output.
+The wide format, while memory-intensive, is a natural representation of the gridded Earth observation products common in the climate science literature. The \texttt{wxsum} command is agnostic to the source of the data. It can process data from any product that provides daily or subdaily readings on a regular grid. Widely used products of this type include CHIRPS \citep{CHIRPS}, CPC \citep{CPC08}, ARC2 \citep{ARC2}, TAMSAT \citep{TAMSAT}, ERA5 \citep{ERA5}, and MERRA-2 \citep{MERRA2}. It can also process data from ground-based weather station networks.\footnote{While designed for temperature and precipitation data, the command's agnosticism means one could pass it any type of daily weather data, such as humidity, wind speed, wet bulb temperature, or standardized precipitation evapotranspiration index (SPEI). However, not every metric that \texttt{wxsum} produces will have a meaningful interpretation when the data is not temperature or precipitation.}
 
-\subsection{Seasons, units, and missing values}
+The required naming convention for the input data makes the calendar explicit. The command parses the date suffix of each weather variable, identifies the days that belong to each user-defined season or window, and computes statistics separately for each location and each window. As all computations are based on the dates in variable names, users should check that the date suffixes are complete, unique, and measured consistently on the intended calendar and time zone. The command can accommodate windows that cross calendar years. For example, when a window spans two calendar years, it is assigned to the year in which it begins. A window running from November 2001 to February 2002 is labeled 2001 in the command's output.
 
-A season is defined by an initial month and final month and, optionally, by an initial day and final day. This allows for the relevant period for rainfall or heat exposure to differ across crops, agroecological zones, and outcomes of interest. Users can specify the ``season'' as an entire growing season or a specific section of it. The command does not impose a biological or econometric interpretation on the chosen season. Rather, the user must define the exposure window before running the command and should report that choice in subsequent empirical work.
+\subsection{Windows, units, and missing values}
+
+Users can define the relevant time window in one of three ways. The default is to define a calendar window with an initial month and final month and, optionally, an initial day and final day. This fixes the window to the same start and end date for all units and for all years. Alternatively, the user can define unit-specific windows. These can be defined by providing the command with a variable that holds each observations' start and end date, such as a planting date and harvest date. Or, the window can be defined with a variable that holds an event date for each observations as well as the number of days the event lasted, such as a birth date and the length of the gestation period. In both cases, the exposure window is defined separately for each observation rather than being fixed to the same calendar dates across observations and years. The command does not impose a biological or econometric interpretation on the chosen window. Rather, the user must define the exposure window before running the command and should report that choice in subsequent empirical work.
 
 The command is similarly agnostic about units. Rainfall can be measured in millimeters, centimeters, or inches, and temperature can be measured in degrees Celsius, Fahrenheit, or Kelvin. It is necessary, however, that all daily variables are measured consistently with the same unit used throughout. Unit choices matter for thresholds. For example, the lower and upper bounds for GDD and the base for KDD must be expressed in the same units as the daily temperature data. Similarly, the rainy-day threshold must be expressed in the same units as the daily precipitation data.
 
-Many weather products contain missing values due to sensor problems, limited spatial coverage, cloud contamination, or limitations in station interpolation \citep{Dinku2020}. Before using \texttt{wxsum}, users should examine missingness in the daily variables and decide whether the weather product and temporal coverage are adequate for the application. For means, medians, standard deviations, maxima, rainy-day counts, rain-day shares, daily-temperature bin counts, and dry spells, missing daily values are not treated as observed weather. For seasonal and monthly precipitation totals, \texttt{wxsum} uses Stata's \texttt{rowtotal()} function, and so missing daily values contribute zero to those sums. This means seasons with missing days will understate true missingness in total rainfall. If an empirical design requires a balanced panel of weather exposures or a minimum number of observed days within a season, that restriction should be imposed before running \texttt{wxsum} and should be documented in the replication files.
+Many weather products contain missing values due to sensor problems, limited spatial coverage, cloud contamination, or limitations in station interpolation \citep{Dinku2020}. Users should examine missingness in the daily variables and decide whether the weather product and temporal coverage are adequate for the application. For means, medians, standard deviations, maxima, rainy-day counts, rain-day shares, daily-temperature bin counts, and dry spells and heat spells, missing daily values are not treated as observed weather. For seasonal and monthly precipitation totals, missing daily values contribute zero to those sums. This means seasons with missing days will understate total rainfall. The command has an option that allows the user to define the minimum number of non-missing observations that are acceptable in a window. It also produces stored results that capture the degree of missingness in the unprocessed weather data.
 
-\section{The \texttt{wxsum} command}
 
-\subsection{Syntax}
+\section{The \texttt{wxsum} and \texttt{wxprep} commands}
+\label{sec:commands}
 
-The syntax is
+The \texttt{wxsum} command calculates weather statistics for calendar or unit-specific windows. The companion command \texttt{wxprep} prepares the daily data by reshaping observations, renaming variables, or aggregating multiple readings within a day. This section describes the syntax, options, output, and stored results of each command.
+
+\subsection{The \texttt{wxsum} command}
+\label{sec:wxsum}
+
+\subsubsection{Syntax}
+
+For a calendar window, the same starting and ending dates are applied to every observation, with one window per year:
 
 \begin{stsyntax}
-	wxsum {\it stubname\/} , type({\it rain}|{\it temp\/})  ini\_month({\it month\/}) fin\_month({\it month\/}) 
-	[ ini\_day({\it day\/}) fin\_day({\it day\/})
-	rain\_threshold({\it num\/}) gdd\_lo({\it num\/}) gdd\_hi({\it num\/}) 
-    kdd\_base({\it num\/}) gdd\_bin({\it num\/}) gdd\_binlo({\it num\/})
-    gdd\_binhi({\it num\/}) tmp\_bin({\it num\/}) tmp\_binlo({\it num\/})
-    tmp\_binhi({\it num\/}) shape({\it wide}|{\it long\/})
-    lr\_years({\it num\/}) keep({\it varlist\/}) save({\it filename\/}) ]
+	wxsum {\it stub\/}, type(rain\textbar temp)
+	ini\_month(\#) fin\_month(\#)
+	[ ini\_day(\#) fin\_day(\#) {\it options\/} ]
 \end{stsyntax}
 
-\noindent Here \textit{stubname} is the common prefix for the variables. It is not a varlist. If the data contain variables named \texttt{rf\_19790101}, \texttt{rf\_19790102}, and so on, the stubname supplied to the command is \texttt{rf\_}. The \texttt{type()} option must be specified as either \texttt{rain} or \texttt{temp} and the inital and final months must be set.
+\noindent For a unit-specific window, the starting and ending dates are read from variables, with one window per observation:
 
-\subsection{Required variables}
+\begin{stsyntax}
+	wxsum {\it stub\/}, type(rain\textbar temp)
+	start({\it varname\/}) end({\it varname\/})
+	[ partial {\it options\/} ]
+\end{stsyntax}
 
-The minimal dataset contains an identifier for each location and a set of variables that contain daily measures of precipitation or temperature. The identifier is not an argument of \texttt{wxsum}; it can be retained with \texttt{keep()} if it should appear in the output dataset. The precipitation or temperature variables must be numeric and must use the naming convention described above. Table~\ref{tab:datareq} summarizes these requirements.
+\noindent Alternatively, a unit-specific window can be defined relative to an event date:
+
+\begin{stsyntax}
+	wxsum {\it stub\/}, type(rain\textbar temp)
+	event\_date({\it varname\/}) days(\#)
+	[ lag(\#) partial {\it options\/} ]
+\end{stsyntax}
+
+\noindent Here \textit{stub} is the common prefix for the daily weather variables. It is not a varlist. If the data contain variables named \texttt{rf\_19790101}, \texttt{rf\_19790102}, and so on, the stub supplied to the command is \texttt{rf\_}. The user specifies \texttt{type(rain)} or \texttt{type(temp)} and one of the three window definitions. With \texttt{type(temp)}, \texttt{gdd\_lo()}, \texttt{gdd\_hi()}, and \texttt{heat\_threshold()} are also required. The remaining options are described below.
+
+\subsubsection{Required variables}
+
+Input data must be wide, with one row per observation and separate numeric variables for daily weather values. Each daily variable name consists of the supplied stub followed by a date in \texttt{yyyymmdd} format. A calendar day without a corresponding variable is treated as missing. Unit-specific windows additionally require variables containing Stata daily dates. Identifiers are not arguments of \texttt{wxsum}, but can be retained with \texttt{keep()} for linking the results to other data. Table~\ref{tab:datareq} summarizes the input requirements.
 
 \begin{table}[htbp]
 	\caption{Data requirements for \texttt{wxsum}}
 	\label{tab:datareq}
 	\begin{center}
-		\begin{tabularx}{\textwidth}{lX}
+		\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}X}
 			\hline
 			Element & Requirement \\
 			\hline
 			Observation & One row per spatial or analytic unit. \\
-			Weather variables & One variable per day, with a common stub and a \texttt{yyyymmdd} date suffix. \\
-			Date information & Encoded in the daily variable names rather than stored in separate year, month, and day variables. \\
-			Data type & Numeric daily precipitation or temperature variables specified using \texttt{type(rain)} or \texttt{type(temp)}. \\
+			Weather variables & Numeric daily values named with a common stub and a \texttt{yyyymmdd} suffix. \\
+			Calendar window & Starting and ending months, and optional days, specified in the command. \\
+			Unit-specific window & Stata daily-date variables for the start and end dates, or an event-date variable and a specified number of preceding days. \\
+			Data type & \texttt{type(rain)} for precipitation or \texttt{type(temp)} for temperature. \\
 			Other variables & Retain with \texttt{keep()} if identifiers, coordinates, or covariates should remain in the output. \\
 			\hline
 		\end{tabularx}
 	\end{center}
 \end{table}
 
-\subsection{Options}
+\subsubsection{Options}
+
+\noindent\textit{Calendar windows}
 
 \begin{description}
-	\item[\texttt{type(rain\textbar temp)}] specifies the data type. Use \texttt{rain} for precipitation data or \texttt{temp} for temperature data. This option is required.
-	\item[\texttt{ini\_month(month)}] specifies the initial month of the season. This option is required.
-	\item[\texttt{fin\_month(month)}] specifies the final month of the season. This option is required. If the final month precedes the initial month in the calendar year, the command treats the season as crossing calendar years.
-	\item[\texttt{ini\_day(day)}] specifies the first day of the initial month to be included in the season. The default is \texttt{01}.
-	\item[\texttt{fin\_day(day)}] specifies the last day of the final month to be included in the season. If not specified, the command dynamically defaults to the true last calendar day of the final month (handling leap years correctly).
-	\item[\texttt{lr\_years(num)}] specifies the number of strictly preceding years used to compute rolling deviations and $z$-scores. The default is 10, and the maximum is 50.
-	\item[\texttt{rain\_threshold(num)}] specifies the threshold used to define a rainy day. The default is 1. Valid only with \texttt{type(rain)}.
-	\item[\texttt{gdd\_lo(num)}] specifies the lower bound for growing degree days. This option is required when \texttt{type(temp)} is specified.
-	\item[\texttt{gdd\_hi(num)}] specifies the upper bound for growing degree days. This option is required when \texttt{type(temp)} is specified.
-	\item[\texttt{kdd\_base(num)}] specifies the threshold above which killing degree days are calculated. This option is required when \texttt{type(temp)} is specified.
-	\item[\texttt{gdd\_bin(num)}] specifies the width (in GDDs) of seasonal GDD bins. When specified, the command creates an integer categorical variable \texttt{gddcat\_}\textit{YYYY} for each season. The argument is a positive numeric bin width, expressed in the units of the generated GDD variable. Valid only with \texttt{type(temp)}.
-	\item[\texttt{gdd\_binlo(num)}] specifies the optional lower endpoint for GDD bins. The default is 0 when \texttt{gdd\_bin()} is specified. If any seasonal GDD total falls below this value, a bottom-coded bin is created. Requires \texttt{gdd\_bin()}.
-	\item[\texttt{gdd\_binhi(num)}] specifies the optional upper endpoint for GDD bins. Values at or above this endpoint are assigned to a top-coded bin. When omitted, the command determines an upper endpoint from the pooled empirical maximum of generated seasonal GDD values and the chosen bin width. Requires \texttt{gdd\_bin()}. The range between \texttt{gdd\_binhi()} and \texttt{gdd\_binlo()} must be evenly divisible by \texttt{gdd\_bin()}.
-	\item[\texttt{tmp\_bin(num)}] specifies the total number of daily temperature bins to create per season. Must be a positive integer from 1 through 42. Requires \texttt{tmp\_binlo()} and \texttt{tmp\_binhi()}. Creates variables \texttt{tmpbin01\_}\textit{YYYY} through \texttt{tmpbin}\textit{JJ}\texttt{\_}\textit{YYYY}. Valid only with \texttt{type(temp)}.
-	\item[\texttt{tmp\_binlo(num)}] specifies the lower endpoint for the first daily temperature bin. Required when \texttt{tmp\_bin()} is specified. No default.
-	\item[\texttt{tmp\_binhi(num)}] specifies the upper endpoint for the last daily temperature bin. Required when \texttt{tmp\_bin()} is specified. Must be greater than \texttt{tmp\_binlo()}. No default.
-	\item[\texttt{shape(wide\textbar long)}] specifies the final output shape. The default is \texttt{wide}, which produces one row per spatial unit with year-suffixed variable names. When \texttt{long} is specified, the output is stacked into one row per retained unit-year and a variable named \texttt{year} is created. Input data must still be wide. The \texttt{shape(long)} option is a final-output stacking operation; it does not change the internal computation strategy or reduce peak memory use.
-	\item[\texttt{keep(varlist)}] retains variables from the input dataset in the output dataset. This option is typically used for identifiers, administrative codes, coordinates, or other merge keys.
-	\item[\texttt{save(filename)}] saves the resulting dataset to \textit{filename}. If \texttt{save()} is not specified, the generated variables remain in memory.
+	\item[\texttt{ini\_month(\#)} and \texttt{fin\_month(\#)}] specify the first and last month of a calendar window, from 1 through 12. Both are required for this window definition. When the final month precedes the initial month, the window crosses the end of the calendar year and is associated with the year in which it starts.
+	\item[\texttt{ini\_day(\#)} and \texttt{fin\_day(\#)}] specify the first and last day within those months. By default, the window begins on the first day of the initial month and ends on the last day of the final month, including February 29 in leap years. If February 29 is explicitly specified, February 28 is used in common years.
 \end{description}
 
-\subsection{Output}
+\noindent\textit{Unit-specific windows}
 
-\texttt{wxsum} is a data-management command rather than an estimation command. Its primary output is a dataset containing the retained variables requested in \texttt{keep()} and the generated seasonal weather variables.
+\begin{description}
+	\item[\texttt{start(varname)} and \texttt{end(varname)}] identify variables containing the first and last day of each observation's window as Stata daily dates (\texttt{\%td}). Windows can differ in length for each observation. An observation with a missing date receives missing statistics. Datetimes in \texttt{\%tc} format are not accepted directly; they must first be converted to daily dates using \texttt{dofc()} or the \texttt{convert()} option of \texttt{wxprep}.
+	\item[\texttt{event\_date(varname)} and \texttt{days(\#)}] define a window of \texttt{\#} days ending the day before an event. Windows have a common length but the event-date variable allows the dates to differ across observations.
+	\item[\texttt{lag(\#)}] shifts an event-based window by the specified number of days. The default is 0. A positive value moves the window earlier and a negative value moves it later. The resulting start and end dates are \texttt{event\_date - days - lag} and \texttt{event\_date - 1 - lag}, respectively.
+	\item[\texttt{partial}] uses the available days when the window extends before the first or after the last date of the daily variables for a given unit of observation. Without this option, such windows receive missing statistics. This option does not change the calendar-window requirement that the entire window lie within the data's date range.
+\end{description}
 
-In the default \texttt{shape(wide)} output, the command generates one set of variables for each season in the data, so the number of output variables increases with the time span covered by the daily weather data. Therefore, using a dataset spanning 30 years of daily rainfall will produce 30 instances of each of the 23 precipitation statistic. Generated variables are indexed by the season-start year using a \texttt{\_}\textit{YYYY} suffix. For example, if a season begins in November 2001 and ends in February 2002, the resulting seasonal statistics are associated with 2001, not 2002.
+\noindent With either unit-specific definition, the output contains one row per input observation and generated variable names have no year suffix. Because each observation has only one exposure window, the \texttt{shape()} option does not apply.
 
-When \texttt{shape(long)} is specified, the output is stacked with one row per retained unit-year. A variable named \texttt{year} identifies the season-start year. Generated variables are renamed without their year suffixes; for example, \texttt{mean\_1993} becomes \texttt{mean} with \texttt{year == 1993}. Variables specified in \texttt{keep()} are repeated across years. Users are strongly encouraged to include unit identifiers in \texttt{keep()} when using \texttt{shape(long)}, because otherwise the long output may not contain an explicit merge key. The \texttt{shape(long)} option does not change the requirement that input data be wide; it is a final-output stacking step only.
+\noindent\textit{Rainfall and temperature thresholds}
 
-When \texttt{type(rain)} is specified, the command produces the precipitation statistics in Table~\ref{tab:rainout}. These variables combine simple summaries of the daily distribution, summaries of monthly totals, seasonal totals, rainy-day counts, and shock measures relative to the rolling long-run reference period.
+\begin{description}
+	\item[\texttt{rain\_threshold(\#)}] defines a rainy day as one with precipitation at or above the threshold and a dry day as one with precipitation below it. The default is 1. This option applies only to \texttt{type(rain)}.
+	\item[\texttt{gdd\_lo(\#)} and \texttt{gdd\_hi(\#)}] specify the lower and upper bounds for GDD. Both are required with \texttt{type(temp)}.
+	\item[\texttt{heat\_threshold(\#)}] defines a heat day as one with temperature at or above the threshold. It is required with \texttt{type(temp)} and is used to calculate heat-day counts and heat spells. It also sets the KDD base unless \texttt{kdd\_base()} is specified. The interpretation depends on the supplied daily series: a threshold applied to daily mean temperature measures a different exposure from the same threshold applied to daily maximum temperature.
+	\item[\texttt{kdd\_base(\#)}] optionally specifies a separate base for KDD. Without this option, the heat threshold is also the KDD base.
+\end{description}
+
+\noindent All thresholds must use the units of the daily data. The command does not convert units.
+
+\noindent\textit{Optional bins and categories}
+
+\begin{description}
+	\item[\texttt{gdd\_bin(\#)}] specifies the width (in GDD units) of GDD bins. When specified, the command creates \texttt{gddcat}, an integer category identifying the fixed-width interval containing the window's GDD total. Categories are pooled across observations and windows and have value labels identifying the intervals, so \texttt{i.gddcat} can be used in regressions. This option applies only to \texttt{type(temp)}.
+	\item[\texttt{gdd\_binlo(\#)}] specifies the lower endpoint of the regular GDD intervals when \texttt{gdd\_bin()} is used. The default is 0. Totals below this endpoint receive a bottom-coded category.
+	\item[\texttt{gdd\_binhi(\#)}] specifies the upper endpoint of the regular GDD intervals. Totals at or above it receive a top-coded category. When it is omitted, the intervals extend beyond the largest GDD total. The difference between the upper and lower endpoints must be a multiple of the width specified in \texttt{gdd\_bin()}.
+	\item[\texttt{tmp\_bin(\#)}] specifies the number of daily temperature bins, from 1 through 42. It requires \texttt{tmp\_binlo()} and \texttt{tmp\_binhi()}. For three or more bins, the first counts days below the lower endpoint, the last counts days at or above the upper endpoint, and the remaining bins divide the interval between the endpoints into equal widths. Interior bins include their lower boundary and exclude their upper boundary. \texttt{tmp\_bin(1)} counts all observed days; \texttt{tmp\_bin(2)} divides them at the midpoint of the two endpoints. The generated variables are named \texttt{tmpbin01}, \texttt{tmpbin02}, and so on.
+	\item[\texttt{tmp\_binlo(\#)} and \texttt{tmp\_binhi(\#)}] specify the lower and upper endpoints. These are absolute temperature thresholds, not percentiles of the observed distribution.
+	\item[\texttt{cuts(numlist)}] creates daily bin counts using up to 41 increasing cutpoints. The first variable, \texttt{cut01}, counts days below the first cutpoint. Subsequent variables count days from one cutpoint up to, but not including, the next. The final variable counts days at or above the last cutpoint. Thus $K$ cutpoints create $K + 1$ bins. This option can be used with either data type, for example to define precipitation-intensity or temperature-exposure bands. Cannot be combined with \texttt{tmp\_bin()}.
+\end{description}
+
+\noindent Daily bins count observed days rather than shares of days. Their values are missing when a window has fewer observed days than required by \texttt{minobs()}. Output names receive a year suffix only for calendar windows with wide output, as described below.
+
+\noindent\textit{Reference periods}
+
+\begin{description}
+	\item[\texttt{lr\_years(\#)}] specifies a rolling reference period consisting of windows starting in the indicated number of preceding years. The permitted range is 2 through 50 and the default is 10. The current window is excluded from its own rolling reference period.
+	\item[\texttt{baseline(\# \#)}] specifies a fixed reference period. For example, \texttt{baseline(1981 2010)} uses windows starting in 1981 through 2010. Windows inside the baseline are compared with a baseline that includes them. The baseline must cover at least \texttt{ref\_min()} windows of the data, or years of the data for unit-specific windows. Cannot be combined with \texttt{lr\_years()}.
+	\item[\texttt{ref\_min(\#)}] specifies the minimum number of nonmissing reference values an observation needs for a deviation or $z$-score. It must be at least 2. By default, all reference years are required: the number specified in \texttt{lr\_years()} or the number of years in \texttt{baseline()}.
+\end{description}
+
+\noindent For unit-specific windows, the reference values are calculated for the same window moved back to each preceding year or to each baseline year. February 29 is moved to February 28 in common years. The reference period and \texttt{ref\_min()} govern deviations and $z$-scores rather than the nonreference summaries of the current window.
+
+\noindent\textit{Missing data}
+
+\begin{description}
+    \item[\texttt{minobs(\#)}] specifies the minimum number of nonmissing daily observations required to calculate statistics for a window (default: 1). If this requirement is not met, all weather statistics are set to missing.
+\end{description}
+
+\noindent\textit{Output}
+
+\begin{description}
+	\item[\texttt{shape(long\textbar wide)}] specifies the output shape for calendar windows. The default, \texttt{long}, produces one row per observation and window, a variable named \texttt{year} identifying the window's starting year, and statistic names without year suffixes. \texttt{wide} produces one row per observation and statistic names with year suffixes. Input data must be wide in either case. This option has no effect on unit-specific windows.
+	\item[\texttt{outstub(string)}] adds a prefix to every generated variable name except \texttt{year}. For example, \texttt{outstub(r\_)} gives \texttt{r\_total}. Separate output prefixes allow rainfall and temperature results, or results for different windows, to be kept together.
+    \item[\texttt{keep(varlist)}] specifies which variables from the input dataset are retained in the output. For calendar windows with \texttt{shape(long)}, the output contains only the generated statistics and \texttt{year} by default. The \texttt{keep()} option allows users to retain additional variables, such as identifiers. For calendar windows with \texttt{shape(wide)} and for unit-specific windows, all input variables are retained by default. Specifying \texttt{keep()} restricts the output to the listed input variables and the generated statistics.
+	\item[\texttt{save(filename [, replace])}] saves the output dataset and leaves the results in memory. To overwrite an existing file, specify \texttt{replace} within the option, as in \texttt{save(rain\_out, replace)}.
+\end{description}
+
+
+\subsubsection{Output}
+
+\texttt{wxsum} is a data-management command that produces a dataset of window-level weather statistics. For calendar windows, the default \texttt{shape(long)} output contains one row per observation and year, with a variable named \texttt{year} identifying the window. With \texttt{shape(wide)}, each input observation remains one row and the generated statistics receive year suffixes, such as \texttt{mean\_1993} and \texttt{total\_1993}. Windows crossing calendar years are assigned to the year in which they begin. For unit-specific windows, the output contains one row per input observation, and generated statistics have no year suffix. Tables~\ref{tab:rainout} and~\ref{tab:tempout} list rainfall and temperature statistics without an optional output prefix or year suffix.
+
+For rainfall, \texttt{wxsum} generates measures of the distribution, amount, frequency, and persistence of precipitation. In addition to standard distributional statistics, the command calculates mean monthly precipitation and total rainfall over the exposure window. Rainy-day counts and shares capture the frequency of precipitation, while dry-spell measures distinguish the duration of rainfall deficits at the beginning, within, and at the end of the window. These measures capture dimensions of rainfall exposure that may not be apparent from total precipitation alone. Optional bins further characterize the distribution of daily rainfall intensity.
 
 \begin{table}[htbp]
-	\caption{Rainfall statistics generated by \texttt{wxsum}}
-	\label{tab:rainout}
+    \caption{Rainfall statistics generated by \texttt{wxsum}}
+    \label{tab:rainout}
+    \begin{center}
+        \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}X}
+            \hline
+            Group & Generated statistics \\
+            \hline
+            Observed days & \texttt{nobs}: number of nonmissing daily observations. \\
+            Daily distribution & \texttt{mean}, \texttt{median}, \texttt{var}, \texttt{sd}, and \texttt{skew}. \\
+            Monthly rainfall & \texttt{mean\_mo}: mean of monthly precipitation totals. \\
+            Total rainfall & \texttt{total}: total precipitation during the window. \\
+            Rainy and dry days & \texttt{raindays} and \texttt{norain}: counts of rainy and non-rainy days; \texttt{pct\_raindays}: share of observed days with rain. \\
+            Dry spells & \texttt{dry\_start}, \texttt{dry}, and \texttt{dry\_end}: lengths of leading, mid-window, and trailing dry spells. \\
+            Reference measures & Deviations (\texttt{dev\_}) and $z$-scores (\texttt{z\_}) for \texttt{mean\_mo}, \texttt{total}, \texttt{raindays}, \texttt{norain}, \texttt{pct\_raindays}, and \texttt{dry}. \\
+            Optional bins & \texttt{cut01}, \texttt{cut02}, etc.: counts of days in user-defined rainfall intervals. \\
+            \hline
+        \end{tabularx}
+    \end{center}
+\end{table}
+
+For temperature, \texttt{wxsum} generates measures of the daily temperature distribution, accumulated thermal exposure, and the frequency and duration of extreme heat. Growing and killing degree days capture cumulative exposure relative to specified temperature thresholds, whereas heat-day counts and shares measure the frequency of threshold exceedance. Heat-spell measures distinguish persistent heat exposure at the beginning, within, and at the end of the window. Optional temperature bins capture the distribution of daily temperatures across specified intervals, while GDD categories classify accumulated growing degree days.
+
+\begin{table}[htbp]
+    \caption{Temperature statistics generated by \texttt{wxsum}}
+    \label{tab:tempout}
+    \begin{center}
+        \begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.23\textwidth}>{\raggedright\arraybackslash}X}
+            \hline
+            Group & Generated statistics \\
+            \hline
+            Observed days & \texttt{nobs}: number of nonmissing daily observations. \\
+            Daily distribution & \texttt{mean}, \texttt{median}, \texttt{var}, \texttt{sd}, \texttt{skew}, and \texttt{max}. \\
+            Degree days & \texttt{gdd}: accumulated growing degree days; \texttt{kdd}: accumulated killing degree days. \\
+            Heat days & \texttt{heatdays}: number of days meeting the heat threshold; \texttt{pct\_heatdays}: share of observed days meeting the threshold. \\
+            Heat spells & \texttt{heat\_start}, \texttt{heat}, and \texttt{heat\_end}: lengths of leading, mid-window, and trailing heat spells. \\
+            Reference measures & Deviations (\texttt{dev\_}) and $z$-scores (\texttt{z\_}) for \texttt{gdd}, \texttt{kdd}, \texttt{heatdays}, \texttt{pct\_heatdays}, and \texttt{heat}. \\
+            Optional GDD categories & \texttt{gddcat}: categorical measure of accumulated GDD, with value labels identifying the intervals. \\
+            Optional daily bins & \texttt{tmpbin01}, \texttt{tmpbin02}, etc., or \texttt{cut01}, \texttt{cut02}, etc.: counts of days in temperature intervals. \\
+            \hline
+        \end{tabularx}
+    \end{center}
+\end{table}
+
+For both rainfall and temperature, the command calculates deviations and $z$-scores for selected statistics relative to a rolling or fixed reference period. These measures distinguish weather exposure from conditions that are unusual relative to the historical experience of a location. The variables \texttt{pct\_raindays} and \texttt{pct\_heatdays} report shares, not percentages. Both outputs include \texttt{nobs}, the number of nonmissing daily observations, to help assess data completeness.
+
+Finally, the generated variables include labels identifying the statistics and relevant thresholds. Variable and dataset characteristics record the exposure windows and command settings, providing a record of how the weather measures were constructed that persists when the output dataset is saved.
+
+
+
+\subsubsection{Stored results}
+
+The \texttt{wxsum} command stores results in \texttt{r()}. The scalar and macro results are listed in Tables~\ref{tab:wxsumscalars} and~\ref{tab:wxsummacros}. Results specific to a data type, window definition, or reference mode describe that mode. In particular, \texttt{r(N\_units)} counts distinct combinations of the variables in \texttt{keep()}, rather than relying on a separately specified unit identifier.
+
+\begin{table}[htbp]
+	\caption{Scalars stored by \texttt{wxsum}}
+	\label{tab:wxsumscalars}
 	\begin{center}
-		\begin{tabularx}{\textwidth}{lX}
+		\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X}
 			\hline
-			Group & Generated statistics \\
+			Result & Description \\
 			\hline
-			Daily distribution & Mean, median, variance, standard deviation, and skewness of daily precipitation within the season. \\
-			Monthly totals & Mean monthly precipitation within the season, deviation from the long-run average of mean monthly precipitation, and its $z$-score. \\
-			Seasonal total & Total precipitation in the season, deviation from the long-run average of total precipitation, $z$-score of total precipitation. \\
-			Rainy days & Number of rainy days, number of days without rain, deviations from the corresponding long-run averages, and corresponding $z$-scores. \\
-			Rainy-day share & Share of observed days with rain, deviation from the long-run average share, corresponding $z$-score. \\
-			Dry spells & Length of the leading dry spell, longest mid-season dry spell, and length of end of season dry spell. \\
+			\texttt{r(N)} & Number of observations in the output. \\
+			\texttt{r(N\_units)} & Number of unique combinations of variables in \texttt{keep()}. \\
+			\texttt{r(k\_created)} & Number of variables created. \\
+			\texttt{r(n\_windows)} & Number of calendar windows; 1 for unit-specific windows. \\
+			\texttt{r(first\_year)} & First calendar-window starting year. \\
+			\texttt{r(last\_year)} & Last calendar-window starting year. \\
+			\texttt{r(minobs)} & Minimum required observed days per window. \\
+			\texttt{r(ref\_min)} & Minimum required nonmissing reference values. \\
+			\texttt{r(lr\_years)} & Reference-window length for rolling references. \\
+			\texttt{r(baseline\_first)} & First year of a fixed baseline. \\
+			\texttt{r(baseline\_last)} & Last year of a fixed baseline. \\
+			\texttt{r(rain\_threshold)} & Rainy-day threshold for rainfall data. \\
+			\texttt{r(gdd\_lo)}, \texttt{r(gdd\_hi)} & GDD bounds for temperature data. \\
+			\texttt{r(heat\_threshold)} & Heat threshold for temperature data. \\
+			\texttt{r(kdd\_base)} & KDD base used for temperature data. \\
 			\hline
 		\end{tabularx}
 	\end{center}
 \end{table}
 
-When \texttt{type(temp)} is specified, the command produces the temperature statistics in Table~\ref{tab:tempout}. The growing degree day calculation uses \texttt{gdd\_lo()} and \texttt{gdd\_hi()} as lower and upper bounds, whereas killing degree days are calculated relative to \texttt{kdd\_base()}. GDD categories, generated when \texttt{gdd\_bin()} is specified, classify the seasonal GDD total into bins of fixed width. Daily temperature bins, generated when \texttt{tmp\_bin()} is specified, count the number of observed daily temperature readings in each fixed absolute temperature interval.
-
 \begin{table}[htbp]
-	\caption{Temperature statistics generated by \texttt{wxsum}}
-	\label{tab:tempout}
+	\caption{Macros stored by \texttt{wxsum}}
+	\label{tab:wxsummacros}
 	\begin{center}
-		\begin{tabularx}{\textwidth}{lX}
+		\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X}
 			\hline
-			Group & Generated statistics \\
+			Result & Description \\
 			\hline
-			Daily distribution & Mean, median, variance, standard deviation, skewness, maximum daily temperature within the season. \\
-			Growing degree days & GDD, deviation from the long-run average of GDD, $z$-score of GDD. \\
-			Killing degree days & KDD, deviation from the long-run average of KDD, $z$-score of KDD. \\
-			GDD categories & Integer category variable \texttt{gddcat\_}\textit{YYYY} identifying fixed-width bins of the seasonal GDD total, with Stata value labels defining the intervals. \\
-			Daily temperature bins & Count variables \texttt{tmpbin01\_}\textit{YYYY} through \texttt{tmpbin}\textit{JJ}\texttt{\_}\textit{YYYY} recording the number of observed daily temperature readings falling in each fixed absolute temperature interval. \\
+			\texttt{r(cmdline)} & Command as typed. \\
+			\texttt{r(type)} & \texttt{rain} or \texttt{temp}. \\
+			\texttt{r(stub)} & Common prefix of the daily variables. \\
+			\texttt{r(outstub)} & Output-variable prefix. \\
+			\texttt{r(mode)} & \texttt{calendar} or \texttt{unit}. \\
+			\texttt{r(shape)} & \texttt{long}, \texttt{wide}, or \texttt{unit}. \\
+			\texttt{r(window)} & Window description, for example \texttt{15may-15oct}. \\
+			\texttt{r(years)} & Starting years of calendar windows. \\
+			\texttt{r(ref)} & Reference period, for example \texttt{rolling 10} or \texttt{baseline 1981-2010}. \\
+			\texttt{r(varlist)} & Names of the created variables. \\
 			\hline
 		\end{tabularx}
 	\end{center}
 \end{table}
 
-The command calculates the non-reference variables whenever the selected daily variables and season are available. Rolling deviations and $z$-scores require sufficient prior history at the same location. Consequently, if the data begin in 2000 and the user requests \texttt{lr\_years(10)}, the first eligible long-run deviations are not calculated until the season beginning in 2010. This is intentional: the current season is never included in the reference period against which it is compared.
+The matrix \texttt{r(missing)} summarizes daily-data coverage. For calendar windows, it has one row per window and columns \texttt{days}, the number of calendar days; \texttt{mean\_nobs}, the mean number of observed days; \texttt{any\_missing}, the share of observations with at least one missing day; \texttt{all\_missing}, the share with no observed days; and \texttt{below\_minobs}, the number below the required observation count. For unit-specific windows, a single summary row also reports \texttt{outside}, the number of windows extending beyond the data's date range, and \texttt{missing\_dates}, the number with missing window dates. The \texttt{outside} windows receive missing statistics unless \texttt{partial} is specified. The matrix can be inspected with \texttt{matrix list r(missing)}.
+
+\subsection{The \texttt{wxprep} command}
+\label{sec:wxprep}
+
+The \texttt{wxprep} command prepares the daily data required by \texttt{wxsum}. It has three operations: \texttt{towide} converts long-format observations to daily wide-format variables; \texttt{rename} changes existing wide-format variable names to the required date-based convention; and \texttt{tolong} converts daily wide-format variables back to long observations. The last operation allows users to carry out transformations, such as unit conversions or combining daily series, before returning to wide form.
+
+\subsubsection{Syntax}
+
+To convert long data, with one row per unit-day or per unit-reading, to wide data, the syntax is
+
+\begin{stsyntax}
+	wxprep towide {\it varname\/} [ if {\it exp\/} ] [ in {\it range\/} ],
+	id({\it varlist\/}) date({\it varname\/}) stub({\it string\/})
+	[ daily(mean\textbar sum\textbar min\textbar max) dateformat({\it string\/})
+	nofill convert({\it varlist\/}) clear
+	save({\it filename\/} [, replace]) ]
+\end{stsyntax}
+
+\noindent The first \textit{varname} identifies the numeric weather series. \texttt{id()} identifies the units, \texttt{date()} identifies the date variable, and \texttt{stub()} supplies the prefix for the new daily variables. The \texttt{if} and \texttt{in} qualifiers can restrict which observations are converted.
+
+For wide data whose daily variables represent consecutive dates in a specified order, the syntax is
+
+\begin{stsyntax}
+	wxprep rename {\it varlist\/}, stub({\it string\/}) firstdate({\it date\/})
+	[ convert({\it varlist\/}) ]
+\end{stsyntax}
+
+\noindent For wide data whose variable names contain dates after an old prefix, the syntax is
+
+\begin{stsyntax}
+	wxprep rename {\it varlist\/}, stub({\it string\/})
+	from({\it string\/}) dateformat({\it string\/})
+	[ convert({\it varlist\/}) ]
+\end{stsyntax}
+
+To convert daily wide-format variables to one row per unit-day, the syntax is
+
+\begin{stsyntax}
+	wxprep tolong {\it stub\/}, id({\it varlist\/})
+	[ generate({\it newvar\/}) date({\it newvar\/})
+	convert({\it varlist\/}) clear save({\it filename\/} [, replace]) ]
+\end{stsyntax}
+
+\noindent In \texttt{tolong}, \textit{stub} identifies the existing daily weather variables. The meanings of \texttt{date()}, \texttt{id()}, and \texttt{convert()} depend on the operation, as described below.
+
+\subsubsection{Options}
+
+\noindent\textit{Options for \texttt{wxprep towide}}
+
+\begin{description}
+	\item[\texttt{id(varlist)}] identifies the units and is required. The identifier variables can be numeric or string, and each distinct combination becomes one output row. Missing identifiers are not allowed. Apart from the daily variables it creates, \texttt{towide} retains only the \texttt{id()} variables.
+	\item[\texttt{date(varname)}] identifies the date of each reading and is required. It accepts Stata daily dates (\texttt{\%td}), datetimes (\texttt{\%tc} or \texttt{\%tC}, retaining the day), integers in \texttt{yyyymmdd} form, or string dates accompanied by \texttt{dateformat()}.
+	\item[\texttt{stub(string)}] specifies the prefix of the new daily variables and is required. It is used exactly as typed and can contain at most 24 characters. For example, \texttt{stub(rf\_)} produces names such as \texttt{rf\_19930515}.
+	\item[\texttt{daily(mean\textbar sum\textbar min\textbar max)}] combines multiple readings for the same unit and day using their mean, sum, minimum, or maximum. Examples include \texttt{daily(mean)} for daily mean temperature, \texttt{daily(sum)} for accumulated daily precipitation, and \texttt{daily(max)} for daily maximum temperature. Missing readings are ignored. Without \texttt{daily()}, duplicate unit-day readings produce an error.
+	\item[\texttt{dateformat(string)}] gives the order of year, month, and day in a string date. For example, the mask \texttt{YMD} reads \texttt{2020-01-31}, whereas \texttt{DMY} reads \texttt{31jan2020}.
+	\item[\texttt{nofill}] creates variables only for dates appearing in the data. By default, \texttt{towide} creates a variable for every calendar day between the first and last date, leaving days without readings missing. These are missing days, not zero weather values.
+	\item[\texttt{convert(varlist)}] converts additional datetime variables to daily dates by removing the time of day. Variable names and labels are preserved. The listed variables must also appear in \texttt{id()} so they are retained in the output. The weather-reading datetime supplied in \texttt{date()} is converted automatically and does not need to be listed here. The converted dates can then define unit-specific exposure windows in \texttt{wxsum}. Conversion occurs before grouping, so records distinguished only by different times on the same day will be treated as belonging to the same unit.
+	\item[\texttt{clear}] permits replacement of data in memory that have changed since they were last saved.
+	\item[\texttt{save(filename [, replace])}] saves the wide-format output; \texttt{replace} permits overwriting an existing file.
+\end{description}
+
+\noindent\textit{Options for \texttt{wxprep rename}}
+
+\begin{description}
+	\item[\texttt{stub(string)}] specifies the prefix of the new names and is required.
+	\item[\texttt{firstdate(date)}] specifies the date of the first variable when the listed variables represent consecutive days in the order supplied. Accepted representations include \texttt{01jan1993}, \texttt{1993-01-01}, and \texttt{19930101}.
+	\item[\texttt{from(string)} and \texttt{dateformat(string)}] are used instead of \texttt{firstdate()} when each existing name contains its date. \texttt{from()} identifies the old prefix and \texttt{dateformat()} specifies the order of the date components that follow it. For names such as \texttt{rain\_01jan1993}, use the old prefix \texttt{rain\_} with the mask \texttt{DMY}.
+	\item[\texttt{convert(varlist)}] converts \texttt{\%tc} or \texttt{\%tC} datetimes to \texttt{\%td} daily dates, preserving names and labels. With \texttt{rename}, these can be any variables other than the daily weather variables being renamed.
+\end{description}
+
+\noindent Before making changes, \texttt{rename} checks that the dates are valid, no two variables refer to the same date, and the new variable names do not already exist. It reports gaps between the first and last date.
+
+\noindent\textit{Options for \texttt{wxprep tolong}}
+
+\begin{description}
+	\item[\texttt{id(varlist)}] is required and must uniquely identify the input observations. Variables other than the identifiers and the daily weather series are dropped. Unit-level variables that should be retained must therefore be included in \texttt{id()}.
+	\item[\texttt{generate(newvar)}] names the new variable holding the daily weather values. The default is the stub with a trailing underscore removed; for example, \texttt{rf\_} gives \texttt{rf}. The option can be abbreviated to \texttt{gen()}.
+	\item[\texttt{date(newvar)}] names the new Stata daily-date variable. The default name is \texttt{date}, with format \texttt{\%td}. Unlike \texttt{date()} in \texttt{towide}, this option names an output variable rather than identifying an input variable.
+	\item[\texttt{convert(varlist)}] converts \texttt{\%tc} or \texttt{\%tC} datetime variables to \texttt{\%td} daily dates, preserving names and labels. The variables must appear in \texttt{id()}, and the identifiers must remain unique after conversion.
+	\item[\texttt{clear}] permits replacement of data in memory that have changed since they were last saved.
+	\item[\texttt{save(filename [, replace])}] saves the long-format output; \texttt{replace} permits overwriting an existing file.
+\end{description}
+
+\begin{table}[htbp]
+	\caption{Results stored by \texttt{wxprep}}
+	\label{tab:wxprepresults}
+	\label{tab:wxpreptowideresults}
+	\label{tab:wxpreprenameresults}
+	\label{tab:wxpreptolongresults}
+	\begin{center}
+		\begin{tabularx}{\textwidth}{l>{\raggedright\arraybackslash}X}
+			\hline
+			Result & Description \\
+			\hline
+			\multicolumn{2}{l}{\textit{Panel A:} \texttt{wxprep towide}} \\[3pt]
+			\texttt{r(N)} & Number of units (output rows). \\
+			\texttt{r(n\_days)} & Number of daily variables created. \\
+			\texttt{r(n\_filled)} & Number of days created without data. \\
+			\texttt{r(n\_combined)} & Number of readings combined using \texttt{daily()}. \\
+			\texttt{r(first\_date)}, \texttt{r(last\_date)} & First and last date. \\
+			\texttt{r(stub)} & Prefix of the new daily variables. \\
+			\texttt{r(first\_var)}, \texttt{r(last\_var)} & First and last new variable names. \\
+			\texttt{r(converted)} & Variables converted to daily dates. \\[6pt]
+			\multicolumn{2}{l}{\textit{Panel B:} \texttt{wxprep rename}} \\[3pt]
+			\texttt{r(n\_vars)} & Number of variables renamed. \\
+			\texttt{r(n\_gaps)} & Number of dates without a daily variable between the first and last date. \\
+			\texttt{r(first\_date)}, \texttt{r(last\_date)} & First and last date. \\
+			\texttt{r(stub)} & Prefix of the renamed daily variables. \\
+			\texttt{r(first\_var)}, \texttt{r(last\_var)} & First and last new variable names. \\
+			\texttt{r(converted)} & Variables converted to daily dates. \\[6pt]
+			\multicolumn{2}{l}{\textit{Panel C:} \texttt{wxprep tolong}} \\[3pt]
+			\texttt{r(N)} & Number of output observations (units multiplied by days). \\
+			\texttt{r(n\_units)}, \texttt{r(n\_days)} & Number of units and days. \\
+			\texttt{r(first\_date)}, \texttt{r(last\_date)} & First and last date. \\
+			\texttt{r(generate)}, \texttt{r(date)} & Names of the new weather and date variables. \\
+			\texttt{r(converted)} & Variables converted to daily dates. \\
+			\hline
+		\end{tabularx}
+	\end{center}
+\end{table}
+
+\subsubsection{Output and stored results}
+
+The \texttt{towide} operation produces one row per combination of identifier values and one numeric variable per daily date. The \texttt{rename} operation preserves the wide layout while changing the selected weather-variable names to the required stub and date suffix. The \texttt{tolong} operation produces one row per unit-day with identifier variables, a date variable, and a weather-value variable. The date-filling rule for \texttt{towide} is controlled by \texttt{nofill}, and \texttt{towide} checks \texttt{maxvar} before reshaping. Stored results depend on the operation. Table~\ref{tab:wxprepresults} lists the results for \texttt{towide}, \texttt{rename}, and \texttt{tolong}.
 
 \section{Formulas and Calculations}
 
-This section defines the variables generated by \texttt{wxsum}. Let $i$ index the observation in the dataset and let $t$ denote the year in which a season begins. Let $S_t$ be the set of daily dates included in the season beginning in year $t$, and let $N_{it}$ be the number of non-missing daily observations for observation $i$ in season $t$. For rainfall variables, let $R_{id}$ denote daily precipitation on date $d$; for temperature variables, let $T_{id}$ denote daily temperature. The command creates variables with the year suffix $\_\textit{YYYY}$ but in order to simplify notation in this section, we let $\_t$ stand for the year, so the formulas below describe, for example, \texttt{mean\_}$t$ instead of $\texttt{mean\_}\textit{YYYY}$.
+This section defines the variables generated by \texttt{wxsum}. Let $i$ index an input observation and let $t$ denote the year in which its exposure window begins.  Let $\mathcal{W}_{it}$ denote the window of observation~$i$ that starts in year~$t$: the set of consecutive dates from the window's first date through its last date. For calendar windows, these dates are common across observations in a given year. For unit-specific windows, they are read from the starting and ending date variables or determined from the event date, window length, and lag. The same notation and calculations therefore apply to all three window definitions.
+
+Let $R_{id}$ denote daily precipitation on date $d$ and $T_{id}$ daily temperature. Write $X_{id}$ for the series being processed, either $R_{id}$ or $T_{id}$. A day of the window is observed when the data contain a daily variable for that date and the variable is not missing for observation~$i$. Days with missing values, dates without a daily variable, and, for a unit-specific window with \texttt{partial}, dates outside the date range of the data are all missing days. Let $\mathcal{O}_{it} \subseteq \mathcal{W}_{it}$ be the set of observed days of the window. Their number, $N_{it}$, is reported as \texttt{nobs}:
+
+\begin{equation}
+	\texttt{nobs}_{it} = N_{it} = \left| \mathcal{O}_{it} \right| .
+\end{equation}
+
+\noindent Every other statistic is computed from the observed days alone and is missing when $N_{it}$ is smaller than the value supplied in \texttt{minobs()}. With the default, \texttt{minobs(1)}, this applies only to windows without any observed day. The formulas below apply to windows that the command evaluates.
 
 \subsection{Statistics common to rainfall and temperature}
 
-For either rainfall or temperature data, write $X_{id}$ for the relevant daily variable, either $R_{id}$ or $T_{id}$. The daily sample mean is
+For either rainfall or temperature data, the daily sample mean is
 
 \begin{equation}
-	\texttt{mean\_} t_i = \frac{1}{N_{it}} \sum_{\substack{d \in \mathcal{S}_{t} \\ X_{id} \neq \text{missing}}} X_{id}.
+	\texttt{mean}_{it} = \frac{1}{N_{it}} \sum_{d \in \mathcal{O}_{it}} X_{id} .
 \end{equation}
 
-The daily median, \texttt{median\_}$t$, is the median of the non-missing values $\{X_{id} : d \in S_t, X_{id} \neq \text{missing}\}$. The daily variance, \texttt{var\_}$t$, requires at least 2 non-missing observations and is the sample variance of those same non-missing values,
+\noindent The daily median, $\texttt{median}_{it}$, is the median of the nonmissing values $\{X_{id} : d \in \mathcal{O}_{it}\}$, averaging the two central values when $N_{it}$ is even. The daily sample variance requires at least 2 observed days and is
 
 \begin{equation}
-	\texttt{var\_} t_i = \frac{1}{N_{it} - 1} \sum_{\substack{d \in \mathcal{S}_{t} \\ X_{id} \neq \text{missing}}} \left(X_{id} - \texttt{mean\_} t_i \right)^2 .
+	\texttt{var}_{it} = \frac{1}{N_{it} - 1} \sum_{d \in \mathcal{O}_{it}} \left(X_{id} - \texttt{mean}_{it}\right)^2 .
 \end{equation}
 
-The daily standard deviation, \texttt{sd\_}$t$, is the square root of the variance. The skewness variable is the adjusted Fisher-Pearson sample skewness,
+The daily standard deviation, $\texttt{sd}_{it}$, is the square root of the variance. The skewness variable is the adjusted Fisher--Pearson sample skewness,
 
 \begin{equation}
-	\texttt{skew\_} t_i = \frac{N_{it}}{(N_{it}-1)(N_{it}-2)} \sum_{\substack{d \in \mathcal{S}_{t} \\ X_{id} \neq \text{missing}}} \left( \frac{X_{id} - \texttt{mean\_} t_i}{\texttt{sd\_} t_i} \right)^3 .
+	\texttt{skew}_{it} = \frac{N_{it}}{(N_{it} - 1) (N_{it} - 2)} \sum_{d \in \mathcal{O}_{it}} \left(\frac{X_{id} - \texttt{mean}_{it}}{\texttt{sd}_{it}}\right)^3 .
 \end{equation}
 
-\noindent The third moment variable requires at least 3 non-missing observations. When $N_{it} < 3$ or the standard deviation is zero, the skewness variable is missing.
+\noindent Skewness is missing when fewer than three days are observed or the standard deviation is zero.
 
 \subsection{Rainfall calculations}
 
-For precipitation data, the seasonal total is
+For precipitation data, total rainfall over the window is
 
 \begin{equation}
-	\texttt{total\_} t_i = \sum_{d \in S_t} R_{id},
+	\texttt{total}_{it} = \sum_{d \in \mathcal{O}_{it}} R_{id} .
 \end{equation}
 
-\noindent where the implementation follows \texttt{rowtotal()} and therefore treats missing daily rainfall components as zero in the sum.
+\noindent Missing days add nothing to the sum, so a window with missing days can understate the total; \texttt{nobs} shows how many days the total covers.
 
-Monthly totals are computed first for each calendar month $m$ represented in the selected season,
+For monthly totals, the observed days are grouped by calendar month, where a month $m$ is the month of a particular year. Let $m(d)$ identify the year--month containing date $d$ and let $\mathcal{M}_{it}$ be the set of months that contain at least one observed day of the window. The total of month $m \in \mathcal{M}_{it}$ is
 
 \begin{equation}
-	M_{imt} = \sum_{\substack{d \in \mathcal{S}_{t} \\ \text{month} (d) = m}} R_{id}.
+	M_{imt} = \sum_{\substack{d \in \mathcal{O}_{it} \\ m(d) = m}} R_{id} ,
 \end{equation}
 
-\noindent The variable \texttt{mean\_mo\_}$t$ is the mean of the monthly totals $M_{imt}$ across the $k_{it}$ months represented in the season.
+\noindent and the mean of these monthly totals is
 
-Let $c$ denote the value supplied in \texttt{rain\_threshold()}. Rainy days and days without rain are counted only among non-missing daily rainfall values:
+\begin{equation}
+	\texttt{mean\_mo}_{it} = \frac{1}{\left| \mathcal{M}_{it} \right|} \sum_{m \in \mathcal{M}_{it}} M_{imt}.
+\end{equation}
+
+\noindent A month that the window covers only in part, at its start or end, counts as a month, and a month without an observed day is left out rather than counted as a month without rain.
+
+Let $c$ denote the value supplied in \texttt{rain\_threshold()}. Rainy days and days without rain are counted only among observed rainfall values while the variable \texttt{pct\_raindays} is the share of observed days with rain:
 
 \begin{align}
-	\texttt{raindays\_} t_i & = \sum_{\substack{d \in \mathcal{S}_{t} \\ R_{id} \neq \text{missing}}} \mathbf{1}\{R_{id} \geq c\}, \\
-	\texttt{norain\_} t_i & = \sum_{\substack{d \in \mathcal{S}_{t} \\ R_{id} \neq \text{missing}}} \mathbf{1}\{R_{id} < c\}.
+	\texttt{raindays}_{it} & = \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{R_{id} \geq c\} , \\
+	\texttt{norain}_{it} & = \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{R_{id} < c\} , \\
+    \texttt{pct\_raindays}_{it} &= \frac{\texttt{raindays}_{it}}{N_{it}} .
 \end{align}
 
-\noindent The share of observed days with rain is
-
-\begin{equation}
-	\texttt{pct\_raindays\_} t_i = \frac{\texttt{raindays\_} t_i}{N_{it}}.
-\end{equation}
-
-The command calculate three different dry spells. The variable \texttt{dry\_}$t$ is the longest mid-season dry spell: the maximum run of consecutive non-missing days with $R_{id} < c$ that occurs strictly after the first observed rainy day and strictly before the last observed rainy day in the season. Leading dry days before the first rainy day and trailing dry days after the last rainy day are excluded from \texttt{dry\_}$t$.
-
-The variable \texttt{dry\_start\_}$t$ is the number of consecutive non-missing dry days at the start of the season before the first rainy day or missing value. The variable \texttt{dry\_end\_}$t$ is the number of consecutive non-missing dry days at the end of the season after the last rainy day or missing value, counted backward from the final day of the season. If all daily rainfall values in a location-season are missing, all three dry-spell variables are missing. Missing rainfall values break dry spells rather than extending them.
+\noindent Here $\mathbf{1}\{\cdot\}$ is an indicator equal to one when its condition holds and zero otherwise. The dry spells are defined in section~\ref{sec:spells}.
 
 \subsection{Temperature calculations}
 
-For temperature data, the maximum is:
+For temperature data, let $h$ denote the value supplied in \texttt{heat\_threshold()}. An observed day is a heat day when $T_{id} \geq h$. The maximum, and the number and share of heat days, are
+
+\begin{align}
+	\texttt{max}_{it} & = \max_{d \in \mathcal{O}_{it}} T_{id} , \\
+	\texttt{heatdays}_{it} & = \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{T_{id} \geq h\} , \\
+	\texttt{pct\_heatdays}_{it} & = \frac{\texttt{heatdays}_{it}}{N_{it}} .
+\end{align}
+
+Let $a$ be the lower bound supplied in \texttt{gdd\_lo()} and $b$ the upper bound supplied in \texttt{gdd\_hi()}, with $b > a$.  Growing degree days count, for each observed day, the degrees of temperature between $a$ and $b$: 0 when $T_{id} \leq a$, $T_{id} - a$ when $a < T_{id} < b$, and $b - a$ when $T_{id} \geq b$. Daily growing degree days are thus truncated below at zero and above at $b - a$, and GDD are accumulated over the observed days as:
 
 \begin{equation}
-	\texttt{max\_} t_i = \max_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} T_{id}.
+	\texttt{gdd}_{it} = \sum_{d \in \mathcal{O}_{it}} \min \left\{ \max \left( T_{id} - a, 0 \right), b - a \right\} .
 \end{equation}
 
-Let $a$ be the lower bound supplied in \texttt{gdd\_lo()} and $b$ be the upper bound supplied in \texttt{gdd\_hi()}. Daily growing degree days are truncated below at zero and above at $b - a$, and seasonal GDD are accumulated as:
+Killing degree days (KDD) measure exposure to extreme heat. Let $k$ be the KDD base: the value supplied in \texttt{kdd\_base()} or, when that option is not specified, the heat threshold $h$. Each observed day contributes the number of degrees by which its temperature exceeds $k$, and nothing when its temperature is at or below $k$:
 
 \begin{equation}
-	\texttt{gdd\_} t_i = \sum_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} \min \left\{ \max \left(T_{id} - a, 0 \right), b - a \right\}.
+	\texttt{kdd}_{it} = \sum_{d \in \mathcal{O}_{it}} \max \left( T_{id} - k, 0 \right) .
 \end{equation}
 
-If the user supplies a positive value $k$ in \texttt{kdd\_base()}, killing degree days are:
+\noindent Unlike GDD, KDD has no upper bound, so a few very hot days can add many degree days. The heat spells are defined in section~\ref{sec:spells}.
+
+GDD bins provide a nonlinear degree-day specification in the spirit of \citet{DescheneGreenstone07}. When \texttt{gdd\_bin()} is specified, the categorical variable \texttt{gddcat} identifies the fixed-width interval containing the accumulated GDD total of that window, $G_{it} = \texttt{gdd}_{it}$. Let $\omega$ be the interval width supplied in \texttt{gdd\_bin()}, and let the cutpoints be
 
 \begin{equation}
-	\texttt{kdd\_} t_i = \sum_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} \max \left(T_{id} - k, 0 \right).
+	\tau_j = \tau_0 + j \omega , \qquad j = 0, 1, \ldots, Q ,
 \end{equation}
 
-\noindent If \texttt{kdd\_base()} is left at its default value of zero, \texttt{wxsum} does not generate the KDD variables.
-
-GDD bins provide a nonlinear degree-day specification in the spirit of \citet{DescheneGreenstone07}. This generated categorical variable identifies which fixed-width GDD interval the accumulated seasonal GDD total falls into. When \texttt{gdd\_bin()} is specified, let $\text{GDD}_{it}$ denote seasonal growing degree-days computed as above, and let $\tau_0 < \tau_1 < \cdots < \tau_J$ denote fixed GDD cutpoints generated from \texttt{gdd\_bin()}, \texttt{gdd\_binlo()}, and either \texttt{gdd\_binhi()} or the automatically determined upper endpoint. For regular categories:
+\noindent where $\tau_0$ is the value supplied in \texttt{gdd\_binlo()} (default 0). When \texttt{gdd\_binhi()} is specified, $\tau_Q$ is its value, and $Q = (\tau_Q - \tau_0)/\omega$ must be a whole number. Otherwise, $Q$ is the smallest positive integer for which $\tau_Q$ exceeds the largest GDD total of all observations and windows. A bottom category, for totals below $\tau_0$, exists only when at least one GDD total of an observation and window lies below $\tau_0$; let $\beta$ be 1 in that case and 0 otherwise. The categories are numbered consecutively from 1:
 
 \begin{equation}
-	\texttt{gddcat}_{it} = j \quad \text{if} \quad \tau_{j-1} \leq \text{GDD}_{it} < \tau_j.
+	\texttt{gddcat}_{it} =
+	\begin{cases}
+		1 & \text{if } G_{it} < \tau_0 , \\
+		\beta + j & \text{if } \tau_{j-1} \leq G_{it} < \tau_j , \quad j = 1, \ldots, Q , \\
+		\beta + Q + 1 & \text{if } G_{it} \geq \tau_Q .
+	\end{cases}
 \end{equation}
 
-\noindent If a bottom-coded bin is needed because some seasonal GDD totals fall below \texttt{gdd\_binlo()}:
+\noindent The last, top-coded category arises only with \texttt{gdd\_binhi()}, because without it no total reaches $\tau_Q$. The categories are pooled across observations and windows, so a value refers to the same interval in every window, and there can be at most 100 of them. The value labels of \texttt{gddcat} identify the intervals, such as \texttt{GDD [500,600)}, so that \texttt{tabulate gddcat} displays the interval boundaries and factor-variable notation, such as \texttt{i.gddcat} (or \texttt{i.gddcat\_}$t$ in wide output), creates an indicator for each category in regressions. The command is unit agnostic, so \texttt{gdd\_bin()}, \texttt{gdd\_binlo()}, and \texttt{gdd\_binhi()} must be expressed in the units of the generated GDD variable.
 
-\begin{equation}
-	\texttt{gddcat}_{it} = 1 \quad \text{if} \quad \text{GDD}_{it} < \tau_0.
-\end{equation}
-
-\noindent If a top-coded bin is requested via \texttt{gdd\_binhi()}:
-
-\begin{equation}
-	\texttt{gddcat}_{it} = J + 1 \quad \text{if} \quad \text{GDD}_{it} \geq \tau_J.
-\end{equation}
-
-\noindent The variable \texttt{gddcat\_}\textit{YYYY} is an integer-valued categorical variable with value labels define the GDD intervals, so that \texttt{tabulate gddcat\_}\textit{YYYY} displays the interval boundaries. Users can employ factor-variable notation, such as \texttt{i.gddcat\_}\textit{YYYY} in wide output or \texttt{i.gddcat} after \texttt{shape(long)}, to create regression indicators for each bin. The command is unit agnostic so \texttt{gdd\_bin()}, \texttt{gdd\_binlo()}, and \texttt{gdd\_binhi()} must be expressed in the units of the generated GDD variable.
-
-Daily temperature bins are another nonlinear measure that summarizes the seasonal distribution of observed daily temperatures across common absolute temperature intervals in the spirit of \cite{SchlenkerRoberts09}. These variables count the number of nonmissing daily temperature readings falling in each interval and are created when \texttt{tmp\_bin()} is specified.
-
-For $J = \texttt{tmp\_bin()}$ with $J \geq 3$, let $\ell = \texttt{tmp\_binlo()}$, $h = \texttt{tmp\_binhi()}$, and $w = (h - \ell) / (J - 2)$. The bin counts are:
+Daily temperature bins summarize the distribution of observed daily temperatures across common absolute temperature intervals in the spirit of \citet{SchlenkerRoberts09}. These variables count days in each interval and are created when \texttt{tmp\_bin()} is specified. For $J = \texttt{tmp\_bin()}$ with $J \geq 3$, let $\ell = \texttt{tmp\_binlo()}$, $h = \texttt{tmp\_binhi()}$, and $w = (h - \ell) / (J - 2)$. The bin counts are
 
 \begin{equation}
 	\texttt{tmpbin}_{it}^{(j)} =
 	\begin{cases}
-		\displaystyle\sum_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} \mathbf{1}\{T_{id} < \ell\}, & j = 1, \\[8pt]
-		\displaystyle\sum_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} \mathbf{1}\{\ell + (j - 2)w \leq T_{id} < \ell + (j - 1)w\}, & 2 \leq j \leq J - 1, \\[8pt]
-		\displaystyle\sum_{\substack{d \in \mathcal{S}_{t} \\ T_{id} \neq \text{missing}}} \mathbf{1}\{T_{id} \geq h\}, & j = J.
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{T_{id} < \ell\} , & j = 1 , \\[8pt]
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{\ell + (j - 2) w \leq T_{id} < \ell + (j - 1) w\} , & 2 \leq j \leq J - 1 , \\[8pt]
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{T_{id} \geq h\} , & j = J .
 	\end{cases}
 \end{equation}
 
-\noindent Interior intervals are lower-closed and upper-open. The lower tail is strictly below $\ell$; the upper tail is at or above $h$. The generated variable names are zero-padded, for example \texttt{tmpbin01\_1993}.
+\noindent Interior intervals include their lower boundary and exclude their upper boundary. The lower tail is strictly below $\ell$ and the upper tail is at or above $h$.  Missing temperatures are not counted in any bin. Bin values are missing when the window fails \texttt{minobs()}; otherwise their sum equals $N_{it}$.\footnote{Two special cases apply for small $J$. With \texttt{tmp\_bin(1)}, the single bin counts all $N_{it}$ observed days. With \texttt{tmp\_bin(2)}, the command splits at the midpoint $m = (\ell + h) / 2$: the first bin counts days with $T_{id} < m$ and the second counts days with $T_{id} \geq m$.}
 
-Two special cases apply for small $J$. When \texttt{tmp\_bin(1)} is specified, a single variable \texttt{tmpbin01\_}\textit{YYYY} counts all nonmissing daily temperature readings in the season. When \texttt{tmp\_bin(2)} is specified, the command splits at the midpoint $m = (\ell + h) / 2$: \texttt{tmpbin01\_}\textit{YYYY} counts days with $T < m$ and \texttt{tmpbin02\_}\textit{YYYY} counts days with $T \geq m$. Missing daily temperatures are not counted in any bin. If all daily temperatures for a location-season are missing, all bin variables for that location-season are set to missing. Otherwise, the sum of all bin counts equals the number of nonmissing daily temperature readings in the season.
+\subsection{Dry and heat spells} \label{sec:spells}
+
+A spell is a run of consecutive spell days: dry days ($R_{id} < c$) for rainfall and heat days ($T_{id} \geq h$) for temperature. The other observed days are break days: rainy days ($R_{id} \geq c$) for rainfall and cooler days ($T_{id} < h$) for temperature. A missing day is neither, and it ends a run just as a break day does. Formally, a run is a set of consecutive dates, $S = \{u, u + 1, \ldots, v\} \subseteq \mathcal{W}_{it}$, all of which are spell days, such that neither $u - 1$ nor $v + 1$ is a spell day of the window; its length is $|S| = v - u + 1$ days. Let $\mathcal{S}_{it}$ be the set of runs of the window and $\mathcal{B}_{it}$ its set of break days.
+
+The command reports three spells for each window: \texttt{dry\_start}, \texttt{dry}, and \texttt{dry\_end} for rainfall and \texttt{heat\_start}, \texttt{heat}, and \texttt{heat\_end} for temperature. We write their values as $\mathit{start}_{it}$, $\mathit{mid}_{it}$, and $\mathit{end}_{it}$. The leading spell, $\mathit{start}_{it}$, is the run that begins on the first observed day, $\min \mathcal{O}_{it}$, and the trailing spell, $\mathit{end}_{it}$, is the run that ends on the last observed day, $\max \mathcal{O}_{it}$:
+
+\begin{align}
+	\mathit{start}_{it} & = \sum_{S \in \mathcal{S}_{it}} |S| \, \mathbf{1}\{\min S = \min \mathcal{O}_{it}\} , \\
+	\mathit{end}_{it} & = \sum_{S \in \mathcal{S}_{it}} |S| \, \mathbf{1}\{\max S = \max \mathcal{O}_{it}\} .
+\end{align}
+
+\noindent At most one run meets each condition, so each sum is the length of that run, and it is 0 when the first or last observed day is a break day.\footnote{Missing days before the first and after the last observed day are skipped, whereas a missing day after the first observed day ends the leading spell, and one before the last observed day ends the trailing spell.}
+
+The mid-window spell, $\mathit{mid}_{it}$, is the longest run that is neither the leading nor the trailing spell when the window has at least two break days, and the longest run anywhere in the window when it has one break day or none:
+
+\begin{equation}
+	\mathit{mid}_{it} =
+	\begin{cases}
+		\max \left\{ |S| : S \in \mathcal{S}_{it},\ \min S \neq \min \mathcal{O}_{it},\ \max S \neq \max \mathcal{O}_{it} \right\} & \text{if } |\mathcal{B}_{it}| \geq 2 , \\
+		\max \left\{ |S| : S \in \mathcal{S}_{it} \right\} & \text{if } |\mathcal{B}_{it}| \leq 1 ,
+	\end{cases}
+\end{equation}
+
+\noindent where the maximum of an empty set is 0.  
+
+An illustration of the $|\mathcal{B}_{it}| \geq 2$ case is a \texttt{heat\_threshold(30)} with daily temperatures $(35, ., 35, 35, 20, 20 )$. This gives $\texttt{heat\_start} = 1$, $\texttt{heat} = 2$, and $\texttt{heat\_end} = 0$: the missing second day ends the leading spell, the run on days 3 and 4 is neither the leading nor the trailing spell, and the last day is a break day. Using the same heat threshold, an illustration of the $|\mathcal{B}_{it}| \leq 1$ case with daily temperatures $(35, 32, 20, 35, 35, 32)$. This gives $\texttt{heat\_start} = 2$, $\texttt{heat} = 3$, and $\texttt{heat\_end} = 3$: the cool third day ends the leading spell and the trailing spell starts the next day. Because there is only one break day, the mid-window spell is the longest spell anywhere in the window, which here is the trailing spell. A window without break days, such as a window with no cool days, therefore has a mid-window spell as long as its longest run, not 0. The same logic applies equally to dry spells.
+
+\subsection{User-defined daily bins}
+
+The \texttt{cuts()} option creates daily bin counts for either rainfall or temperature using user-specified cutpoints. Let $c_1 < \cdots < c_K$ be those cutpoints, and write $X_{id}$ for the series being processed. The $K + 1$ counts are
+
+\begin{equation}
+	\texttt{cut}_{it}^{(j)} =
+	\begin{cases}
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{X_{id} < c_1\} , & j = 1 , \\[8pt]
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{c_{j - 1} \leq X_{id} < c_j\} , & 2 \leq j \leq K , \\[8pt]
+		\displaystyle \sum_{d \in \mathcal{O}_{it}} \mathbf{1}\{X_{id} \geq c_K\} , & j = K + 1 .
+	\end{cases}
+\end{equation}
+
+\noindent These variables are named \texttt{cut01}, \texttt{cut02}, and so on, with a starting-year suffix in calendar-window wide output. They count observed days rather than shares, and their sum is $N_{it}$ when the window meets \texttt{minobs()}. The cutpoints need not be equally spaced. This option is an alternative to \texttt{tmp\_bin()}, not an additional set of temperature bins in the same command.
 
 \subsection{Long-run reference periods}
 
-Several variables generated by \texttt{wxsum} describe weather shocks as deviations from a location-specific long-run reference period. Let $w_{it}$ be one of the seasonal weather statistics for which a long-run benchmark is generated: \texttt{total\_}$t$, \texttt{raindays\_}$t$, \texttt{norain\_}$t$, or \texttt{pct\_raindays\_}$t$ for rainfall data; \texttt{gdd\_}$t$ and \texttt{kdd\_}$t$ for temperature data. Let $L$ be the number of prior years requested in \texttt{lr\_years()}. The rolling long-run mean and standard deviation used for deviations and $z$ scores are based only on strictly preceding seasons:
+Several variables generated by \texttt{wxsum} describe weather shocks as deviations from a location-specific reference period. Let $w_{it}$ denote one of the window statistics for which these measures are generated: \texttt{mean\_mo}, \texttt{total}, \texttt{raindays}, \texttt{norain}, \texttt{pct\_raindays}, or \texttt{dry} for rainfall; \texttt{gdd}, \texttt{kdd}, \texttt{heatdays}, \texttt{pct\_heatdays}, or \texttt{heat} for temperature.
 
-\begin{equation}
-	\bar{w}_{it}^{L} = L^{-1} \sum_{l = 1}^{L} w_{i, t - l}
-\end{equation}
+Using either \texttt{lr\_years()} or \texttt{baseline()}, the reference period of a window that starts in year~$t$ is a set of years, $\mathcal{Y}_t$. Let $\mathcal{Y}_{it} \subseteq \mathcal{Y}_t$ be the set of years with a nonmissing reference value and let $r_{it} = |\mathcal{Y}_{it}|$ be their number.\footnote{A reference value is missing when its window would have missing statistics: when the window has fewer than \texttt{minobs()} observed days or, unless \texttt{partial} is specified for a unit-specific window, when it does not lie within the date range of the data. }  The long-run mean and standard deviation are those of these $r_{it}$ values,
 
-\begin{equation}
-	s_{it}^{L} = \left\{(L - 1)^{-1} \sum_{l = 1}^{L} \left(w_{i, t - l} - \bar{w}_{it}^{L} \right)^2 \right\}^{1 / 2} .
-\end{equation}
+\begin{align}
+	\bar{w}_{it} & = \frac{1}{r_{it}} \sum_{t' \in \mathcal{Y}_{it}} w_{it'} , \\
+	s_{it} & = \left\{ \frac{1}{r_{it} - 1} \sum_{t' \in \mathcal{Y}_{it}} \left( w_{it'} - \bar{w}_{it} \right)^2 \right\}^{1/2} ,
+\end{align}
 
-The deviation and corresponding $z$ score are
+\noindent and the deviation and corresponding $z$-score are
 
-\begin{equation}
-	\texttt{dev\_} w\texttt{\_} t_i = w_{it} - \bar{w}_{it}^{L} ,
-\end{equation}
+\begin{align}
+	\texttt{dev\_}w_{it} & = w_{it} - \bar{w}_{it} , \\
+	\texttt{z\_}w_{it} & = \frac{w_{it} - \bar{w}_{it}}{s_{it}} .
+\end{align}
 
-\begin{equation}
-	\texttt{z\_} w\texttt{\_} t_i = \frac{w_{it} - \bar{w}_{it}^{L}}{s_{it}^{L}} .
-\end{equation}
+\noindent Both require that $w_{it}$ be nonmissing and that the observation have at least $\rho$ reference values, $r_{it} \geq \rho$, where $\rho$ is the value supplied in \texttt{ref\_min()}. By default, $\rho$ equals the number of reference years, $|\mathcal{Y}_t|$, so every reference year must have a value. The $z$-score is also missing when the reference values do not vary, so that $s_{it} = 0$. With the default \texttt{lr\_years(10)}, for example, the first windows of the data have no deviations, because fewer than 10 earlier windows lie within the date range of the data.
 
-\noindent The use of strictly prior years avoids including the current realization in its own benchmark. If there are too few preceding season variables to satisfy the requested value of \texttt{lr\_years()}, the long-run deviations and $z$ scores are not generated for those initial seasons.
+\section{Examples} \label{sec:examples}
 
-\section{Examples}
+We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{wxsum\_rain.dta}) and daily temperature in Celsius (\texttt{wxsum\_temp.dta}) both of which come from ERA5 \citep{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11.}
 
-The package includes small rainfall and temperature datasets that can be used to check installation and illustrate the syntax. These files are also useful as templates for checking the required wide layout and variable-naming conventions. 
+\subsection{Rainfall in a calendar window} \label{sec:ex-rain}
 
-\subsection{Rainfall summaries}
-
-Suppose that the daily rainfall variables in \texttt{rain.dta} are named with the prefix \texttt{rf\_}. The following commands calculate seasonal rainfall statistics for a May 15 through October 15 growing season and save the resulting dataset:
+The data in \texttt{wxsum\_rain.dta} contain \texttt{hhid} and 7,670 daily variables, running from 2003 to 2023, named with the prefix rf\_. The following example calculates rainfall statistics for a May 15 through October 15 window and saves the resulting dataset. Because the default long output contains only the generated statistics and \texttt{year}, we retain the household identifier with \texttt{keep(hhid)}:
 
 \begin{stlog}
-	. use rain.dta, clear
-	. wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) ///
-	>     fin_day(15) rain_threshold(1) keep(hhid) ///
-	>     save(rainfall_stats.dta)
+. use wxsum_rain, clear
+{\smallskip}
+. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
+> keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          rain, stub rf_
+  Thresholds:    rain_threshold(1)
+  Window:        calendar, 15may-15oct; 21 windows, 2003-2023
+  Output:        long, 210 rows (21 per observation); 26 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    from 2013
+  Missing days:  0 of 210 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
 \end{stlog}
 
-\noindent The output dataset contains one observation for each input location. For each season observed in the daily rainfall variables, \texttt{wxsum} adds the rainfall statistics listed in Table~\ref{tab:rainout}. If the user also needs location identifiers or other merge variables, these should be supplied in \texttt{keep()}. The resulting file can then be merged with a socioeconomic dataset using the retained identifier variables and the season-specific weather variables generated.
-
-\subsection{Temperature summaries}
-
-Suppose that the daily temperature variables in \texttt{temp.dta} are named with the prefix \texttt{tmp\_}. The following commands calculate seasonal temperature statistics for a November through February growing season. As the final month precedes the initial month, the command treats the exposure window as spanning calendar years and assigns the season to the year in which it begins:
+\noindent The summary displayed after the calculation describes the output. The \texttt{Data} and \texttt{Thresholds} lines identify the daily variables and the rainy-day threshold, here the default of 1~mm. The \texttt{Window} line reports 21 windows, one for each year, and the \texttt{Output} line reports 210 rows, one for each household and window, with 26 new variables: the 14 statistics in Table~\ref{tab:rainout} and a deviation and a $z$-score for 6 of them. The \texttt{Reference} line describes the default rolling reference period, the 10 preceding windows, all of which must have values (\texttt{ref\_min(10)}). Deviations and $z$-scores therefore begin in 2013, the first window with 10 earlier windows in the data. The last lines report that no household-window has a missing day, so none falls below the \texttt{minobs()} requirement, and that the details are stored in \texttt{r()}. We list some of the new variables for the first five years of household 101:
 
 \begin{stlog}
-	. use temp.dta, clear
-	. wxsum tmp_, type(temp) ini_month(11) fin_month(02) gdd_lo(8)  ///
-	>     gdd_hi(32) kdd_base(32) keep(hhid)
+. list hhid year nobs total raindays dry_start dry dry_end in 1/5, noobs
+> abbreviate(9)
+{\smallskip}
+  +-------------------------------------------------------------------+
+  | hhid   year   nobs   total   raindays   dry_start   dry   dry_end |
+  |-------------------------------------------------------------------|
+  |  101   2003    154     899        106          16     4        12 |
+  |  101   2004    154     734        107          13     7         2 |
+  |  101   2005    154     824        112           8     3        21 |
+  |  101   2006    154     987        117           0     5        21 |
+  |  101   2007    154     860        109          14     8        13 |
+  +-------------------------------------------------------------------+
 \end{stlog}
 
-\noindent This command generates the temperature summaries listed in Table~\ref{tab:tempout}. The values \texttt{gdd\_lo(8)}, \texttt{gdd\_hi(32)}, and \texttt{kdd\_base(32)} are illustrative; they should be chosen to match the units of the underlying temperature data and the biological or behavioral process being studied.
+\noindent All 154 days from May 15 through October 15 are observed in each window (\texttt{nobs}). In 2003, household 101 received 899~mm of rain on 106 rainy days. The window began with a dry spell of 16 days and ended with one of 12 days, and the longest dry spell between them lasted 4 days.
 
-\subsection{GDD and temperature bins}
 
-To create Desch{\^e}nes--Greenstone-style GDD bins, the user specifies \texttt{gdd\_bin()} with a bin width in the units of the generated GDD variable:
+\subsection{Degree days and heat spells} \label{sec:ex-heat}
+
+Temperature statistics need three thresholds: the lower and upper bounds for GDD and the heat threshold, which defines heat days and heat spells and, unless \texttt{kdd\_base()} is specified, the base for KDD. The next example calculates temperature statistics for the same May to October window, with GDD bounds of 10 and 30$^{\circ}$C and a heat threshold of 29$^{\circ}$C:
 
 \begin{stlog}
-	. use temp.dta, clear
-	. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) ///
-	>     fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) gdd_bin(100) ///
-	>     gdd_binlo(50) gdd_binhi(950) keep(hhid)
+. use wxsum_temp, clear
+{\smallskip}
+. wxsum tmp_, type(temp) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
+> gdd_lo(10) gdd_hi(30) heat_threshold(29) keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          temp, stub tmp_
+  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(29)
+  Window:        calendar, 15may-15oct; 21 windows, 2003-2023
+  Output:        long, 210 rows (21 per observation); 24 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    from 2013
+  Missing days:  0 of 210 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
+{\smallskip}
+. summarize gdd kdd heatdays heat_start heat heat_end
+{\smallskip}
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+         gdd |        210    2165.947    126.3271     2035.1     2592.2
+         kdd |        210    14.70191    12.28996          0       38.9
+    heatdays |        210    12.78095    9.100167          0         31
+  heat_start |        210     5.77619    6.443156          0         24
+        heat |        210    3.995238    4.799818          0         17
+-------------+---------------------------------------------------------
+    heat_end |        210    .6666667    2.988548          0         14
 \end{stlog}
 
-\noindent Here \texttt{gdd\_bin(100)} means the bin width will be 100 degree-days in the units of the generated GDD variable. In this example the user set \texttt{gdd\_binhi()} and \texttt{gdd\_binlo()} though these are not required. In the absence of these options, the default lower endpoint is 0 while the command determines the upper endpoint from the pooled empirical maximum of GDD. This example assumes Celsius temperatures and Celsius degree-days. The command does not infer or convert units.
+\noindent The summary has the same form as for rainfall. The \texttt{Thresholds} line reports the three thresholds, and the 24 new variables are the 14 statistics in Table~\ref{tab:tempout} and a deviation and a $z$-score for 5 of them. Over the 154 days of the window, the households accumulated between 2,035 and 2,592 GDD, about 14 a day. KDD are much smaller, 14.7 on average, because they accumulate only when the temperature is above 29$^{\circ}$C, which the daily mean temperature reached on 12.8 days of the window on average and on as many as 31. Heat spells were longest at the start of the window: the leading spell averaged 5.8 days, the mid-window spell 4.0 days, and the trailing spell 0.7 days.
 
-To create Schlenker--Roberts-style temperature bins, the user specifies \texttt{tmp\_bin()} along with \texttt{tmp\_binlo()} and \texttt{tmp\_binhi()}:
+\subsection{Temperature bins} \label{sec:ex-bins}
+
+In agriculture as well as other setting, temperature tends to have a nonlinear effect on outcomes. To capture this, \texttt{wxsum} can calculate a variety of temperature bins. The following example counts the days in four temperature bands: $< 24^{\circ}$C, 24--27$^{\circ}$C, 27--30$^{\circ}$C, and $\geq 30^{\circ}$C, from November through April. Because the final month precedes the initial month, each window crosses the end of the calendar year and is assigned to the year in which it starts:
 
 \begin{stlog}
-	. use temp.dta, clear
-	. wxsum tmp_, type(temp) ini_month(04) ini_day(01) fin_month(09) ///
-	>     fin_day(15) gdd_lo(18) gdd_hi(30) kdd_base(32) tmp_bin(15)  ///
-	>     tmp_binlo(0) tmp_binhi(39) keep(hhid)
+. use wxsum_temp, clear
+{\smallskip}
+. wxsum tmp_, type(temp) ini_month(11) fin_month(4) gdd_lo(10) gdd_hi(30)
+> heat_threshold(30) cuts(24 27 30) keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          temp, stub tmp_
+  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(30)
+  Window:        calendar, 01nov-30apr; 20 windows, 2003-2022
+  Output:        long, 200 rows (20 per observation); 28 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    from 2013
+  Missing days:  0 of 200 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
 \end{stlog}
 
-\noindent Here \texttt{tmp\_bin(15)}, \texttt{tmp\_binlo(0)}, and \texttt{tmp\_binhi(39)} create 15 bin-count variables per season: a lower tail counting days below 0, 13 equal-width interior intervals over $[0, 39)$, and an upper tail counting days at or above 39. This is a Celsius-style example; the command does not infer or convert units.
-
-\subsection{Changing the long-run benchmark}
-
-The default long-run reference period is 10 prior years. Researchers working with longer weather histories may prefer a longer benchmark, whereas applications with short panels may require a shorter one. The following command uses the prior 20 years as the rolling reference period:
+\noindent There are 20 windows rather than 21 because the window that would start in November 2023 extends beyond the end of the data.
 
 \begin{stlog}
-	. use rain.dta, clear
-	. wxsum rf_, type(rain) ini_month(05) fin_month(10) lr_years(20) ///
-	>     keep(hhid)
+. describe cut*
+{\smallskip}
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+--------------------------------------------------------------------------------
+cut01           byte    %12.0g                Days with temp < 24
+cut02           int     %12.0g                Days with 24 <= temp < 27
+cut03           byte    %12.0g                Days with 27 <= temp < 30
+cut04           byte    %12.0g                Days with temp >= 30
 \end{stlog}
 
-\noindent Changing \texttt{lr\_years()} affects only the rolling deviations and $z$-scores. It does not affect the seasonal means, medians, variances, standard deviations, skewness measures, totals, counts, shares, dry-spell measures, GDD categories, or daily-temperature bin counts.
+\noindent Each cut is named sequentially from low to high and the command attaches labels that record the boundaries of each bin.
 
-\subsection{Long output}
+\subsection{Deviations from a fixed baseline} \label{sec:ex-baseline}
 
-To produce long-shaped output, the user specifies \texttt{shape(long)}:
+By default, deviations and $z$-scores compare each window with the 10 preceding windows, so the reference period moves with each passing year. A fixed baseline instead compares every window with the same reference period. The next command uses the windows from 2003 through 2022 as a climatic baseline:
 
 \begin{stlog}
-	. use rain.dta, clear
-	. wxsum rf_, type(rain) ini_month(05) fin_month(10) ini_day(15) ///
-	>     fin_day(15) rain_threshold(1) keep(hhid) ///
-	>     shape(long)
+. use wxsum_rain, clear
+{\smallskip}
+. wxsum rf_, type(rain) ini_month(5) ini_day(15) fin_month(10) fin_day(15)
+> baseline(2003 2022) keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          rain, stub rf_
+  Thresholds:    rain_threshold(1)
+  Window:        calendar, 15may-15oct; 21 windows, 2003-2023
+  Output:        long, 210 rows (21 per observation); 26 new variables
+  Reference:     fixed baseline 2003-2022; ref_min(20)
+  Deviations:    from 2003
+  Missing days:  0 of 210 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
+{\smallskip}
+. format dev_total %7.1f
+{\smallskip}
+. format z_total z_dry %5.2f
+{\smallskip}
+. list year total dev_total z_total dry z_dry if hhid == 101 & year >= 2016,
+> noobs abbreviate(9)
+{\smallskip}
+  +--------------------------------------------------+
+  | year   total   dev_total   z_total   dry   z_dry |
+  |--------------------------------------------------|
+  | 2019    1053       271.6      1.88     2   -1.28 |
+  | 2020     717       -64.3     -0.44    10    0.09 |
+  | 2021     488      -293.4     -2.03    13    0.60 |
+  | 2022     576      -205.4     -1.42     4   -0.94 |
+  | 2023     289      -492.4     -3.40     8   -0.26 |
+  +--------------------------------------------------+
 \end{stlog}
 
-\noindent The output has one row per \texttt{id}-year. The time variable is named \texttt{year}. Variables are named \texttt{mean}, \texttt{median}, and so on, rather than \texttt{mean\_}\textit{YYYY}, \texttt{median\_}\textit{YYYY}, etc.
+\noindent The \texttt{Reference} line now reports the fixed baseline, and deviations begin in 2003, the first window of the data, because windows inside the baseline are compared with a baseline that includes them. By default, all 20 baseline seasons must have values (\texttt{ref\_min(20)}). The listing shows the last five windows of household 101. Its baseline mean is 781~mm (1053 minus 2761.6), so the 289~mm of 2023 was 492~mm below the mean, a $z$-score of $-3.40$, and 2021 was also unusually dry ($z = -2.03$). Because the baseline includes the dry seasons of 2021 and 2022, these deficits are smaller than they would be against a baseline of earlier, wetter seasons. The $z$-scores of \texttt{dry}, the mid-window dry spell, do not move with those of \texttt{total}: in 2023, the mid-window dry spell was close to its baseline mean ($z = -0.26$). A rainfall deficit need not show up as a long mid-window dry spell, which is one reason why \texttt{wxsum} calculates a variety of different metrics.
 
+\subsection{Farm-specific growing seasons} \label{sec:ex-panel}
+
+Calendar windows apply the same dates to every observation, but many applications will have windows that vary by unit. In this example, planting and harvest dates vary across farms and years. The simulated \texttt{hh\_panel.dta} records them, with crop yields, for 10 households from 2013 through 2023. We attach the daily weather data and let \texttt{start()} and \texttt{end()} define one window per observation:
+
+\begin{stlog}
+. use hh_panel, clear
+(Simulated household panel for the wxsum examples)
+{\smallskip}
+. merge m:1 hhid using wxsum_rain, nogenerate
+{\smallskip}
+\oom
+{\smallskip}
+. merge m:1 hhid using wxsum_temp, nogenerate
+{\smallskip}
+\oom
+{\smallskip}
+. wxsum rf_, type(rain) start(plant) end(harvest) outstub(r_)
+> keep(hhid year plant harvest yield tmp_*)
+{\smallskip}
+\oom
+{\smallskip}
+. quietly wxsum tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30)
+> heat_threshold(29) outstub(t_) keep(hhid year plant harvest yield r_*)
+{\smallskip}
+. format t_gdd t_kdd %7.1f
+{\smallskip}
+. list hhid year plant harvest r_total t_gdd t_kdd in 1/4, noobs
+{\smallskip}
+  +----------------------------------------------------------------+
+  | hhid   year       plant     harvest   r_total    t_gdd   t_kdd |
+  |----------------------------------------------------------------|
+  |  101   2013   20jun2013   13oct2013       730   1516.8     0.0 |
+  |  101   2014   29may2014   28sep2014       833   1643.9     0.3 |
+  |  101   2015   09may2015   15sep2015       552   2012.2    20.9 |
+  |  101   2016   10may2016   02sep2016       773   1677.5    15.6 |
+  +----------------------------------------------------------------+
+\end{stlog}
+
+\noindent Because the weather data have one row per household, \texttt{merge m:1} attaches a household's daily series to each of its years. Without \texttt{keep()}, unit-specific output retains every input variable; here the first \texttt{wxsum} keeps \texttt{tmp\_*} for the second, which keeps \texttt{r\_*}, and the prefixes from \texttt{outstub()} keep the two sets apart. A fixed-effects regression recovers the coefficients used to simulate the yields, 1.0, 0.25, and $-15$ (see \texttt{notes} in \texttt{hh\_panel.dta}):
+
+\begin{stlog}
+. xtset hhid year
+{\smallskip}
+\oom
+{\smallskip}
+. xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)
+{\smallskip}
+\oom
+{\smallskip}
+------------------------------------------------------------------------------
+             |               Robust
+       yield | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+     r_total |   .8987026   .1053879     8.53   0.000     .6602987    1.137106
+       t_gdd |   .2188556   .1741285     1.26   0.240    -.1750506    .6127617
+       t_kdd |  -15.30946   2.841257    -5.39   0.000    -21.73683   -8.882093
+       _cons |   419.9244   340.8354     1.23   0.249    -351.0989    1190.948
+-------------+----------------------------------------------------------------
+{\smallskip}
+\oom
+\end{stlog}
+
+\subsection{Heat exposure during pregnancy}
+\label{sec:ex-births}
+
+An event-based window ends the day before an event and extends back a given number of days. The simulated \texttt{births.dta} records the birth date and birth weight of 300 children born from 2014 through 2023 and the household that locates each birth in the temperature data. We approximate each trimester by 91 days: \texttt{event\_date(birthdate)} with \texttt{days(91)} gives the third, and \texttt{lag(91)} and \texttt{lag(182)} move that window back to the second and first trimester.
+
+\begin{stlog}
+. use births, clear
+(Simulated births for the wxsum examples)
+{\smallskip}
+. merge m:1 hhid using wxsum_temp, nogenerate
+{\smallskip}
+\oom
+{\smallskip}
+. wxsum tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) gdd_hi(30)
+> heat_threshold(30) outstub(t3_) keep(childid hhid birthdate bweight tmp_*)
+{\smallskip}
+\oom
+{\smallskip}
+. quietly wxsum tmp_, type(temp) event_date(birthdate) days(91) lag(91)
+> gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t2_)
+> keep(childid hhid birthdate bweight t3_* tmp_*)
+{\smallskip}
+. quietly wxsum tmp_, type(temp) event_date(birthdate) days(91) lag(182)
+> gdd_lo(10) gdd_hi(30) heat_threshold(30) outstub(t1_)
+> keep(childid hhid birthdate bweight t3_* t2_*)
+\end{stlog}
+
+\noindent The three commands differ only in \texttt{lag()}, \texttt{outstub()}, and \texttt{keep()}; each \texttt{keep()} retains the statistics created before it and, until the last command, the daily temperatures. When gestational age is recorded, \texttt{start()} and \texttt{end()} can define each trimester exactly. We summarize the heat days and regress birth weight on them:
+
+\begin{stlog}
+. summarize t1_heatdays t2_heatdays t3_heatdays
+{\smallskip}
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+ t1_heatdays |        300        8.17     12.4248          0         53
+ t2_heatdays |        300    6.803333     10.9958          0         49
+ t3_heatdays |        300    7.736667    11.87761          0         52
+{\smallskip}
+. regress bweight t1_heatdays t2_heatdays t3_heatdays, vce(cluster hhid)
+{\smallskip}
+\oom
+{\smallskip}
+------------------------------------------------------------------------------
+             |               Robust
+     bweight | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+ t1_heatdays |  -1.727993   2.210403    -0.78   0.454    -6.728272    3.272286
+ t2_heatdays |  -3.234264    2.03205    -1.59   0.146    -7.831081    1.362553
+ t3_heatdays |  -13.99672   2.384793    -5.87   0.000     -19.3915   -8.601945
+       _cons |   3346.379    31.8974   104.91   0.000     3274.223    3418.536
+------------------------------------------------------------------------------
+\end{stlog}
+
+\noindent The birth weights were simulated to fall by 4~grams for each heat day in the second trimester and by 9~grams for each heat day in the third (see \texttt{notes} in \texttt{births.dta}). The regression attributes the largest effect to the third trimester, $-14.0$~grams per heat day, with a 95\% confidence interval that contains the simulated value.
+
+\subsection{Renaming daily variables} \label{sec:ex-rename}
+
+Daily weather data do not always arrive with variable names that combine a stub and a date. When the daily variables are in date order, \texttt{wxprep rename} names them from a stub and the date of the first variable. To illustrate, we load the rainfall of 2023 and rename its 365 daily variables \texttt{day1}, \texttt{day2}, \ldots, \texttt{day365}:
+
+\begin{stlog}
+. use hhid rf_2023* using wxsum_rain, clear
+{\smallskip}
+. rename rf_2023* day#, renumber
+{\smallskip}
+. describe, short
+{\smallskip}
+Contains data from wxsum_rain.dta
+ Observations:            10
+    Variables:           366                  12 Jun 2026 13:52
+Sorted by:
+     Note: Dataset has changed since last saved.
+{\smallskip}
+. wxprep rename day1-day365, stub(rf_) firstdate(01jan2023)
+wxprep rename: 365 variables renamed, rf_20230101 to rf_20231231
+{\smallskip}
+. describe rf_20230101 rf_20231231
+{\smallskip}
+Variable      Storage   Display    Value
+    name         type    format    label      Variable label
+--------------------------------------------------------------------------------
+rf_20230101     byte    %8.0g
+rf_20231231     byte    %8.0g
+\end{stlog}
+
+\noindent The \texttt{firstdate()} option gives the date of the first variable in the varlist, and the remaining variables are named for consecutive days. Before renaming, \texttt{wxprep rename} checks that none of the new names already exists. When the existing names contain dates, as in \texttt{rain\_01jan2023}, the \texttt{from()} and \texttt{dateformat()} options read the date of each variable from its name instead.
+
+\subsection{From hourly readings to daily series} \label{sec:ex-hourly}
+
+Reanalysis products such as ERA5 \citep{ERA5} provide hourly readings, often in long form and with temperature in kelvin. The simulated \texttt{weather\_hourly.dta} has one row for each household and hour of 2022, with temperature, \texttt{t2m}, and relative humidity, \texttt{rh}. From these, we calculate the hourly wet-bulb temperature, a measure of humid heat, with the formula of \citet{Stull11}, take its daily maximum with \texttt{wxprep towide}, and count the days from April through September on which the maximum reached 26$^{\circ}$C, an illustrative threshold:
+
+\begin{stlog}
+. use weather_hourly, clear
+(Synthetic hourly weather for the wxsum examples, 2022)
+{\smallskip}
+. generate tempc = t2m - 273.15
+{\smallskip}
+. generate tw = tempc*atan(0.151977*sqrt(rh + 8.313659)) + atan(tempc + rh) -
+> atan(rh - 1.676331) + 0.00391838*rh^1.5*atan(0.023101*rh) - 4.686035
+{\smallskip}
+. wxprep towide tw, id(hhid) date(time) stub(tw_) daily(max) clear
+wxprep towide: 10 units, 365 daily variables tw_20220101 to tw_20221231
+  83950 readings were combined into daily values with daily(max)
+\end{stlog}
+
+\noindent The \texttt{date(time)} option keeps the day of each \texttt{\%tc} datetime, and \texttt{daily(max)} takes the maximum of the 24 readings of each household and day, so the 87,600 hourly readings become 3,650 daily maxima. 
+
+\begin{stlog}
+. wxsum tw_, type(temp) ini_month(4) fin_month(9) gdd_lo(10) gdd_hi(30)
+> heat_threshold(26) keep(hhid)
+{\smallskip}
+wxsum summary
+  Data:          temp, stub tw_
+  Thresholds:    gdd_lo(10) gdd_hi(30) heat_threshold(26)
+  Window:        calendar, 01apr-30sep; 1 window, 2022
+  Output:        long, 10 rows (1 per observation); 14 new variables
+  Reference:     rolling, 10 years before each window; ref_min(10)
+  Deviations:    none (not enough reference years)
+  Missing days:  0 of 10 unit-windows; 0 have no observed day
+  Below minobs:  0 unit-windows (minobs(1))
+  Stored results: type return list
+{\smallskip}
+. summarize max heatdays heat_start heat heat_end
+{\smallskip}
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+         max |         10    28.50971    .5919424   27.74694   29.22406
+    heatdays |         10          19    2.494438         15         22
+  heat_start |         10           0           0          0          0
+        heat |         10         3.6    1.264911          2          6
+    heat_end |         10           0           0          0          0
+\end{stlog}
+
+\noindent Because the data cover a single year, the window has no reference years, and \texttt{wxsum} creates no deviations or $z$-scores. Stull's formula applies at sea-level pressure to relative humidities between 5\% and 99\% and temperatures between $-20$ and 50$^{\circ}$C. The GDD of wet-bulb temperature has no meaningful interpretation, although \texttt{gdd\_lo()} and \texttt{gdd\_hi()} are still required with \texttt{type(temp)}. The households had, on average, 19 days with a maximum wet-bulb temperature of 26$^{\circ}$C or more, and none was in a heat spell on the first or last day of the window.
 
 \section{Conclusions}
 
-\texttt{wxsum} reduces the amount of custom code needed to transform daily weather data into seasonal measures commonly used in socioeconomic analysis.  It standardizes the construction of summary statistics, threshold-based measures, rainy-day counts, dry spells, GDD bins, daily temperature bins, and rolling weather-shock measures. The command handles cross-year seasons, missing data, and large datasets without requiring users to reshape or preprocess their data beyond the standard wide format. An implementation for R has also been developed, extending the same core functionality to users who work outside Stata or who integrate weather processing into R-based data pipelines.
+Choosing a weather metric is not just a step in the data-cleaning code, it is a research design choice. Total rainfall and the length of a dry spell capture different dimensions of exposure. The choice between them should follow from the mechanism under study, not from which is easier to calculate. This is where standardization is useful. By reducing the need for custom code, \texttt{wxsum} makes a wider range of measurement choices practical. It leaves the substantive decisions with the researcher, who specifies the exposure window, thresholds, bins, and reference period.
 
-While standardizing calculations, \texttt{wxsum} leaves substantive choices with the researcher by allowing users to customize the season definition, the thresholds for growing and killing degree days, GDD bin widths and endpoints, daily temperature bin counts and endpoints, the rainfall threshold, the length of the long-run window used to compute deviations and z-scores, and the shape of the output data frame. This division of labor is useful: the command reduces the likelihood of programming errors in repetitive weather-processing tasks, but it does not substitute for careful research design.
+Lowering that programming burden also makes it easier to examine the consequences of those decisions. Researchers can compare plausible measures without writing a separate routine for each. Future development should build on this capability. Tools that trace how alternative exposure definitions and missing-data requirements affect empirical results would help researchers distinguish findings that survive these choices from those that depend on them. The next step is not simply to generate more variables. It is to understand when choosing a different variable changes the conclusion.
+
+That understanding still requires a substantive argument. A correctly calculated measure need not capture the mechanism of interest. A reproducible result need not be credible. Researchers must justify their measurement choices, not merely document them. This division of labor is useful: \texttt{wxsum} reduces the likelihood of programming errors in repetitive weather-processing tasks. It does not substitute for careful research design.
 
 \endinput

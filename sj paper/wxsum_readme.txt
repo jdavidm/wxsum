@@ -4,11 +4,11 @@ NOTE:  readme.txt template -- do not remove empty entries, but you may
 
 Package name:   <leave blank>
 
-Title:  
+Title:  wxsum: A command for processing temperature and precipitation data
 
 Author 1 name: Jeffrey D. Michler
 Author 1 from: University of Arizona, Tucson, Arizona, USA
-Author 1 email: jdmichler@arizona.du    
+Author 1 email: jdmichler@arizona.edu
 
 Author 2 name: Anna Josephson    
 Author 2 from: University of Arizona, Tucson, Arizona, USA
@@ -26,8 +26,11 @@ Author 5 name:  Jeffrey C. Oliver
 Author 5 from:  University of Arizona, Tucson, Arizona, USA
 Author 5 email: jcoliver@arizona.edu
 
-Help keywords: wxsum
+Help keywords: wxsum, wxprep, weather, rainfall, temperature
 
-File list: wxsum.ado wxsum.sthlp rain.dta temp.dta
+File list: wxsum.ado wxsum.sthlp wxprep.ado wxprep.sthlp wxsum_rain.dta wxsum_temp.dta
+           examples/hh_panel.dta examples/births.dta examples/weather_hourly.dta
+           examples/wxsum_examples.do examples/wxsum_examples.log
+           examples/make_example_data.do
 
-Notes: The datasets rain.dta and temp.dta have been included for testing and demonstration purposes only. There are no additional user-written software packages required to run this command.
+Notes: wxprep is a companion command that converts long daily data, or wide data with other variable names, to the layout wxsum needs. The datasets wxsum_rain.dta and wxsum_temp.dta, and the files in examples/, are included for testing and demonstration purposes only; hh_panel.dta, births.dta, and weather_hourly.dta are simulated (examples/make_example_data.do creates them from wxsum_rain.dta and wxsum_temp.dta). examples/wxsum_examples.do runs the examples in the article, and examples/wxsum_examples.log is its output. There are no additional user-written software packages required to run this command.

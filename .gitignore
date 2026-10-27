@@ -1,5 +1,5 @@
 # Data files (.sav, .rar) are not version controlled
-# Bundled sample data (rain.dta, temp.dta, rain.csv, temp.csv) ARE tracked
+# Bundled sample data (wxsum_rain.dta, wxsum_temp.dta) ARE tracked
 
 *.sav
 *.rar
@@ -9,3 +9,8 @@
 *.log
 *.code-workspace
 codex_*.do
+
+# the example log is part of the package; the files the examples save are not
+!examples/wxsum_examples.log
+examples/rain_season.dta
+examples/rain_long.dta

@@ -1,0 +1,86 @@
+[
+  {
+    "name": "package_file:wxsum.ado",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxsum.sthlp",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxprep.ado",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:wxprep.sthlp",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:rain.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:temp.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/hh_panel.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/births.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/weather_hourly.dta",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/wxsum_examples.do",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/wxsum_examples.log",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "package_file:examples/make_example_data.do",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "documented_file:examples/wxsum_examples.do",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  },
+  {
+    "name": "documented_file:examples/wxsum_examples.log",
+    "group": "packaging",
+    "status": "PASS",
+    "rc": 0
+  }
+]

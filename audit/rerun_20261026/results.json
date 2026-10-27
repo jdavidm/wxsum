@@ -1,0 +1,1004 @@
+{
+  "source": "C:\\Users\\aljos\\AppData\\Local\\Temp\\claude\\C--Users-aljos-git-weather-or-not-complete-replication\\d8bead37-47d3-4805-ba70-5a1953e0916e\\scratchpad\\pkg_20261026",
+  "stata": "C:\\Program Files\\Stata18\\StataMP-64.exe",
+  "generated_at": "2026-10-26T07:24:59.218869+00:00",
+  "elapsed_seconds": 11.86,
+  "complete": true,
+  "stata_cases": 151,
+  "expected_stata_cases": 151,
+  "passed": 165,
+  "failed": 0,
+  "results": [
+    {
+      "name": "package_file:wxsum.ado",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:wxsum.sthlp",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:wxprep.ado",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:wxprep.sthlp",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:wxsum_rain.dta",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:wxsum_temp.dta",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/hh_panel.dta",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/births.dta",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/weather_hourly.dta",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/wxsum_examples.do",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/wxsum_examples.log",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "package_file:examples/make_example_data.do",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "documented_file:examples/wxsum_examples.do",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "documented_file:examples/wxsum_examples.log",
+      "group": "packaging",
+      "status": "PASS",
+      "rc": 0
+    },
+    {
+      "name": "rain_hand_calculated",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_hand_calculated",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "minobs_and_missing_bins",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rain_singleton",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rain_all_missing",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rain_constant",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rain_exhaustive_729_spell_patterns",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_exhaustive_729_spell_patterns",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_bins_1",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_bins_2",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_bins_4",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_bins_42",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rain_cuts_edges",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "temp_cuts_edges",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "kdd_separate_base",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "outstub_and_string_keep",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "stored_results_and_metadata",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rollback_forced_long",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "rollback_forced_wide",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_type",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_no_mode",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_mixed_modes",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_partial_calendar",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bad_month",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_fractional_day",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_invalid_month_day",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_heat",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_glo",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_ghi",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_gdd_order",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_rain_temp_opt",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_temp_rain_opt",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bin_conflict",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bad_cut_order",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_duplicate_cuts",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_ref_conflict",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_ref_min",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_minobs_zero",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_negative_rain_threshold",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bad_keep",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bad_shape",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_long_stub",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_gdd_inexact_range",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_gdd_too_many_categories",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_bin_too_many",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_rain_threshold",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_gdd_lo",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_gdd_hi",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_heat_threshold",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_kdd_base",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "reject_missing_tmp_binlo",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "name_clash_rollback",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "year_clash",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "gdd_categories_edges",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "save_success_and_overwrite",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_fill",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_nofill",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_daily",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_datetime",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_leap_datetime",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_integer",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_string",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_daily_mean",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_daily_sum",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_daily_min",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_daily_max",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_duplicate",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_changed",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_missing_id",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_invalid_date",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_bad_stub",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_value_in_id",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_reject_empty_selection",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_if_in",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_date_also_value",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_roundtrip_exact",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_single_day_roundtrip",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_multi_id",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_consecutive",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_parsed_gap",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_reject_clash",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_reject_invalid",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_reject_duplicate",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_tolong_duplicate_id",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_tolong_name_conflict",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_january_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_january_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_january_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_january_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_cross_year_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_cross_year_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_cross_year_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_cross_year_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_leap_day_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_leap_day_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_leap_day_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_leap_day_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_unit_rolling_strict",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_unit_baseline_strict",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_unit_rolling_partial",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_unit_baseline_partial",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_event_lag_-2",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_event_lag_0",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_rain_event_lag_3",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_january_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_january_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_january_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_january_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_cross_year_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_cross_year_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_cross_year_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_cross_year_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_leap_day_rolling_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_leap_day_rolling_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_leap_day_baseline_long",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_leap_day_baseline_wide",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_unit_rolling_strict",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_unit_baseline_strict",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_unit_rolling_partial",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_unit_baseline_partial",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_event_lag_-2",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_event_lag_0",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "oracle_temp_event_lag_3",
+      "group": "oracle",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "save_failure_atomic_wxsum",
+      "group": "io",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "save_failure_atomic_prep_tolong",
+      "group": "io",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "save_failure_atomic_prep_towide",
+      "group": "io",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "documented_longest_heat_formula",
+      "group": "documentation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_early_year_eight_digit_names",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "prep_rename_early_year",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "default_ref_min_strict",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "relaxed_ref_min",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "calendar_interior_year_no_daily_variables",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "february_last_day_2019",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "february_last_day_2020",
+      "group": "behavior",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "unit_reject_reversed",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "unit_reject_fractional",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "unit_reject_datetime",
+      "group": "validation",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "maxvar_wxsum",
+      "group": "capacity",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "maxvar_wxprep",
+      "group": "capacity",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "kelvin_transform_roundtrip",
+      "group": "integration",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "merge_and_analysis",
+      "group": "integration",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "bundled_rain_dta_oracle",
+      "group": "bundled",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "bundled_rain_sample_cross_year",
+      "group": "bundled",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "performance_rain_1000",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "performance_rain_10000",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "bundled_temp_dta_oracle",
+      "group": "bundled",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "bundled_temp_sample_cross_year",
+      "group": "bundled",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "performance_temp_1000",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "performance_temp_10000",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "chunk_boundary_calendar_12000x366",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    },
+    {
+      "name": "chunk_boundary_unit_12000x366",
+      "group": "performance",
+      "status": "PASS",
+      "rc": "0"
+    }
+  ],
+  "source_changed": []
+}
