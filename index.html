@@ -150,7 +150,7 @@ wxsum stub, type(rain|temp) event_date(varname) days(#) [lag(#) partial options]
 <p>These are the examples of the article. <code>examples/wxsum_examples.do</code> runs all twelve, and <code>examples/wxsum_examples.log</code> shows their output. Run them in the folder where <code>net get wxsum</code> copied the files (help <code>wxsum</code> has examples 1-9 and help <code>wxprep</code> examples 10-12). Besides <code>wxsum_rain.dta</code> and <code>wxsum_temp.dta</code>, the examples use three datasets:</p>
 <ul>
 <li><code>hh_panel.dta</code>: 10 households, 2013-2023, with planting and harvest dates and crop yields</li>
-<li><code>births.dta</code>: 300 births, 2014-2023, with birth weights</li>
+<li><code>wxsum_births.dta</code>: 300 births, 2014-2023, with birth weights</li>
 <li><code>weather_hourly.dta</code>: hourly temperature (kelvin) and relative humidity for 2022</li>
 </ul>
 <p>These three datasets are simulated (<code>examples/make_example_data.do</code> creates them from <code>wxsum_rain.dta</code> and <code>wxsum_temp.dta</code>); they illustrate the commands and are not observed data.</p>
@@ -227,7 +227,7 @@ list hhid year plant harvest r_total t_gdd t_kdd in 1/4, noobs
 xtset hhid year
 xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)</code></pre>
 <h3>Example 9. Heat exposure in each trimester of pregnancy</h3>
-<pre><code>use births, clear
+<pre><code>use wxsum_births, clear
 describe
 merge m:1 hhid using wxsum_temp, nogenerate
 * third trimester: the 91 days before birth

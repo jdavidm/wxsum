@@ -588,7 +588,7 @@ Using either \texttt{lr\_years()} or \texttt{baseline()}, the reference period o
 
 \section{Examples} \label{sec:examples}
 
-We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{wxsum\_rain.dta}) and daily temperature in Celsius (\texttt{wxsum\_temp.dta}) both of which come from ERA5 \citep{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11.}
+We illustrate the many features of \texttt{wxsum} and \texttt{wxprep} using five data sets that are included with the package. Two are household-level data, identified by \texttt{hhid}, of daily rainfall in millimeters (\texttt{wxsum\_rain.dta}) and daily temperature in Celsius (\texttt{wxsum\_temp.dta}) both of which come from ERA5 \citep{ERA5}. Three additional datasets were simulated from them: a household panel with planting and harvest dates and crop yields (\texttt{hh\_panel.dta}); a household panel with birth dates and birth weights for children (\texttt{wxsum\_births.dta}); and a household panel with hourly temperature and relative humidity (\texttt{weather\_hourly.dta}).\footnote{The \texttt{wxsum} package and help files for \texttt{wxsum} and \texttt{wxprep} contain 12 examples. In this article we limit presentation to eight: examples 1, 3, 4, 5, 8, 9, 10, and 11.}
 
 \subsection{Rainfall in a calendar window} \label{sec:ex-rain}
 
@@ -812,10 +812,10 @@ Calendar windows apply the same dates to every observation, but many application
 \subsection{Heat exposure during pregnancy}
 \label{sec:ex-births}
 
-An event-based window ends the day before an event and extends back a given number of days. The simulated \texttt{births.dta} records the birth date and birth weight of 300 children born from 2014 through 2023 and the household that locates each birth in the temperature data. We approximate each trimester by 91 days: \texttt{event\_date(birthdate)} with \texttt{days(91)} gives the third, and \texttt{lag(91)} and \texttt{lag(182)} move that window back to the second and first trimester.
+An event-based window ends the day before an event and extends back a given number of days. The simulated \texttt{wxsum\_births.dta} records the birth date and birth weight of 300 children born from 2014 through 2023 and the household that locates each birth in the temperature data. We approximate each trimester by 91 days: \texttt{event\_date(birthdate)} with \texttt{days(91)} gives the third, and \texttt{lag(91)} and \texttt{lag(182)} move that window back to the second and first trimester.
 
 \begin{stlog}
-. use births, clear
+. use wxsum_births, clear
 (Simulated births for the wxsum examples)
 {\smallskip}
 . merge m:1 hhid using wxsum_temp, nogenerate
@@ -862,7 +862,7 @@ An event-based window ends the day before an event and extends back a given numb
 ------------------------------------------------------------------------------
 \end{stlog}
 
-\noindent The birth weights were simulated to fall by 4~grams for each heat day in the second trimester and by 9~grams for each heat day in the third (see \texttt{notes} in \texttt{births.dta}). The regression attributes the largest effect to the third trimester, $-14.0$~grams per heat day, with a 95\% confidence interval that contains the simulated value.
+\noindent The birth weights were simulated to fall by 4~grams for each heat day in the second trimester and by 9~grams for each heat day in the third (see \texttt{notes} in \texttt{wxsum\_births.dta}). The regression attributes the largest effect to the third trimester, $-14.0$~grams per heat day, with a 95\% confidence interval that contains the simulated value.
 
 \subsection{Renaming daily variables} \label{sec:ex-rename}
 

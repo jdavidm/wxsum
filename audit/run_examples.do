@@ -2,7 +2,7 @@
 * task: rebuild the example datasets and the example log
 * created on: 16 oct 2026
 * created by: claude
-* edited on: 26 oct 2026
+* edited on: 2 nov 2026
 * edited by: claude
 * Stata v.15.1
 *
@@ -68,7 +68,7 @@
 		capture noisily do make_example_data.do
 		local           rc = _rc
 		if !`rc' {
-			foreach f in hh_panel.dta births.dta weather_hourly.dta {
+			foreach f in hh_panel.dta wxsum_births.dta weather_hourly.dta {
 				copy            "`f'" "`root'/examples/`f'", replace
 			}
 		}

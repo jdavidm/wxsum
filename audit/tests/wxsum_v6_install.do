@@ -2,7 +2,7 @@
 * task: test package installation and ancillary file workflow
 * created on: oct 2026
 * created by: jdm
-* edited on: 26 oct 2026
+* edited on: 2 nov 2026
 * edited by: claude
 * Stata v.15.1
 
@@ -74,19 +74,19 @@
 		erase           "`f'"
 	}
 	net get         wxsum, replace
-	foreach f in wxsum_rain.dta wxsum_temp.dta hh_panel.dta births.dta weather_hourly.dta ///
+	foreach f in wxsum_rain.dta wxsum_temp.dta hh_panel.dta wxsum_births.dta weather_hourly.dta ///
 	    wxsum_examples.do wxsum_examples.log make_example_data.do {
 		confirm file    "`f'"
 	}
 
 * check that make_example_data.do reproduces the distributed example datasets
-	foreach f in hh_panel births weather_hourly {
+	foreach f in hh_panel wxsum_births weather_hourly {
 		copy            "`f'.dta" "shipped_`f'.dta"
 	}
 	capture noisily do make_example_data.do
 	local           rc = _rc
 	if !`rc' {
-		foreach f in hh_panel births weather_hourly {
+		foreach f in hh_panel wxsum_births weather_hourly {
 			use             "`f'.dta", clear
 			capture noisily cf _all using "shipped_`f'.dta", all
 			if _rc {

@@ -2,7 +2,7 @@
 * task: generate simulated example datasets for wxsum
 * created on: oct 2026
 * created by: jdm
-* edited on: 26 oct 2026
+* edited on: 2 nov 2026
 * edited by: claude
 * Stata v.15.1
 *
@@ -12,7 +12,7 @@
 *
 *   hh_panel.dta         10 households, 2013-2023: planting and harvest dates
 *                        and a simulated crop yield
-*   births.dta           300 simulated births, 2014-2023, with birth weights
+*   wxsum_births.dta     300 simulated births, 2014-2023, with birth weights
 *   weather_hourly.dta   hourly 2-metre temperature (kelvin) and relative
 *                        humidity for 2022, made by adding a daily cycle and
 *                        noise to the daily data in wxsum_temp.dta and
@@ -123,7 +123,7 @@
 
 * save births dataset
 	compress
-	save            births, replace
+	save            wxsum_births, replace
 
 **********************************************************************
 **# 3 - synthetic hourly weather for 2022
