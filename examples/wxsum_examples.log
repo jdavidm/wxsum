@@ -590,12 +590,12 @@ corr(u_i, Xb) = 0.0027                          Prob > F          =     0.0000
 . **********************************************************************
 . 
 . * load births data and merge temperature data
-.         use             births, clear
+.         use             wxsum_births, clear
 (Simulated births for the wxsum examples)
 
 .         describe
 
-Contains data from births.dta
+Contains data from wxsum_births.dta
  Observations:           300                  Simulated births for the wxsum
                                                 examples
     Variables:             4                  26 Oct 2026 09:22
