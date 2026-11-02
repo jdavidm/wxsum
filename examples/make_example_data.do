@@ -3,7 +3,7 @@
 * created on: oct 2026
 * created by: jdm
 * edited on: 2 nov 2026
-* edited by: claude
+* edited by: jdm
 * Stata v.15.1
 *
 * Creates the three example datasets used by wxsum_examples.do from the
@@ -40,7 +40,7 @@
 
 * load rainfall data and reshape to long
 	use             wxsum_rain, clear
-	quietly wxprep tolong rf_, id(hhid) generate(rain) clear
+	qui 			wxprep tolong rf_, id(hhid) generate(rain) clear
 	generate        year = year(date)
 	keep if         inrange(year, 2013, 2023)
 
@@ -60,9 +60,9 @@
 * weather of each household's own season
 	merge m:1       hhid using wxsum_rain, assert(match) nogenerate
 	merge m:1       hhid using wxsum_temp, assert(match) nogenerate
-	quietly wxsum   rf_, type(rain) start(plant) end(harvest) outstub(r_) ///
+	qui wxsum   rf_, type(rain) start(plant) end(harvest) outstub(r_) ///
 	                keep(hhid year plant harvest tmp_*)
-	quietly wxsum   tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) ///
+	qui wxsum   tmp_, type(temp) start(plant) end(harvest) gdd_lo(10) gdd_hi(30) ///
 	                heat_threshold(29) outstub(t_) keep(hhid year plant harvest r_total)
 
 * yield (kg/ha): household effect, season rain, gdd, kdd, and noise
@@ -102,9 +102,9 @@
 	merge m:1       hhid using wxsum_temp, keep(match) nogenerate
 
 * heat days in trimesters 2 and 3
-	quietly wxsum   tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) ///
+	qui wxsum   tmp_, type(temp) event_date(birthdate) days(91) gdd_lo(10) ///
 	                gdd_hi(30) heat_threshold(30) outstub(tri3_) keep(childid hhid birthdate tmp_*)
-	quietly wxsum   tmp_, type(temp) event_date(birthdate) days(91) lag(91) gdd_lo(10) ///
+	qui wxsum   tmp_, type(temp) event_date(birthdate) days(91) lag(91) gdd_lo(10) ///
 	                gdd_hi(30) heat_threshold(30) outstub(tri2_) keep(childid hhid birthdate tri3_heatdays)
 
 * simulate birth weight from heat exposure
@@ -131,11 +131,11 @@
 
 * reshape 2022 rainfall and temperature data to long
 	use             hhid rf_2022* using wxsum_rain, clear
-	quietly wxprep tolong rf_, id(hhid) generate(rain) clear
+	qui 			wxprep tolong rf_, id(hhid) generate(rain) clear
 	tempfile        rain22
 	save            `rain22'
 	use             hhid tmp_2022* using wxsum_temp, clear
-	quietly wxprep tolong tmp_, id(hhid) generate(temp) clear
+	qui 			wxprep tolong tmp_, id(hhid) generate(temp) clear
 	merge 1:1       hhid date using `rain22', assert(match) nogenerate
 
 * monthly wetness factor and daily relative humidity
