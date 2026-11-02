@@ -102,7 +102,7 @@ Definitions:
 These are the examples of the article. `examples/wxsum_examples.do` runs all twelve, and `examples/wxsum_examples.log` shows their output. Run them in the folder where `net get wxsum` copied the files (help `wxsum` has examples 1-9 and help `wxprep` examples 10-12). Besides `wxsum_rain.dta` and `wxsum_temp.dta`, the examples use three datasets:
 
 - `hh_panel.dta`: 10 households, 2013-2023, with planting and harvest dates and crop yields
-- `births.dta`: 300 births, 2014-2023, with birth weights
+- `wxsum_births.dta`: 300 births, 2014-2023, with birth weights
 - `weather_hourly.dta`: hourly temperature (kelvin) and relative humidity for 2022
 
 These three datasets are simulated (`examples/make_example_data.do` creates them from `wxsum_rain.dta` and `wxsum_temp.dta`); they illustrate the commands and are not observed data.
@@ -217,7 +217,7 @@ xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)
 ### Example 9. Heat exposure in each trimester of pregnancy
 
 ```stata
-use births, clear
+use wxsum_births, clear
 describe
 merge m:1 hhid using wxsum_temp, nogenerate
 * third trimester: the 91 days before birth

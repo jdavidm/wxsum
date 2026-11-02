@@ -413,7 +413,7 @@ runs all twelve and {cmd:wxsum_examples.log} shows their output;
 into the current folder, where the examples run. Examples 1-9 are below;
 examples 10-12, which start with {cmd:wxprep}, are in
 {help wxprep##examples:help wxprep}. The example datasets
-{cmd:hh_panel.dta}, {cmd:births.dta}, and {cmd:weather_hourly.dta} are
+{cmd:hh_panel.dta}, {cmd:wxsum_births.dta}, and {cmd:weather_hourly.dta} are
 simulated: they illustrate the commands and are not observed data.
 
 {pstd}Setup: the sample data have about 7,700 daily variables, more than
@@ -500,7 +500,7 @@ the default {cmd:maxvar}{p_end}
 {phang2}{cmd:. xtreg yield r_total t_gdd t_kdd, fe vce(cluster hhid)}{p_end}
 
 {pstd}{bf:Example 9.} Heat exposure in each trimester of pregnancy{p_end}
-{phang2}{cmd:. use births, clear}{p_end}
+{phang2}{cmd:. use wxsum_births, clear}{p_end}
 {phang2}{cmd:. describe}{p_end}
 {phang2}{cmd:. merge m:1 hhid using wxsum_temp, nogenerate}{p_end}
 {pstd}Third trimester: the 91 days before birth{p_end}

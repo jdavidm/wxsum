@@ -9,7 +9,7 @@
 *
 * Run it in the folder where -net get wxsum- copied the sample data
 * (wxsum_rain.dta, wxsum_temp.dta) and the example datasets (hh_panel.dta,
-* births.dta, weather_hourly.dta):
+* wxsum_births.dta, weather_hourly.dta):
 *
 *     net install wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
 *     net get wxsum, from("https://raw.githubusercontent.com/jdavidm/wxsum/main/")
@@ -18,7 +18,7 @@
 * The log is wxsum_examples.log in the same folder. Examples 7 and 12 also
 * save rain_season.dta and rain_long.dta there.
 *
-* hh_panel.dta, births.dta, and weather_hourly.dta are SIMULATED: they
+* hh_panel.dta, wxsum_births.dta, and weather_hourly.dta are SIMULATED: they
 * illustrate the commands and are not observed data (make_example_data.do
 * creates them from wxsum_rain.dta and wxsum_temp.dta).
 *
@@ -214,7 +214,7 @@
 **********************************************************************
 
 * load births data and merge temperature data
-	use             births, clear
+	use             wxsum_births, clear
 	describe
 	merge m:1       hhid using wxsum_temp, nogenerate
 
